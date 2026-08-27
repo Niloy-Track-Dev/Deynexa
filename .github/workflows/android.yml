@@ -41,7 +41,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.3.1'
-          cache-disabled: false
+          cache-disabled: true
 
       - name: Ensure Gradle Wrapper
         run: |
@@ -49,6 +49,9 @@ jobs:
             gradle wrapper --gradle-version 9.3.1
           fi
           chmod +x ./gradlew
+
+      - name: Clear Gradle Cache
+        run: ./gradlew clean --no-daemon
 
       - name: Prepare Signing Keystore
         env:
@@ -82,7 +85,7 @@ jobs:
           STORE_PASSWORD: ${{ env.STORE_PASSWORD }}
           KEY_PASSWORD: ${{ env.KEY_PASSWORD }}
           KEY_ALIAS: ${{ env.KEY_ALIAS }}
-        run: ./gradlew clean :app:testDebugUnitTest --no-daemon --stacktrace --no-build-cache
+        run: ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
 
       - name: Build Release APK
         env:
@@ -90,7 +93,7 @@ jobs:
           STORE_PASSWORD: ${{ env.STORE_PASSWORD }}
           KEY_PASSWORD: ${{ env.KEY_PASSWORD }}
           KEY_ALIAS: ${{ env.KEY_ALIAS }}
-        run: ./gradlew clean :app:assembleRelease --no-daemon --stacktrace --no-build-cache
+        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
 
       - name: Locate & Prepare Release Artifact
         id: prepare-apk
