@@ -1,0 +1,6 @@
+{
+  "name": "Daynexa",
+  "description": "Build Better Days. A privacy-first, fully offline daily routine and task tracking application.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
