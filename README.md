@@ -7,23 +7,25 @@
 <p>A privacy-first, 100% offline Android daily routine and habit management application built with Jetpack Compose, Kotlin Coroutines, and Room.</p>
 
 <p>
-  <a href="https://github.com/niloymitra/daynexa/releases/latest">
-    <img src="https://img.shields.io/badge/Download%20APK-v0.1.0%20Latest-2ea44f?style=for-the-badge&logo=android&logoColor=white" alt="Download APK" />
+  <a href="https://github.com/Niloy-Track-Dev/Deynexa/releases">
+    <img src="https://img.shields.io/badge/Download%20Apk-Latest%20Release-2ea44f?style=for-the-badge&logo=android&logoColor=white" alt="Download Apk" />
   </a>
-  <a href="https://github.com/niloymitra/daynexa/actions/workflows/android.yml">
-    <img src="https://img.shields.io/badge/CI%2FCD-Passing-0969da?style=for-the-badge&logo=githubactions&logoColor=white" alt="CI Status" />
+  <a href="https://github.com/Niloy-Track-Dev/Deynexa/actions/workflows/android.yml">
+    <img src="https://img.shields.io/badge/CI%2FCD-Automated-0969da?style=for-the-badge&logo=githubactions&logoColor=white" alt="CI Status" />
   </a>
 </p>
 
 <p>
-  <a href="https://github.com/niloymitra/daynexa/releases"><img src="https://img.shields.io/github/v/release/niloymitra/daynexa?color=blue&label=Release" alt="Latest Release" /></a>
+  <a href="https://github.com/Niloy-Track-Dev/Deynexa/releases"><img src="https://img.shields.io/badge/Release-v0.1.0-blue.svg" alt="Latest Release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-emerald.svg" alt="License: MIT" /></a>
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Platform-Android%208.0%2B%20%28API%2026%2B%29-brightgreen.svg" alt="Platform" /></a>
   <a href="#offline-architecture"><img src="https://img.shields.io/badge/Architecture-100%25%20Offline--First-blueviolet.svg" alt="Offline-First" /></a>
   <a href="#privacy-guarantees"><img src="https://img.shields.io/badge/Telemetry-Zero%20Tracking-black.svg" alt="Zero Telemetry" /></a>
 </p>
 
-[**Download Latest APK**](https://github.com/niloymitra/daynexa/releases/latest) • [**Report Bug**](https://github.com/niloymitra/daynexa/issues/new?template=bug_report.md) • [**Request Feature**](https://github.com/niloymitra/daynexa/issues/new?template=feature_request.md) • [**Documentation**](docs/ARCHITECTURE.md)
+<p>
+  👉 <a href="https://github.com/Niloy-Track-Dev/Deynexa/releases"><strong>[ Download Apk (GitHub Releases) ]</strong></a> 👈 • <a href="https://github.com/Niloy-Track-Dev/Deynexa/issues/new?template=bug_report.md"><strong>Report Bug</strong></a> • <a href="https://github.com/Niloy-Track-Dev/Deynexa/issues/new?template=feature_request.md"><strong>Request Feature</strong></a> • <a href="docs/ARCHITECTURE.md"><strong>Documentation</strong></a>
+</p>
 
 </div>
 
@@ -32,6 +34,7 @@
 ## 📑 Table of Contents
 
 - [Overview](#overview)
+- [📥 Download Apk & Releases](#download-apk)
 - [Key Features](#features)
   - [Routine & Habit Scheduling](#-routine--habit-scheduling)
   - [Visual Analytics & Consistency Heatmap](#-visual-analytics--consistency-heatmap)
@@ -44,7 +47,6 @@
 - [Offline Architecture](#offline-architecture)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
-- [Download & Installation](#download--installation)
 - [Building from Source](#building-from-source)
 - [CI/CD Automation](#cicd-pipeline)
 - [Roadmap](#roadmap)
@@ -59,6 +61,20 @@
 **Daynexa** is a lightweight, distraction-free productivity application engineered to help you design, track, and sustain meaningful daily routines. Unlike conventional productivity tools that require cloud accounts, display advertisements, or monetize your activity logs, Daynexa operates **100% locally on your device**.
 
 Featuring deterministic schedule computation, an interactive monthly calendar matrix, visual streak analytics, a 14-week consistency heatmap, and complete JSON backup export/import, Daynexa gives you total control over your habits without sacrificing your privacy.
+
+---
+
+## <a id="download-apk"></a>📥 Download Apk
+
+You can download the latest signed production APK directly from the GitHub Releases section:
+
+👉 **[Go to GitHub Releases Section & Download Apk](https://github.com/Niloy-Track-Dev/Deynexa/releases)** 👈
+
+### Installation Steps
+1. Navigate to the **[Releases](https://github.com/Niloy-Track-Dev/Deynexa/releases)** section.
+2. Under the latest release (e.g. `v0.1.0`), look under **Assets**.
+3. Download the file **`Daynexa-v0.1.0-release.apk`**.
+4. Open the APK file on your Android device (Android 8.0+ / API 26+) and confirm installation.
 
 ---
 
@@ -181,7 +197,7 @@ For more architectural details, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 daynexa/
 ├── .github/
 │   ├── ISSUE_TEMPLATE/       # Structured bug report & feature request templates
-│   ├── workflows/            # GitHub Actions CI/CD (android.yml, release.yml)
+│   ├── workflows/            # GitHub Actions CI/CD (android.yml)
 │   └── PULL_REQUEST_TEMPLATE.md
 ├── app/
 │   ├── src/
@@ -208,16 +224,6 @@ daynexa/
 
 ---
 
-## Download & Installation
-
-You can download the pre-compiled, signed APK directly from GitHub:
-
-1. Visit the [**Latest Release Page**](https://github.com/niloymitra/daynexa/releases/latest).
-2. Under the **Assets** section, download `Daynexa-v*.apk` (or download the release artifact from the CI pipeline).
-3. On your Android device, open the downloaded APK and follow the system prompts to install.
-
----
-
 ## Building from Source
 
 ### Prerequisites
@@ -229,8 +235,8 @@ You can download the pre-compiled, signed APK directly from GitHub:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/niloymitra/daynexa.git
-   cd daynexa
+   git clone https://github.com/Niloy-Track-Dev/Deynexa.git
+   cd Deynexa
    ```
 
 2. **Run Unit Tests:**
@@ -267,7 +273,7 @@ Run Unit Tests (:app:testDebugUnitTest)
               ↓
 Build Signed Release APK (:app:assembleRelease)
               ↓
-Upload Artifact (daynexa-release-signed-apk)
+Publish GitHub Release & Upload APK Artifact
 ```
 
 ---

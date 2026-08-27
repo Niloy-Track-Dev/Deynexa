@@ -45,7 +45,7 @@ jobs:
       - name: Ensure Gradle Wrapper
         run: |
           if [ ! -f "./gradlew" ]; then
-            gradle wrapper
+            gradle wrapper --gradle-version 8.13
           fi
           chmod +x ./gradlew
 
