@@ -29,3 +29,4 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun taskOccurrenceDao(): TaskOccurrenceDao
     abstract fun settingDao(): SettingDao
 }
+

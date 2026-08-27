@@ -37,6 +37,11 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Clear Gradle Cache
+        run: |
+          ./gradlew clean || true
+          rm -rf .gradle
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
