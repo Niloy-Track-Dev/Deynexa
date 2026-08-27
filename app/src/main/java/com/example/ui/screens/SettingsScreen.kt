@@ -3,6 +3,8 @@ package com.example.ui.screens
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -234,6 +236,41 @@ fun SettingsScreen(
                 }
             }
 
+            // System & Release Section
+            item {
+                SettingsSection(title = "SYSTEM & RELEASES") {
+                    SettingsActionItem(
+                        icon = Icons.Outlined.SystemUpdate,
+                        title = "Download Latest Version",
+                        subtitle = "Check for updates and download APK on GitHub (v0.1.0)",
+                        onClick = {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/niloymitra/daynexa/releases"))
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Could not open release link: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
+
+                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                    SettingsActionItem(
+                        icon = Icons.Outlined.Code,
+                        title = "Open Source Repository",
+                        subtitle = "View source code, report bugs, and contribute on GitHub",
+                        onClick = {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/niloymitra/daynexa"))
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Could not open repository link: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
+                }
+            }
+
             // Danger Zone Section
             item {
                 SettingsSection(title = "DANGER ZONE") {
@@ -262,7 +299,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Build Better Days • v1.0.0",
+                        text = "Build Better Days • v0.1.0 (Build 1)",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

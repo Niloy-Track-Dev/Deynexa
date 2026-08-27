@@ -26,19 +26,14 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-
-      - name: Grant Execute Permission for Gradlew
-        run: |
-          if [ -f "./gradlew" ]; then
-            chmod +x ./gradlew
-          else
-            gradle wrapper
-            chmod +x ./gradlew
-          fi
+        with:
+          gradle-version: '8.13'
 
       - name: Prepare Signing Keystore
         env:
@@ -48,13 +43,13 @@ jobs:
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "Decoding release keystore from secrets..."
-            echo "$KEYSTORE_BASE64" | base64 --decode > my-upload-key.jks
+            echo "$KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/my-upload-key.jks"
             echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/my-upload-key.jks" >> $GITHUB_ENV
             echo "STORE_PASSWORD=$STORE_PASSWORD" >> $GITHUB_ENV
             echo "KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
           else
-            echo "No custom keystore secret provided. Creating CI signing keystore..."
-            keytool -genkey -v -keystore my-upload-key.jks \
+            echo "Generating fallback CI signing keystore..."
+            keytool -genkey -v -keystore "$GITHUB_WORKSPACE/my-upload-key.jks" \
               -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass android -keypass android \
               -dname "CN=Daynexa, OU=Daynexa, O=Niloy, L=Daynexa, S=Daynexa, C=US"
@@ -64,26 +59,34 @@ jobs:
           fi
 
       - name: Run Unit Tests
-        run: ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
+        env:
+          KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
+          STORE_PASSWORD: ${{ env.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ env.KEY_PASSWORD }}
+        run: gradle :app:testDebugUnitTest --no-daemon --stacktrace
 
       - name: Build Release APK
-        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
+        env:
+          KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
+          STORE_PASSWORD: ${{ env.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ env.KEY_PASSWORD }}
+        run: gradle :app:assembleRelease --no-daemon --stacktrace
 
-      - name: Verify Signed APK Output
+      - name: Verify APK Output
         id: verify-apk
         run: |
-          APK_PATH=$(find app/build/outputs/apk/release -type f -name "*.apk" | head -n 1)
+          APK_PATH=$(find app/build/outputs/apk -type f -name "*.apk" | head -n 1)
           if [ -z "$APK_PATH" ] || [ ! -f "$APK_PATH" ]; then
-            echo "::error::Release APK was not generated in app/build/outputs/apk/release"
+            echo "::error::Release APK was not generated in app/build/outputs/apk"
             exit 1
           fi
-          echo "Found signed release APK at: $APK_PATH"
+          echo "Found release APK at: $APK_PATH"
           echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Upload Signed APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: daynexa-release-signed-apk
-          path: app/build/outputs/apk/release/*.apk
+          path: app/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 14
