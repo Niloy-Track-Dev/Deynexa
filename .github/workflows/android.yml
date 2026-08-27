@@ -95,14 +95,14 @@ jobs:
             exit 1
           fi
           echo "Found APK at: $APK_PATH"
-          cp "$APK_PATH" Daynexa-v0.1.0-release.apk
-          echo "apk_path=Daynexa-v0.1.0-release.apk" >> "$GITHUB_OUTPUT"
+          cp "$APK_PATH" Daynexa-v0.1.1-release.apk
+          echo "apk_path=Daynexa-v0.1.1-release.apk" >> "$GITHUB_OUTPUT"
 
       - name: Upload APK Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Daynexa-Release-APK
-          path: Daynexa-v0.1.0-release.apk
+          path: Daynexa-v0.1.1-release.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -110,25 +110,25 @@ jobs:
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          name: "Daynexa v0.1.0 (MVP Release)"
-          tag_name: "v0.1.0"
-          files: Daynexa-v0.1.0-release.apk
+          name: "v0.1.1"
+          tag_name: "v0.1.1"
+          files: Daynexa-v0.1.1-release.apk
           draft: false
           prerelease: false
           body: |
-            ### 🚀 Daynexa v0.1.0 Release
+            ### Daynexa v0.1.1 Release
             
-            Welcome to the initial release of **Daynexa** — the privacy-first, 100% offline daily routine and habit management Android application.
+            Welcome to release v0.1.1 of **Daynexa** — the privacy-first, 100% offline daily routine and habit management Android application.
             
-            #### ✨ Highlights
-            - 📅 Deterministic daily routine and recurring habit scheduling
-            - 📊 14-week consistency heatmap & streak performance analytics
-            - 🗓️ Interactive monthly calendar matrix with completion indicators
-            - 🏷️ Custom categories with custom color palettes and icons
-            - 🔒 100% Offline-First (Room SQLite) & Zero Telemetry
-            - 💾 JSON Database Backup & Restore
+            #### Highlights
+            - Deterministic daily routine and recurring habit scheduling
+            - 14-week consistency heatmap & streak performance analytics
+            - Interactive monthly calendar matrix with completion indicators
+            - Custom categories with custom color palettes and icons
+            - 100% Offline-First (Room SQLite) & Zero Telemetry
+            - JSON Database Backup & Restore
             
-            #### 📦 Download
-            - Download `Daynexa-v0.1.0-release.apk` below and install directly on Android 8.0+ (API 26+).
+            #### Download
+            - Download `Daynexa-v0.1.1-release.apk` below and install directly on Android 8.0+ (API 26+).
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

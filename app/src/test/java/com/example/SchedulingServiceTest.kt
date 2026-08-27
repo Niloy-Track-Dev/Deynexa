@@ -1,9 +1,9 @@
-package com.example
+package com.niloy
 
-import com.example.domain.model.Task
-import com.example.domain.model.TaskOccurrence
-import com.example.domain.model.TaskState
-import com.example.domain.service.SchedulingService
+import com.niloy.domain.model.Task
+import com.niloy.domain.model.TaskOccurrence
+import com.niloy.domain.model.TaskState
+import com.niloy.domain.service.SchedulingService
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.DayOfWeek

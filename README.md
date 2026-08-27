@@ -16,7 +16,7 @@
 </p>
 
 <p>
-  <a href="https://github.com/Niloy-Track-Dev/Deynexa/releases"><img src="https://img.shields.io/badge/Release-v0.1.0-blue.svg" alt="Latest Release" /></a>
+  <a href="https://github.com/Niloy-Track-Dev/Deynexa/releases"><img src="https://img.shields.io/badge/Release-v0.1.1-blue.svg" alt="Latest Release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-emerald.svg" alt="License: MIT" /></a>
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Platform-Android%208.0%2B%20%28API%2026%2B%29-brightgreen.svg" alt="Platform" /></a>
   <a href="#offline-architecture"><img src="https://img.shields.io/badge/Architecture-100%25%20Offline--First-blueviolet.svg" alt="Offline-First" /></a>
@@ -72,8 +72,8 @@ You can download the latest signed production APK directly from the GitHub Relea
 
 ### Installation Steps
 1. Navigate to the **[Releases](https://github.com/Niloy-Track-Dev/Deynexa/releases)** section.
-2. Under the latest release (e.g. `v0.1.0`), look under **Assets**.
-3. Download the file **`Daynexa-v0.1.0-release.apk`**.
+2. Under the latest release (e.g. `v0.1.1`), look under **Assets**.
+3. Download the file **`Daynexa-v0.1.1-release.apk`**.
 4. Open the APK file on your Android device (Android 8.0+ / API 26+) and confirm installation.
 
 ---
@@ -202,7 +202,7 @@ daynexa/
 ├── app/
 │   ├── src/
 │   │   ├── main/
-│   │   │   ├── java/com/example/
+│   │   │   ├── java/com.niloy/
 │   │   │   │   ├── data/     # Room Database, DAOs, Entities, Repository impl
 │   │   │   │   ├── domain/   # Domain Models, Repository interface, Services
 │   │   │   │   ├── ui/       # Jetpack Compose Screens, Components, Theme
