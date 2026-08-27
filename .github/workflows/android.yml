@@ -55,6 +55,7 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "Decoding release keystore from GitHub Secrets..."
@@ -62,6 +63,7 @@ jobs:
             echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/my-upload-key.jks" >> $GITHUB_ENV
             echo "STORE_PASSWORD=$STORE_PASSWORD" >> $GITHUB_ENV
             echo "KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
+            echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
           else
             echo "Generating automated fallback release keystore..."
             keytool -genkey -v -keystore "$GITHUB_WORKSPACE/my-upload-key.jks" \
@@ -71,6 +73,7 @@ jobs:
             echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/my-upload-key.jks" >> $GITHUB_ENV
             echo "STORE_PASSWORD=android" >> $GITHUB_ENV
             echo "KEY_PASSWORD=android" >> $GITHUB_ENV
+            echo "KEY_ALIAS=upload" >> $GITHUB_ENV
           fi
 
       - name: Run Unit Tests
@@ -78,14 +81,16 @@ jobs:
           KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
           STORE_PASSWORD: ${{ env.STORE_PASSWORD }}
           KEY_PASSWORD: ${{ env.KEY_PASSWORD }}
-        run: ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
+          KEY_ALIAS: ${{ env.KEY_ALIAS }}
+        run: ./gradlew clean :app:testDebugUnitTest --no-daemon --stacktrace --no-build-cache
 
       - name: Build Release APK
         env:
           KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
           STORE_PASSWORD: ${{ env.STORE_PASSWORD }}
           KEY_PASSWORD: ${{ env.KEY_PASSWORD }}
-        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
+          KEY_ALIAS: ${{ env.KEY_ALIAS }}
+        run: ./gradlew clean :app:assembleRelease --no-daemon --stacktrace --no-build-cache
 
       - name: Locate & Prepare Release Artifact
         id: prepare-apk
