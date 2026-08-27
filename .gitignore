@@ -1,18 +1,51 @@
-*.iml
-.gradle
-.kotlin
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+# Built application files
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Gradle build cache & outputs
+.gradle/
+build/
+app/build/
+.build-outputs/
+
+# Local configuration and environment variables
 local.properties
 .env
+.env.local
+
+# Android Studio / IntelliJ IDEA
+*.iml
+.idea/
+.idea/caches/
+.idea/libraries/
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+
+# Kotlin & Compiler artifacts
+.kotlin/
+.externalNativeBuild/
+.cxx/
+
+# Signing keystores & secrets (DO NOT COMMIT)
+*.jks
+*.keystore
 debug.keystore
+debug.keystore.base64
+my-upload-key.jks
+secrets.properties
+
+# OS-generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Roborazzi test outputs (unverified screenshots / temporary artifacts)
+app/build/outputs/roborazzi/

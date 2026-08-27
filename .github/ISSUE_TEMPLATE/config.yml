@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/niloymitra/daynexa/discussions
+    about: Please ask questions and discuss new ideas in Discussions.
+  - name: Security Vulnerability Reporting
+    url: https://github.com/niloymitra/daynexa/security/policy
+    about: Please report security issues confidentially as described in SECURITY.md.
