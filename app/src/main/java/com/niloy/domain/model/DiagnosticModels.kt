@@ -66,6 +66,7 @@ data class DailyUsagePoint(
     val productiveMillis: Long,
     val nonProductiveMillis: Long,
     val neutralMillis: Long,
+    val focentraFocusMillis: Long = 0L,
     val totalMillis: Long
 )
 
@@ -76,6 +77,7 @@ data class DiagnosticSummary(
     val productiveTimeMillis: Long,
     val nonProductiveTimeMillis: Long,
     val neutralTimeMillis: Long,
+    val focentraFocusMillis: Long = 0L,
     val mostUsedApp: AppUsageInfo?,
     val appsCount: Int,
     val productiveAppsCount: Int = 0,

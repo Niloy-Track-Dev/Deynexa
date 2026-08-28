@@ -22,12 +22,14 @@ data class SettingsUiState(
     val isLoading: Boolean = true,
     val backupJson: String? = null,
     val importMessage: String? = null,
-    val isExportSuccess: Boolean = false
+    val isExportSuccess: Boolean = false,
+    val focentraStatus: com.niloy.domain.model.FocentraIntegrationStatus? = null
 )
 
 class SettingsViewModel(
     private val repository: TaskRepository,
-    private val backupService: BackupService
+    private val backupService: BackupService,
+    private val focentraIntegrationManager: com.niloy.domain.service.FocentraIntegrationManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -55,6 +57,39 @@ class SettingsViewModel(
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false) }
             }
+        }
+
+        viewModelScope.launch {
+            focentraIntegrationManager.integrationStatus.collect { status ->
+                _uiState.update { it.copy(focentraStatus = status) }
+            }
+        }
+    }
+
+    fun connectFocentra(consentGiven: Boolean) {
+        viewModelScope.launch {
+            focentraIntegrationManager.setConsent(consentGiven)
+            if (consentGiven) {
+                focentraIntegrationManager.setConnected(true)
+            }
+        }
+    }
+
+    fun disconnectFocentra() {
+        viewModelScope.launch {
+            focentraIntegrationManager.setConnected(false)
+        }
+    }
+
+    fun clearFocentraData() {
+        viewModelScope.launch {
+            focentraIntegrationManager.clearFocentraData()
+        }
+    }
+
+    fun syncFocentra() {
+        viewModelScope.launch {
+            focentraIntegrationManager.syncSessions()
         }
     }
 
@@ -105,11 +140,26 @@ class SettingsViewModel(
             val categories = repository.getCategories().first()
             val tasks = repository.getTasks().first()
             val occurrences = repository.getAllOccurrences().first()
+            val focentraSessions = focentraIntegrationManager.getAllSessions()
             
             val backupData = BackupData(
                 categories = categories,
                 tasks = tasks,
                 occurrences = occurrences,
+                focentraSessions = focentraSessions.map {
+                    com.niloy.domain.service.FocentraSessionBackup(
+                        sessionId = it.sessionId,
+                        subject = it.subject,
+                        topic = it.topic,
+                        startTime = it.startTime,
+                        endTime = it.endTime,
+                        duration = it.duration,
+                        completionStatus = it.completionStatus,
+                        focusScore = it.focusScore,
+                        schemaVersion = it.schemaVersion,
+                        importedAt = it.importedAt
+                    )
+                },
                 settings = mapOf(
                     "theme" to _uiState.value.theme,
                     "time_format" to _uiState.value.timeFormat,
@@ -135,6 +185,22 @@ class SettingsViewModel(
                 }
                 if (backupData.occurrences.isNotEmpty()) {
                     repository.saveOccurrences(backupData.occurrences)
+                }
+                backupData.focentraSessions?.let { sessions ->
+                    focentraIntegrationManager.insertOrUpdateSessions(sessions.map {
+                        com.niloy.data.local.entity.FocentraStudySessionEntity(
+                            sessionId = it.sessionId,
+                            subject = it.subject,
+                            topic = it.topic,
+                            startTime = it.startTime,
+                            endTime = it.endTime,
+                            duration = it.duration,
+                            completionStatus = it.completionStatus,
+                            focusScore = it.focusScore,
+                            schemaVersion = it.schemaVersion,
+                            importedAt = it.importedAt
+                        )
+                    })
                 }
                 backupData.settings.forEach { (k, v) ->
                     repository.saveSetting(k, v)
@@ -166,11 +232,12 @@ class SettingsViewModel(
 
     class Factory(
         private val repository: TaskRepository,
-        private val backupService: BackupService
+        private val backupService: BackupService,
+        private val focentraIntegrationManager: com.niloy.domain.service.FocentraIntegrationManager
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return SettingsViewModel(repository, backupService) as T
+            return SettingsViewModel(repository, backupService, focentraIntegrationManager) as T
         }
     }
 }

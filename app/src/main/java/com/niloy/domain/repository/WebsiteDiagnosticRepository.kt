@@ -35,8 +35,4 @@ interface WebsiteDiagnosticRepository {
     suspend fun addRule(pattern: String, ruleType: DomainRuleType, category: String, rating: WebsiteQualityRating)
     suspend fun deleteRule(id: Long)
     suspend fun toggleRule(id: Long, isEnabled: Boolean)
-
-    // Data Deletion
-    suspend fun clearTodayWebsiteData()
-    suspend fun clearAllWebsiteData()
 }

@@ -213,6 +213,117 @@ fun SettingsScreen(
                 }
             }
 
+            // Focentra Integration Section
+            item {
+                val focentraStatus = uiState.focentraStatus
+                var showConsentDialog by remember { mutableStateOf(false) }
+                var showClearFocentraDialog by remember { mutableStateOf(false) }
+
+                SettingsSection(title = "INTEGRATIONS • FOCENTRA") {
+                    SettingsRowItem(
+                        icon = Icons.Outlined.Hub,
+                        title = "Focentra Study Focus",
+                        subtitle = when {
+                            focentraStatus == null -> "Checking installation..."
+                            !focentraStatus.isInstalled -> "Focentra isn't installed on device"
+                            focentraStatus.isConnected -> "Connected • ${focentraStatus.totalImportedSessions} sessions imported"
+                            else -> "Not Connected (Optional)"
+                        },
+                        trailing = {
+                            if (focentraStatus?.isInstalled == true) {
+                                if (focentraStatus.isConnected) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        TextButton(onClick = { viewModel.syncFocentra() }) {
+                                            Text("Sync")
+                                        }
+                                        OutlinedButton(
+                                            onClick = { viewModel.disconnectFocentra() },
+                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                                        ) {
+                                            Text("Disconnect")
+                                        }
+                                    }
+                                } else {
+                                    Button(onClick = { showConsentDialog = true }) {
+                                        Text("Connect")
+                                    }
+                                }
+                            } else {
+                                TextButton(onClick = {
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Niloy-Track-Dev"))
+                                    context.startActivity(intent)
+                                }) {
+                                    Text("Get App")
+                                }
+                            }
+                        }
+                    )
+
+                    if (focentraStatus?.isInstalled == true && focentraStatus.isConnected) {
+                        Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                        SettingsActionItem(
+                            icon = Icons.Outlined.DeleteSweep,
+                            title = "Clear Focentra Data",
+                            subtitle = "Remove imported study sessions (${focentraStatus.totalImportedSessions} records)",
+                            titleColor = MaterialTheme.colorScheme.error,
+                            onClick = { showClearFocentraDialog = true }
+                        )
+                    }
+                }
+
+                if (showConsentDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showConsentDialog = false },
+                        title = { Text("Connect Focentra Integration") },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("Daynexa and Focentra communicate securely via local Android App-to-App IPC with zero cloud servers or telemetry.")
+                                Text("• Received data: Completed study sessions, duration, date, category, and subject.")
+                                Text("• Shared data: Optional daily productivity targets and completion context.")
+                                Text("You can disconnect at any time without losing your task history.")
+                            }
+                        },
+                        confirmButton = {
+                            Button(onClick = {
+                                showConsentDialog = false
+                                viewModel.connectFocentra(true)
+                            }) {
+                                Text("Agree & Connect")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showConsentDialog = false }) {
+                                Text("Cancel")
+                            }
+                        }
+                    )
+                }
+
+                if (showClearFocentraDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showClearFocentraDialog = false },
+                        title = { Text("Clear Focentra Imported Data?") },
+                        text = { Text("This will delete all imported Focentra study session records from Daynexa. Your tasks, habits, and app usage diagnostics will remain completely untouched.") },
+                        confirmButton = {
+                            Button(
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                                onClick = {
+                                    showClearFocentraDialog = false
+                                    viewModel.clearFocentraData()
+                                }
+                            ) {
+                                Text("Clear Data")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showClearFocentraDialog = false }) {
+                                Text("Cancel")
+                            }
+                        }
+                    )
+                }
+            }
+
             // Notifications & Smart Reminders Section
             item {
                 SettingsSection(title = "NOTIFICATIONS & REMINDERS") {

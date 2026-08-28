@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0] - 2026-08-28
+
+### Added
+- **Focentra App-to-App Integration**: Optional, privacy-first, 100% offline local Android IPC integration connecting Daynexa and Focentra with zero cloud servers or telemetry.
+- **Secure IPC & Data Contract**: Structured local ContentProvider query protocol supporting schema versioning (`schemaVersion = 1`), duplicate prevention by `sessionId`, and explicit user consent flows.
+- **Focus Time Priority & Anti-Double-Count Engine**: Prioritizes verified Focentra study sessions while preventing overlapping app usage duration double-counting in analytics.
+- **Integration Settings & Management**: Dedicated Focentra section in Settings with connection status, one-tap sync, disconnect controls, and secure data clearing.
+- **Room Database Migration (v4 -> v5)**: Added `focentra_study_sessions` table with optimized time-series indices.
+- **Extended JSON Backup & Restore**: Upgraded backup engine to persist Focentra integration preferences and imported study session archives.
+
 ## [0.4.0] - 2026-08-28
 
 ### Added

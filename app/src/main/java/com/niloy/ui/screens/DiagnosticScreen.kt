@@ -86,7 +86,6 @@ fun DiagnosticScreen(
 
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
-    var showClearDataConfirmDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -207,8 +206,7 @@ fun DiagnosticScreen(
                             }
                         },
                         onSelectStartDate = { showStartDatePicker = true },
-                        onSelectEndDate = { showEndDatePicker = true },
-                        onRequestClearData = { showClearDataConfirmDialog = true }
+                        onSelectEndDate = { showEndDatePicker = true }
                     )
                 }
             }
@@ -247,37 +245,6 @@ fun DiagnosticScreen(
             },
             onDeleteRule = { viewModel.deleteDomainRule(it) },
             onToggleRule = { id, enabled -> viewModel.toggleDomainRule(id, enabled) }
-        )
-    }
-
-    // Clear Website Data Confirmation Dialog
-    if (showClearDataConfirmDialog) {
-        AlertDialog(
-            onDismissRequest = { showClearDataConfirmDialog = false },
-            icon = { Icon(Icons.Outlined.DeleteSweep, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-            title = { Text("Clear Website Diagnostics") },
-            text = { Text("Choose whether to clear today's website records or reset all recorded website diagnostic data.") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.clearAllWebsiteData()
-                        showClearDataConfirmDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text("Clear All Data")
-                }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = {
-                        viewModel.clearTodayWebsiteData()
-                        showClearDataConfirmDialog = false
-                    }
-                ) {
-                    Text("Clear Today Only")
-                }
-            }
         )
     }
 
@@ -422,6 +389,19 @@ private fun AppDiagnosticsContent(
                             iconColor = if (summary.productivityRate >= 50) StateCompleted else StateSkipped,
                             modifier = Modifier.weight(1f)
                         )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        DiagnosticKpiCard(
+                            title = "Focentra Focus",
+                            value = formatDurationMillis(summary.focentraFocusMillis),
+                            subtitle = "Verified sessions",
+                            icon = Icons.Outlined.Psychology,
+                            iconColor = AccentPrimary,
+                            modifier = Modifier.weight(1f)
+                        )
                         DiagnosticKpiCard(
                             title = "Non-Productive",
                             value = formatDurationMillis(summary.nonProductiveTimeMillis),
@@ -531,8 +511,7 @@ private fun WebsiteDiagnosticsContent(
     isVpnRunning: Boolean,
     onToggleVpn: () -> Unit,
     onSelectStartDate: () -> Unit,
-    onSelectEndDate: () -> Unit,
-    onRequestClearData: () -> Unit
+    onSelectEndDate: () -> Unit
 ) {
     val summary = uiState.websiteSummary
     val filteredDomains = remember(summary, uiState.domainSearchQuery, uiState.selectedCategoryFilter) {
@@ -640,44 +619,32 @@ private fun WebsiteDiagnosticsContent(
                         }
                     }
 
-                    // Quick Actions (Rules, Sample Simulate, Clear)
+                    // Quick Actions (Rules, Sample Simulate)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedButton(
                             onClick = { viewModel.setShowRulesDialog(true) },
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                         ) {
-                            Icon(Icons.Outlined.Rule, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Rules", fontSize = 12.sp)
+                            Icon(Icons.Outlined.Rule, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Domain Rules", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
 
                         OutlinedButton(
                             onClick = { viewModel.simulateSampleWebsiteVisits() },
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                         ) {
-                            Icon(Icons.Outlined.Science, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Sample Data", fontSize = 12.sp)
-                        }
-
-                        IconButton(
-                            onClick = onRequestClearData,
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.DeleteSweep,
-                                contentDescription = "Clear Data",
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(20.dp)
-                            )
+                            Icon(Icons.Outlined.Science, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Sample Data", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -1100,13 +1067,29 @@ private fun UsageTrendCard(points: List<DailyUsagePoint>) {
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text(
-                text = "Daily Screen Time Trend",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Daily Screen Time Trend",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+
+                // Compact Legend
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    LegendItem(color = StateCompleted, label = "Productive")
+                    LegendItem(color = StateSkipped, label = "Distracting")
+                }
+            }
+
             AppUsageBarChart(points = points)
         }
     }
@@ -1122,15 +1105,52 @@ private fun WebsiteTrendCard(points: List<WebsiteDailyPoint>) {
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text(
-                text = "Daily Website Activity Trend",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Daily Website Activity Trend",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+
+                // Compact Legend
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    LegendItem(color = StateCompleted, label = "Productive")
+                    LegendItem(color = StateSkipped, label = "Distracting")
+                }
+            }
+
             WebsiteUsageBarChart(points = points)
         }
+    }
+}
+
+@Composable
+private fun LegendItem(color: Color, label: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(7.dp)
+                .clip(CircleShape)
+                .background(color)
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            fontSize = 10.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -1359,52 +1379,81 @@ private fun WebsiteDomainListItem(
 
 @Composable
 private fun AppUsageBarChart(points: List<DailyUsagePoint>) {
-    val maxMillis = (points.maxOfOrNull { it.totalMillis } ?: 1L).coerceAtLeast(1L)
+    val displayPoints = if (points.size > 7) points.takeLast(7) else points
+    val maxMillis = (displayPoints.maxOfOrNull { it.totalMillis } ?: 1L).coerceAtLeast(60000L)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(130.dp),
+            .height(135.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Bottom
     ) {
-        points.takeLast(7).forEach { point ->
+        displayPoints.forEach { point ->
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Bottom,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
             ) {
-                val totalRatio = (point.totalMillis.toFloat() / maxMillis.toFloat()).coerceIn(0.1f, 1f)
-                val chartHeight = 90.dp * totalRatio
+                // Top duration label
+                Text(
+                    text = if (point.totalMillis > 0) formatShortDuration(point.totalMillis) else "",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 9.sp,
+                    maxLines = 1,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                val totalRatio = (point.totalMillis.toFloat() / maxMillis.toFloat()).coerceIn(0f, 1f)
+                val barHeight = (80.dp * totalRatio).coerceAtLeast(if (point.totalMillis > 0) 8.dp else 4.dp)
 
                 Box(
                     modifier = Modifier
-                        .width(22.dp)
-                        .height(chartHeight)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .width(20.dp)
+                        .height(barHeight)
+                        .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp, bottomStart = 3.dp, bottomEnd = 3.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.BottomCenter
                 ) {
-                    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
-                        if (point.productiveMillis > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .fillMaxHeight(fraction = (point.productiveMillis.toFloat() / point.totalMillis.toFloat()))
-                                    .background(StateCompleted)
-                            )
-                        }
-                        if (point.nonProductiveMillis > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .fillMaxHeight(fraction = (point.nonProductiveMillis.toFloat() / point.totalMillis.toFloat()))
-                                    .background(StateSkipped)
-                            )
+                    if (point.totalMillis > 0) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Bottom
+                        ) {
+                            if (point.neutralMillis > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(point.neutralMillis.toFloat().coerceAtLeast(0.001f))
+                                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                                )
+                            }
+                            if (point.nonProductiveMillis > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(point.nonProductiveMillis.toFloat().coerceAtLeast(0.001f))
+                                        .background(StateSkipped)
+                                )
+                            }
+                            if (point.productiveMillis > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(point.productiveMillis.toFloat().coerceAtLeast(0.001f))
+                                        .background(StateCompleted)
+                                )
+                            }
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
+
                 Text(
                     text = point.dateLabel,
                     style = MaterialTheme.typography.labelSmall,
@@ -1419,52 +1468,81 @@ private fun AppUsageBarChart(points: List<DailyUsagePoint>) {
 
 @Composable
 private fun WebsiteUsageBarChart(points: List<WebsiteDailyPoint>) {
-    val maxMillis = (points.maxOfOrNull { it.totalMillis } ?: 1L).coerceAtLeast(1L)
+    val displayPoints = if (points.size > 7) points.takeLast(7) else points
+    val maxMillis = (displayPoints.maxOfOrNull { it.totalMillis } ?: 1L).coerceAtLeast(60000L)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(130.dp),
+            .height(135.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Bottom
     ) {
-        points.takeLast(7).forEach { point ->
+        displayPoints.forEach { point ->
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Bottom,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
             ) {
-                val totalRatio = (point.totalMillis.toFloat() / maxMillis.toFloat()).coerceIn(0.1f, 1f)
-                val chartHeight = 90.dp * totalRatio
+                // Top duration label
+                Text(
+                    text = if (point.totalMillis > 0) formatShortDuration(point.totalMillis) else "",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 9.sp,
+                    maxLines = 1,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                val totalRatio = (point.totalMillis.toFloat() / maxMillis.toFloat()).coerceIn(0f, 1f)
+                val barHeight = (80.dp * totalRatio).coerceAtLeast(if (point.totalMillis > 0) 8.dp else 4.dp)
 
                 Box(
                     modifier = Modifier
-                        .width(22.dp)
-                        .height(chartHeight)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .width(20.dp)
+                        .height(barHeight)
+                        .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp, bottomStart = 3.dp, bottomEnd = 3.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.BottomCenter
                 ) {
-                    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
-                        if (point.productiveMillis > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .fillMaxHeight(fraction = (point.productiveMillis.toFloat() / point.totalMillis.toFloat()))
-                                    .background(StateCompleted)
-                            )
-                        }
-                        if (point.nonProductiveMillis > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .fillMaxHeight(fraction = (point.nonProductiveMillis.toFloat() / point.totalMillis.toFloat()))
-                                    .background(StateSkipped)
-                            )
+                    if (point.totalMillis > 0) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Bottom
+                        ) {
+                            if (point.neutralMillis > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(point.neutralMillis.toFloat().coerceAtLeast(0.001f))
+                                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                                )
+                            }
+                            if (point.nonProductiveMillis > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(point.nonProductiveMillis.toFloat().coerceAtLeast(0.001f))
+                                        .background(StateSkipped)
+                                )
+                            }
+                            if (point.productiveMillis > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(point.productiveMillis.toFloat().coerceAtLeast(0.001f))
+                                        .background(StateCompleted)
+                                )
+                            }
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
+
                 Text(
                     text = point.dateLabel,
                     style = MaterialTheme.typography.labelSmall,
@@ -1474,6 +1552,19 @@ private fun WebsiteUsageBarChart(points: List<WebsiteDailyPoint>) {
                 )
             }
         }
+    }
+}
+
+private fun formatShortDuration(millis: Long): String {
+    if (millis <= 0L) return "0m"
+    val totalMinutes = millis / 60000
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+    return when {
+        hours > 0 && minutes > 0 -> "${hours}h ${minutes}m"
+        hours > 0 -> "${hours}h"
+        minutes > 0 -> "${minutes}m"
+        else -> "<1m"
     }
 }
 

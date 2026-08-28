@@ -45,7 +45,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val app = application as DaynexaApplication
             val settingsViewModel: SettingsViewModel = viewModel(
-                factory = SettingsViewModel.Factory(app.repository, app.backupService)
+                factory = SettingsViewModel.Factory(app.repository, app.backupService, app.focentraIntegrationManager)
             )
             val settingsState by settingsViewModel.uiState.collectAsState()
 

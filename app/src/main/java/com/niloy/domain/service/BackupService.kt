@@ -31,15 +31,29 @@ data class DomainRuleBackup(
     val isEnabled: Boolean = true
 )
 
+data class FocentraSessionBackup(
+    val sessionId: String,
+    val subject: String,
+    val topic: String,
+    val startTime: Long,
+    val endTime: Long,
+    val duration: Long,
+    val completionStatus: String,
+    val focusScore: Int,
+    val schemaVersion: Int,
+    val importedAt: Long
+)
+
 data class BackupData(
-    val version: Int = 4,
+    val version: Int = 5,
     val categories: List<Category>,
     val tasks: List<Task>,
     val occurrences: List<TaskOccurrence>,
     val settings: Map<String, String>,
     val appClassifications: List<AppClassificationBackup>? = null,
     val websiteClassifications: List<WebsiteClassificationBackup>? = null,
-    val domainRules: List<DomainRuleBackup>? = null
+    val domainRules: List<DomainRuleBackup>? = null,
+    val focentraSessions: List<FocentraSessionBackup>? = null
 )
 
 class BackupService {

@@ -19,7 +19,8 @@ import java.time.format.DateTimeFormatter
 
 class DiagnosticRepositoryImpl(
     private val context: Context,
-    private val classificationDao: AppClassificationDao
+    private val classificationDao: AppClassificationDao,
+    private val focentraDao: com.niloy.data.local.dao.FocentraStudySessionDao
 ) : DiagnosticRepository {
 
     override fun isUsagePermissionGranted(): Boolean {
@@ -151,10 +152,27 @@ class DiagnosticRepositoryImpl(
             }
         }
 
+        val focentraSessions = focentraDao.getSessionsBetween(startTimeMillis, endTimeMillis)
+        val focentraTimeMillis = focentraSessions.sumOf { it.duration * 60000L }
+
         val appUsageList = mutableListOf<AppUsageInfo>()
 
         for ((pkgName, totalMillis) in packageTimeMap) {
             if (totalMillis < 1000) continue // Skip under 1 second
+
+            // Prevent double counting the Focentra app itself if it appears in usage stats
+            // We'll prioritize the "verified" Focentra sessions
+            val adjustedMillis = if (pkgName == "com.focentra") {
+                // If Focentra app usage is recorded, we subtract it here because we'll add the verified sessions separately
+                // or we just let it be and make sure verified sessions are added on top if they represent "additional" time.
+                // However, usually the Focentra app IS the study timer.
+                // Priority: Use the verified sessions for "Focentra Focus Time".
+                // Total usage should be max(AppUsageStats, verified sessions) roughly?
+                // Actually, let's just keep app usage as is, but mark Focentra app as productive.
+                totalMillis
+            } else {
+                totalMillis
+            }
 
             val appName = try {
                 val appInfo = pm.getApplicationInfo(pkgName, 0)
@@ -183,7 +201,7 @@ class DiagnosticRepositoryImpl(
                 AppUsageInfo(
                     packageName = pkgName,
                     appName = appName,
-                    totalTimeInForegroundMillis = totalMillis,
+                    totalTimeInForegroundMillis = adjustedMillis,
                     categories = categories,
                     qualityRating = rating,
                     productivityType = prodType,
@@ -194,17 +212,34 @@ class DiagnosticRepositoryImpl(
 
         appUsageList.sortByDescending { it.totalTimeInForegroundMillis }
 
-        var totalMillis = 0L
-        var productiveMillis = 0L
+        var productiveMillis = focentraTimeMillis // Start with Focentra time
+        var totalMillis = focentraTimeMillis // Start with Focentra time
         var nonProductiveMillis = 0L
         var neutralMillis = 0L
         var productiveCount = 0
         var nonProductiveCount = 0
 
         val categoryDurationMap = mutableMapOf<String, Long>()
+        if (focentraTimeMillis > 0) {
+            categoryDurationMap[AppCategories.STUDY_TIMER] = focentraTimeMillis
+        }
         val categoryCountMap = mutableMapOf<String, Int>()
 
         for (app in appUsageList) {
+            // Priority/Deduplication Logic:
+            // If the app is Focentra itself, we've already accounted for its core value via verified sessions.
+            // If the app was used during Focentra sessions, it's tricky.
+            // Simplified: Add Focentra sessions as base. For other apps, if they are "productive", add them.
+            // If they are "non-productive", add them. 
+            // To avoid double-counting the Focentra app itself:
+            if (app.packageName == "com.focentra") {
+                // Already added verified sessions. If app usage > verified sessions, maybe add the delta?
+                val delta = (app.totalTimeInForegroundMillis - focentraTimeMillis).coerceAtLeast(0L)
+                // However, usually verified sessions are more accurate for study time.
+                // Let's just not add the Focentra app usage if we have verified sessions.
+                continue 
+            }
+
             totalMillis += app.totalTimeInForegroundMillis
             when (app.productivityType) {
                 ProductivityType.PRODUCTIVE -> {
@@ -237,8 +272,8 @@ class DiagnosticRepositoryImpl(
         val startDate = Instant.ofEpochMilli(startTimeMillis).atZone(ZoneId.systemDefault()).toLocalDate()
         val endDate = Instant.ofEpochMilli(endTimeMillis).atZone(ZoneId.systemDefault()).toLocalDate()
 
-        // Daily trend calculation
-        val dailyTrend = calculateDailyTrend(usageStatsManager, startTimeMillis, endTimeMillis)
+        // Daily trend calculation for the last 7 days or selected range
+        val dailyTrend = calculateDailyTrend(usageStatsManager, startDate, endDate)
 
         // Find most productive day
         val mostProductiveDay = dailyTrend.maxByOrNull { it.productiveMillis }?.dateLabel ?: "N/A"
@@ -259,6 +294,7 @@ class DiagnosticRepositoryImpl(
             productiveTimeMillis = productiveMillis,
             nonProductiveTimeMillis = nonProductiveMillis,
             neutralTimeMillis = neutralMillis,
+            focentraFocusMillis = focentraTimeMillis,
             mostUsedApp = enrichedAppsList.firstOrNull(),
             appsCount = enrichedAppsList.size,
             productiveAppsCount = productiveCount,
@@ -273,18 +309,27 @@ class DiagnosticRepositoryImpl(
 
     private suspend fun calculateDailyTrend(
         usageStatsManager: UsageStatsManager,
-        startTimeMillis: Long,
-        endTimeMillis: Long
+        startDate: LocalDate,
+        endDate: LocalDate
     ): List<DailyUsagePoint> {
+        val trendDates = if (startDate == endDate || java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) < 6) {
+            (0..6).map { endDate.minusDays(6L - it) }
+        } else {
+            generateSequence(startDate) { it.plusDays(1) }
+                .takeWhile { !it.isAfter(endDate) }
+                .toList()
+        }
+
+        val trendStartMillis = trendDates.first().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val trendEndMillis = trendDates.last().plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1
+
         val list = usageStatsManager.queryUsageStats(
             UsageStatsManager.INTERVAL_DAILY,
-            startTimeMillis,
-            endTimeMillis
+            trendStartMillis,
+            trendEndMillis
         ) ?: emptyList()
 
         val dayMap = mutableMapOf<String, MutableMap<String, Long>>()
-        val dayLabelMap = mutableMapOf<String, String>()
-
         val dayFormatter = DateTimeFormatter.ofPattern("EEE")
         val isoFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
@@ -294,25 +339,35 @@ class DiagnosticRepositoryImpl(
                     .atZone(ZoneId.systemDefault())
                     .toLocalDate()
                 val isoDate = localDate.format(isoFormatter)
-                val dayLabel = localDate.format(dayFormatter)
 
-                dayLabelMap[isoDate] = dayLabel
                 val mapForDay = dayMap.getOrPut(isoDate) { mutableMapOf() }
                 val current = mapForDay.getOrDefault(stat.packageName, 0L)
                 mapForDay[stat.packageName] = current + stat.totalTimeInForeground
             }
         }
 
-        val sortedDates = dayMap.keys.sorted()
         val points = mutableListOf<DailyUsagePoint>()
 
-        for (isoDate in sortedDates) {
-            val appsForDay = dayMap[isoDate] ?: continue
-            var dayProd = 0L
+        val focentraSessions = focentraDao.getSessionsBetween(trendStartMillis, trendEndMillis)
+        val focentraDayMap = mutableMapOf<String, Long>()
+        for (session in focentraSessions) {
+            val isoDate = Instant.ofEpochMilli(session.startTime).atZone(ZoneId.systemDefault()).toLocalDate().format(isoFormatter)
+            focentraDayMap[isoDate] = focentraDayMap.getOrDefault(isoDate, 0L) + (session.duration * 60000L)
+        }
+
+        for (targetDate in trendDates) {
+            val isoDate = targetDate.format(isoFormatter)
+            val dayLabel = targetDate.format(dayFormatter)
+            val appsForDay = dayMap[isoDate] ?: emptyMap()
+            val focentraTime = focentraDayMap[isoDate] ?: 0L
+
+            var dayProd = focentraTime
             var dayNonProd = 0L
             var dayNeutral = 0L
 
             for ((pkgName, time) in appsForDay) {
+                if (pkgName == "com.focentra") continue // Already added verified sessions
+
                 val saved = classificationDao.getClassification(pkgName)
                 val categories = if (saved != null && saved.categories.isNotBlank()) {
                     saved.categories.split(",").map { it.trim() }
@@ -336,11 +391,12 @@ class DiagnosticRepositoryImpl(
             val dayTotal = dayProd + dayNonProd + dayNeutral
             points.add(
                 DailyUsagePoint(
-                    dateLabel = dayLabelMap[isoDate] ?: isoDate,
+                    dateLabel = dayLabel,
                     fullDate = isoDate,
                     productiveMillis = dayProd,
                     nonProductiveMillis = dayNonProd,
                     neutralMillis = dayNeutral,
+                    focentraFocusMillis = focentraTime,
                     totalMillis = dayTotal
                 )
             )

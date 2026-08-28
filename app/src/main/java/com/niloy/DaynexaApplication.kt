@@ -12,6 +12,7 @@ import com.niloy.domain.repository.DiagnosticRepository
 import com.niloy.domain.repository.TaskRepository
 import com.niloy.domain.repository.WebsiteDiagnosticRepository
 import com.niloy.domain.service.BackupService
+import com.niloy.domain.service.FocentraIntegrationManager
 import com.niloy.domain.service.SchedulingService
 import com.niloy.domain.service.TaskReminderScheduler
 import kotlinx.coroutines.flow.first
@@ -22,6 +23,7 @@ class DaynexaApplication : Application() {
     lateinit var repository: TaskRepository
     lateinit var diagnosticRepository: DiagnosticRepository
     lateinit var websiteDiagnosticRepository: WebsiteDiagnosticRepository
+    lateinit var focentraIntegrationManager: FocentraIntegrationManager
     lateinit var schedulingService: SchedulingService
     lateinit var backupService: BackupService
     lateinit var reminderScheduler: TaskReminderScheduler
@@ -94,6 +96,26 @@ class DaynexaApplication : Application() {
         }
     }
 
+    private val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `focentra_study_sessions` (
+                    `sessionId` TEXT NOT NULL,
+                    `subject` TEXT NOT NULL,
+                    `topic` TEXT NOT NULL,
+                    `startTime` INTEGER NOT NULL,
+                    `endTime` INTEGER NOT NULL,
+                    `duration` INTEGER NOT NULL,
+                    `completionStatus` TEXT NOT NULL,
+                    `focusScore` INTEGER NOT NULL,
+                    `schemaVersion` INTEGER NOT NULL DEFAULT 1,
+                    `importedAt` INTEGER NOT NULL,
+                    PRIMARY KEY(`sessionId`)
+                )
+            """.trimIndent())
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         database = Room.databaseBuilder(
@@ -101,7 +123,7 @@ class DaynexaApplication : Application() {
             AppDatabase::class.java,
             "daynexa.db"
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .fallbackToDestructiveMigration()
             .build()
 
@@ -114,13 +136,20 @@ class DaynexaApplication : Application() {
         
         diagnosticRepository = DiagnosticRepositoryImpl(
             applicationContext,
-            database.appClassificationDao()
+            database.appClassificationDao(),
+            database.focentraStudySessionDao()
         )
 
         websiteDiagnosticRepository = WebsiteDiagnosticRepositoryImpl(
             applicationContext,
             database.websiteDiagnosticDao(),
             database.domainRuleDao(),
+            database.settingDao()
+        )
+
+        focentraIntegrationManager = FocentraIntegrationManager(
+            applicationContext,
+            database.focentraStudySessionDao(),
             database.settingDao()
         )
         

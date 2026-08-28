@@ -254,8 +254,8 @@ class WebsiteDiagnosticRepositoryImpl(
             (productiveDuration.toFloat() / totalDuration.toFloat()) * 100f
         } else 0f
 
-        // Daily trend
-        val dailyTrend = calculateDailyTrend(events)
+        // Daily trend for the last 7 days or selected range
+        val dailyTrend = calculateDailyTrend(events, startDate, endDate)
 
         // Category breakdown
         val categoryBreakdown = categoryDurationMap.map { (cat, duration) ->
@@ -286,27 +286,38 @@ class WebsiteDiagnosticRepositoryImpl(
         )
     }
 
-    private suspend fun calculateDailyTrend(events: List<WebsiteEventEntity>): List<WebsiteDailyPoint> {
+    private suspend fun calculateDailyTrend(
+        events: List<WebsiteEventEntity>,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): List<WebsiteDailyPoint> {
+        val trendDates = if (startDate == endDate || java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) < 6) {
+            (0..6).map { endDate.minusDays(6L - it) }
+        } else {
+            generateSequence(startDate) { it.plusDays(1) }
+                .takeWhile { !it.isAfter(endDate) }
+                .toList()
+        }
+
         val dayFormatter = DateTimeFormatter.ofPattern("EEE")
         val isoFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
         val dayEventsMap = mutableMapOf<String, MutableList<WebsiteEventEntity>>()
-        val dayLabelMap = mutableMapOf<String, String>()
 
         for (event in events) {
             val localDate = Instant.ofEpochMilli(event.timestamp).atZone(ZoneId.systemDefault()).toLocalDate()
             val iso = localDate.format(isoFormatter)
-            val label = localDate.format(dayFormatter)
-            dayLabelMap[iso] = label
             val list = dayEventsMap.getOrPut(iso) { mutableListOf() }
             list.add(event)
         }
 
-        val sortedDates = dayEventsMap.keys.sorted()
         val result = mutableListOf<WebsiteDailyPoint>()
 
-        for (iso in sortedDates) {
-            val dayEvents = dayEventsMap[iso] ?: continue
+        for (targetDate in trendDates) {
+            val iso = targetDate.format(isoFormatter)
+            val label = targetDate.format(dayFormatter)
+            val dayEvents = dayEventsMap[iso] ?: emptyList()
+
             var prod = 0L
             var nonProd = 0L
             var neutral = 0L
@@ -323,7 +334,7 @@ class WebsiteDiagnosticRepositoryImpl(
 
             result.add(
                 WebsiteDailyPoint(
-                    dateLabel = dayLabelMap[iso] ?: iso,
+                    dateLabel = label,
                     fullDate = iso,
                     productiveMillis = prod,
                     nonProductiveMillis = nonProd,
@@ -372,23 +383,6 @@ class WebsiteDiagnosticRepositoryImpl(
             rules.find { it.id == id }?.let {
                 domainRuleDao.updateRule(it.copy(isEnabled = isEnabled))
             }
-        }
-    }
-
-    override suspend fun clearTodayWebsiteData() {
-        withContext(Dispatchers.IO) {
-            val startOfDay = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-            val endOfDay = System.currentTimeMillis()
-            websiteDao.deleteEventsBetween(startOfDay, endOfDay)
-            lastVisitTimeMap.clear()
-        }
-    }
-
-    override suspend fun clearAllWebsiteData() {
-        withContext(Dispatchers.IO) {
-            websiteDao.deleteAllEvents()
-            websiteDao.deleteAllClassifications()
-            lastVisitTimeMap.clear()
         }
     }
 

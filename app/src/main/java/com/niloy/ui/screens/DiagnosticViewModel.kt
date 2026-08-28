@@ -195,20 +195,6 @@ class DiagnosticViewModel(
         }
     }
 
-    fun clearTodayWebsiteData() {
-        viewModelScope.launch {
-            websiteDiagnosticRepository.clearTodayWebsiteData()
-            loadSummaryForCurrentPeriod()
-        }
-    }
-
-    fun clearAllWebsiteData() {
-        viewModelScope.launch {
-            websiteDiagnosticRepository.clearAllWebsiteData()
-            loadSummaryForCurrentPeriod()
-        }
-    }
-
     // Helper to simulate/test domain activity
     fun simulateSampleWebsiteVisits() {
         viewModelScope.launch {
