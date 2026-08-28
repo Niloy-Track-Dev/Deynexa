@@ -5,25 +5,25 @@
 **Daynexa** is built following modern Android architectural recommendations (Clean Architecture + MVVM + Unidirectional Data Flow), tailored specifically for an **offline-first, zero-telemetry** environment.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    UI Layer (Jetpack Compose)               │
-│   TodayScreen │ CalendarScreen │ StatsScreen │ Settings     │
-└──────────────────────────────┬──────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│                    UI Layer (Jetpack Compose)                     │
+│ TodayScreen │ CalendarScreen │ StatsScreen │ Settings │ Diagnostic │
+└──────────────────────────────┬────────────────────────────────────┘
                                │ StateFlow / Events
-┌──────────────────────────────▼──────────────────────────────┐
-│                    ViewModel Layer                          │
-│   TodayViewModel │ CalendarViewModel │ StatisticsViewModel │
-└──────────────────────────────┬──────────────────────────────┘
+┌──────────────────────────────▼────────────────────────────────────┐
+│                    ViewModel Layer                                │
+│ TodayViewModel │ CalendarViewModel │ StatsViewModel │ Diagnostic  │
+└──────────────────────────────┬────────────────────────────────────┘
                                │ Kotlin Coroutines / Flow
-┌──────────────────────────────▼──────────────────────────────┐
-│                    Domain Layer                             │
-│   Models │ TaskRepository (Interface) │ SchedulingService   │
-└──────────────────────────────┬──────────────────────────────┘
+┌──────────────────────────────▼────────────────────────────────────┐
+│                    Domain Layer                                   │
+│ TaskRepository │ DiagnosticRepository │ Models │ Services          │
+└──────────────────────────────┬────────────────────────────────────┘
                                │ Local DAO / Entities
-┌──────────────────────────────▼──────────────────────────────┐
-│                    Data Layer (Room DB)                     │
-│   DaynexaDatabase │ TaskDao │ CategoryDao │ OccurrenceDao   │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────▼────────────────────────────────────┐
+│                    Data Layer (Room DB)                           │
+│ DaynexaDatabase │ TaskDao │ CategoryDao │ OccurrenceDao │ AppClass │
+└───────────────────────────────────────────────────────────────────┘
 ```
 
 ---

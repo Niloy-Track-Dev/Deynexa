@@ -91,7 +91,14 @@ fun MainContent(
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            if (isOnboardingCompleted && currentDestination?.route != Screen.Onboarding::class.qualifiedName && currentDestination?.route?.contains("TaskDetail") != true) {
+            val currentRoute = currentDestination?.route
+            val showBottomBar = isOnboardingCompleted &&
+                    currentRoute != Screen.Onboarding::class.qualifiedName &&
+                    currentRoute?.contains("TaskDetail") != true &&
+                    currentRoute?.contains("Diagnostic") != true &&
+                    currentRoute?.contains("AppClassification") != true
+
+            if (showBottomBar) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()

@@ -183,22 +183,24 @@ fun DiagnosticScreen(
                                 ) {
                                     OutlinedButton(
                                         onClick = { showStartDatePicker = true },
-                                        shape = RoundedCornerShape(10.dp)
+                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier.weight(1f)
                                     ) {
                                         Icon(Icons.Outlined.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("From: ${uiState.customStartDate}")
+                                        Text("From: ${uiState.customStartDate}", maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
 
-                                    Icon(Icons.Outlined.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Icon(Icons.Outlined.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp))
 
                                     OutlinedButton(
                                         onClick = { showEndDatePicker = true },
-                                        shape = RoundedCornerShape(10.dp)
+                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier.weight(1f)
                                     ) {
                                         Icon(Icons.Outlined.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("To: ${uiState.customEndDate}")
+                                        Text("To: ${uiState.customEndDate}", maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
                                 }
                             }
@@ -642,9 +644,9 @@ private fun DailyProductivityBarChart(points: List<DailyUsagePoint>) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(140.dp)
-            .padding(top = 8.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+            .height(160.dp)
+            .padding(top = 16.dp),
+        horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.Bottom
     ) {
         points.takeLast(7).forEach { point ->
@@ -653,49 +655,45 @@ private fun DailyProductivityBarChart(points: List<DailyUsagePoint>) {
                 verticalArrangement = Arrangement.Bottom,
                 modifier = Modifier.weight(1f)
             ) {
-                val totalRatio = (point.totalMillis.toFloat() / maxMillis.toFloat()).coerceIn(0.08f, 1f)
-                val chartHeight = 90.dp * totalRatio
+                val totalRatio = (point.totalMillis.toFloat() / maxMillis.toFloat()).coerceIn(0.1f, 1f)
+                val chartHeight = 100.dp * totalRatio
 
+                // Bar Container
                 Box(
                     modifier = Modifier
-                        .width(18.dp)
+                        .width(24.dp)
                         .height(chartHeight)
-                        .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 ) {
-                    Column(modifier = Modifier.fillMaxSize()) {
+                    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
+                        // Productive Stacked
                         if (point.productiveMillis > 0) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .weight((point.productiveMillis.toFloat() / point.totalMillis.coerceAtLeast(1L).toFloat()).coerceAtLeast(0.01f))
+                                    .fillMaxHeight(fraction = (point.productiveMillis.toFloat() / point.totalMillis.toFloat()))
                                     .background(StateCompleted)
                             )
                         }
+                        // Non-Productive Stacked
                         if (point.nonProductiveMillis > 0) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .weight((point.nonProductiveMillis.toFloat() / point.totalMillis.coerceAtLeast(1L).toFloat()).coerceAtLeast(0.01f))
+                                    .fillMaxHeight(fraction = (point.nonProductiveMillis.toFloat() / point.totalMillis.toFloat()))
                                     .background(StateSkipped)
-                            )
-                        }
-                        if (point.neutralMillis > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight((point.neutralMillis.toFloat() / point.totalMillis.coerceAtLeast(1L).toFloat()).coerceAtLeast(0.01f))
-                                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     text = point.dateLabel,
                     style = MaterialTheme.typography.labelSmall,
-                    fontSize = 10.sp,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

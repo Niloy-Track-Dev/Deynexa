@@ -69,7 +69,7 @@ fun CategoriesScreen(
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .navigationBarsPadding()
-                    .padding(bottom = 66.dp)
+                    .padding(bottom = 48.dp, end = 16.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Category")
             }

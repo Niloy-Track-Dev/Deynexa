@@ -16,7 +16,7 @@
 </p>
 
 <p>
-  <a href="https://github.com/Niloy-Track-Dev/Deynexa/releases"><img src="https://img.shields.io/badge/Release-v0.1.1-blue.svg" alt="Latest Release" /></a>
+  <a href="https://github.com/Niloy-Track-Dev/Deynexa/releases"><img src="https://img.shields.io/badge/Release-v0.2.0-blue.svg" alt="Latest Release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-emerald.svg" alt="License: MIT" /></a>
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Platform-Android%208.0%2B%20%28API%2026%2B%29-brightgreen.svg" alt="Platform" /></a>
   <a href="#offline-architecture"><img src="https://img.shields.io/badge/Architecture-100%25%20Offline--First-blueviolet.svg" alt="Offline-First" /></a>
@@ -72,8 +72,8 @@ You can download the latest signed production APK directly from the GitHub Relea
 
 ### Installation Steps
 1. Navigate to the **[Releases](https://github.com/Niloy-Track-Dev/Deynexa/releases)** section.
-2. Under the latest release (e.g. `v0.1.1`), look under **Assets**.
-3. Download the file **`Daynexa-v0.1.1-release.apk`**.
+2. Under the latest release (e.g. `v0.2.0`), look under **Assets**.
+3. Download the file **`Daynexa-v0.2.0-release.apk`**.
 4. Open the APK file on your Android device (Android 8.0+ / API 26+) and confirm installation.
 
 ---
@@ -280,7 +280,7 @@ Publish GitHub Release & Upload APK Artifact
 
 ## Roadmap
 
-### Current (MVP v0.1.0) — ✅ Completed
+### Current (Release v0.2.0) — ✅ Completed
 - [x] Weekly recurring & one-time task scheduling
 - [x] Today timeline & real-time progress card
 - [x] Monthly calendar matrix with productivity dots
@@ -289,6 +289,11 @@ Publish GitHub Release & Upload APK Artifact
 - [x] Offline JSON backup export & restore
 - [x] Material 3 Light/Dark/System themes & 12h/24h time formatting
 - [x] Direct in-app release download actions and GitHub repository shortcuts
+- [x] **App Usage & Productivity Diagnostic System**: On-device usage stats monitoring (`PACKAGE_USAGE_STATS`)
+- [x] **App Quality Ratings**: *Must Have*, *Nice to Have*, *Distraction*, *Waste of Time*
+- [x] **Multi-Category App Classifications**: Categorize installed apps with search & edit capabilities
+- [x] **Room Migration v1 -> v2**: Safe database evolution with `app_classifications` table
+- [x] **Navigation & Layout Polish**: Context-aware bottom bar visibility and refined FAB placement
 
 ### Planned Features (Future Releases) — 📌 Roadmap
 - [ ] *Home Screen Widgets*: Quick glance at today's pending routines.

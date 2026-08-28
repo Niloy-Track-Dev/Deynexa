@@ -132,7 +132,7 @@ fun TodayScreen(
                 elevation = FloatingActionButtonDefaults.elevation(4.dp),
                 modifier = Modifier
                     .navigationBarsPadding()
-                    .padding(bottom = 66.dp)
+                    .padding(bottom = 48.dp, end = 16.dp)
                     .testTag("add_task_fab")
             ) {
                 Icon(

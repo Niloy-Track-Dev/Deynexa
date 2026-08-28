@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.0] - 2026-08-28
+
+### Added
+- **App Usage & Productivity Diagnostic Dashboard**: Real-time on-device screen time analytics, productivity rate calculations, and 7-day usage trend bar charts using Android `UsageStatsManager`.
+- **App Quality Ratings**: Categorize applications as *Must Have*, *Nice to Have*, *Distraction*, or *Waste of Time*.
+- **Multi-Category App Classifications**: Tag installed applications with multiple custom categories (e.g., Deep Work, Social Media, Entertainment, Communication) with search and edit dialogs.
+- **Room Database Migration (v1 -> v2)**: Created `app_classifications` table for storing custom app ratings and category tags locally with zero telemetry.
+- **Navigation Polish**: Hidden bottom navigation bar when viewing the App Usage Diagnostic and Classification screens for a clean full-screen experience.
+- **UI Layout Optimization**: Refined Floating Action Button (FAB) placement across Today and Categories screens for optimal spacing above the bottom navigation bar.
+
 ## [0.1.0] - 2026-08-27
 
 ### Added
