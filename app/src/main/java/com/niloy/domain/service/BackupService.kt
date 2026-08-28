@@ -15,13 +15,31 @@ data class AppClassificationBackup(
     val customProductivityType: String = "NEUTRAL"
 )
 
+data class WebsiteClassificationBackup(
+    val domain: String,
+    val category: String,
+    val qualityRating: String,
+    val customProductivityType: String,
+    val isUserOverride: Boolean = false
+)
+
+data class DomainRuleBackup(
+    val domainPattern: String,
+    val ruleType: String,
+    val category: String,
+    val qualityRating: String,
+    val isEnabled: Boolean = true
+)
+
 data class BackupData(
-    val version: Int = 3,
+    val version: Int = 4,
     val categories: List<Category>,
     val tasks: List<Task>,
     val occurrences: List<TaskOccurrence>,
     val settings: Map<String, String>,
-    val appClassifications: List<AppClassificationBackup>? = null
+    val appClassifications: List<AppClassificationBackup>? = null,
+    val websiteClassifications: List<WebsiteClassificationBackup>? = null,
+    val domainRules: List<DomainRuleBackup>? = null
 )
 
 class BackupService {

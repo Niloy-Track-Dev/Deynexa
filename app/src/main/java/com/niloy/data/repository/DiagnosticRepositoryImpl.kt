@@ -198,14 +198,35 @@ class DiagnosticRepositoryImpl(
         var productiveMillis = 0L
         var nonProductiveMillis = 0L
         var neutralMillis = 0L
+        var productiveCount = 0
+        var nonProductiveCount = 0
+
+        val categoryDurationMap = mutableMapOf<String, Long>()
+        val categoryCountMap = mutableMapOf<String, Int>()
 
         for (app in appUsageList) {
             totalMillis += app.totalTimeInForegroundMillis
             when (app.productivityType) {
-                ProductivityType.PRODUCTIVE -> productiveMillis += app.totalTimeInForegroundMillis
-                ProductivityType.NON_PRODUCTIVE -> nonProductiveMillis += app.totalTimeInForegroundMillis
+                ProductivityType.PRODUCTIVE -> {
+                    productiveMillis += app.totalTimeInForegroundMillis
+                    productiveCount++
+                }
+                ProductivityType.NON_PRODUCTIVE -> {
+                    nonProductiveMillis += app.totalTimeInForegroundMillis
+                    nonProductiveCount++
+                }
                 ProductivityType.NEUTRAL -> neutralMillis += app.totalTimeInForegroundMillis
             }
+
+            for (cat in app.categories) {
+                categoryDurationMap[cat] = categoryDurationMap.getOrDefault(cat, 0L) + app.totalTimeInForegroundMillis
+                categoryCountMap[cat] = categoryCountMap.getOrDefault(cat, 0) + 1
+            }
+        }
+
+        val enrichedAppsList = appUsageList.map { app ->
+            val pct = if (totalMillis > 0) (app.totalTimeInForegroundMillis.toFloat() / totalMillis.toFloat()) * 100f else 0f
+            app.copy(percentageOfTotal = pct)
         }
 
         val rate = if (totalMillis > 0) {
@@ -222,6 +243,15 @@ class DiagnosticRepositoryImpl(
         // Find most productive day
         val mostProductiveDay = dailyTrend.maxByOrNull { it.productiveMillis }?.dateLabel ?: "N/A"
 
+        val categoryBreakdown = categoryDurationMap.map { (cat, duration) ->
+            CategoryUsageBreakdown(
+                category = cat,
+                count = categoryCountMap.getOrDefault(cat, 0),
+                durationMillis = duration,
+                percentage = if (totalMillis > 0) (duration.toFloat() / totalMillis.toFloat()) * 100f else 0f
+            )
+        }.sortedByDescending { it.durationMillis }
+
         DiagnosticSummary(
             startDateLabel = startDate.format(startFormatter),
             endDateLabel = endDate.format(startFormatter),
@@ -229,12 +259,15 @@ class DiagnosticRepositoryImpl(
             productiveTimeMillis = productiveMillis,
             nonProductiveTimeMillis = nonProductiveMillis,
             neutralTimeMillis = neutralMillis,
-            mostUsedApp = appUsageList.firstOrNull(),
-            appsCount = appUsageList.size,
+            mostUsedApp = enrichedAppsList.firstOrNull(),
+            appsCount = enrichedAppsList.size,
+            productiveAppsCount = productiveCount,
+            nonProductiveAppsCount = nonProductiveCount,
             productivityRate = rate,
             mostProductiveDayName = mostProductiveDay,
-            topApps = appUsageList,
-            dailyTrend = dailyTrend
+            topApps = enrichedAppsList,
+            dailyTrend = dailyTrend,
+            categoryBreakdown = categoryBreakdown
         )
     }
 
@@ -355,10 +388,13 @@ class DiagnosticRepositoryImpl(
             neutralTimeMillis = 0L,
             mostUsedApp = null,
             appsCount = 0,
+            productiveAppsCount = 0,
+            nonProductiveAppsCount = 0,
             productivityRate = 0f,
             mostProductiveDayName = "N/A",
             topApps = emptyList(),
-            dailyTrend = emptyList()
+            dailyTrend = emptyList(),
+            categoryBreakdown = emptyList()
         )
     }
 }

@@ -48,6 +48,7 @@ data class AppUsageInfo(
     val categories: List<String>,
     val qualityRating: AppQualityRating,
     val productivityType: ProductivityType,
+    val percentageOfTotal: Float = 0f,
     val lastTimeUsed: Long = 0L
 )
 
@@ -77,8 +78,11 @@ data class DiagnosticSummary(
     val neutralTimeMillis: Long,
     val mostUsedApp: AppUsageInfo?,
     val appsCount: Int,
+    val productiveAppsCount: Int = 0,
+    val nonProductiveAppsCount: Int = 0,
     val productivityRate: Float, // percentage 0..100
     val mostProductiveDayName: String,
     val topApps: List<AppUsageInfo>,
-    val dailyTrend: List<DailyUsagePoint>
+    val dailyTrend: List<DailyUsagePoint>,
+    val categoryBreakdown: List<CategoryUsageBreakdown> = emptyList()
 )

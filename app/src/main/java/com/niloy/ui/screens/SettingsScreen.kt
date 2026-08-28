@@ -9,8 +9,10 @@ import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -229,47 +231,71 @@ fun SettingsScreen(
                     if (uiState.notificationsEnabled) {
                         Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
-                        SettingsRowItem(
-                            icon = Icons.Outlined.Timer,
-                            title = "Default Reminder Timing",
-                            subtitle = when (uiState.defaultReminderOffset) {
-                                5 -> "5 minutes before routine"
-                                10 -> "10 minutes before routine"
-                                15 -> "15 minutes before routine"
-                                30 -> "30 minutes before routine"
-                                else -> "At start time"
-                            },
-                            trailing = {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                    modifier = Modifier.weight(1f)
                                 ) {
-                                    FilterChip(
-                                        selected = uiState.defaultReminderOffset == 0,
-                                        onClick = { viewModel.updateDefaultReminderOffset(0) },
-                                        label = { Text("0m") },
-                                        shape = RoundedCornerShape(8.dp)
+                                    Icon(
+                                        imageVector = Icons.Outlined.Timer,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(22.dp)
                                     )
+                                    Column {
+                                        Text(
+                                            text = "Default Reminder Timing",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = when (uiState.defaultReminderOffset) {
+                                                5 -> "5 minutes before routine"
+                                                10 -> "10 minutes before routine"
+                                                15 -> "15 minutes before routine"
+                                                30 -> "30 minutes before routine"
+                                                else -> "At start time"
+                                            },
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf(
+                                    0 to "At start",
+                                    5 to "5m before",
+                                    10 to "10m before",
+                                    15 to "15m before"
+                                ).forEach { (mins, label) ->
                                     FilterChip(
-                                        selected = uiState.defaultReminderOffset == 5,
-                                        onClick = { viewModel.updateDefaultReminderOffset(5) },
-                                        label = { Text("5m") },
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
-                                    FilterChip(
-                                        selected = uiState.defaultReminderOffset == 10,
-                                        onClick = { viewModel.updateDefaultReminderOffset(10) },
-                                        label = { Text("10m") },
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
-                                    FilterChip(
-                                        selected = uiState.defaultReminderOffset == 15,
-                                        onClick = { viewModel.updateDefaultReminderOffset(15) },
-                                        label = { Text("15m") },
+                                        selected = uiState.defaultReminderOffset == mins,
+                                        onClick = { viewModel.updateDefaultReminderOffset(mins) },
+                                        label = { Text(label, fontSize = 12.sp) },
                                         shape = RoundedCornerShape(8.dp)
                                     )
                                 }
                             }
-                        )
+                        }
 
                         Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
@@ -282,8 +308,8 @@ fun SettingsScreen(
                                     val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
                                     com.niloy.domain.service.TaskReminderScheduler.createNotificationChannel(context)
                                     val notification = androidx.core.app.NotificationCompat.Builder(context, com.niloy.domain.service.TaskReminderScheduler.CHANNEL_ID)
-                                        .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-                                        .setContentTitle("⏰ Daynexa Smart Reminder")
+                                        .setSmallIcon(com.niloy.R.drawable.ic_notification)
+                                        .setContentTitle("Daynexa Smart Reminder")
                                         .setContentText("Your scheduled routine reminder test is working perfectly!")
                                         .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
                                         .setAutoCancel(true)

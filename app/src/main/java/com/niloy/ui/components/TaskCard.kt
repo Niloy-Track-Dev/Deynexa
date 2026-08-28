@@ -106,18 +106,19 @@ fun TaskCard(
             // Animated Check Button
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(32.dp)
                     .clip(CircleShape)
-                    .background(checkContainerColor)
-                    .clickable { onToggle() }
-                    .padding(2.dp),
+                    .clickable { onToggle() },
                 contentAlignment = Alignment.Center
             ) {
                 Surface(
-                    modifier = Modifier.size(28.dp),
+                    modifier = Modifier.size(24.dp),
                     shape = CircleShape,
                     color = if (isCompleted) StateCompleted else Color.Transparent,
-                    border = BorderStroke(1.5.dp, checkBorderColor)
+                    border = BorderStroke(
+                        if (isCompleted) 0.dp else 1.5.dp,
+                        checkBorderColor
+                    )
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         androidx.compose.animation.AnimatedVisibility(
@@ -129,7 +130,7 @@ fun TaskCard(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = "Completed",
                                 tint = Color.White,
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(14.dp)
                             )
                         }
                         if (isSkipped) {
@@ -137,7 +138,7 @@ fun TaskCard(
                                 imageVector = Icons.Outlined.SkipNext,
                                 contentDescription = "Skipped",
                                 tint = StateSkipped,
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(13.dp)
                             )
                         }
                     }

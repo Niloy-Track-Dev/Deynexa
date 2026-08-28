@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0] - 2026-08-28
+
+### Added
+- **Privacy-First Website & Browser Diagnostics Engine**: Implemented `WebsiteDiagnosticVpnService` using Android's local `VpnService` to capture outbound DNS lookups (UDP Port 53) strictly at the domain level.
+- **Zero-Decryption Privacy Guarantee**: 100% on-device operation with zero HTTPS packet payload decryption, zero credential or cookie tracking, zero telemetry, and zero remote data transmission.
+- **Domain Quality Ratings & Categories**: Built-in and user-customizable domain classifications across 6 quality tiers (*Very Good*, *Good*, *Neutral*, *Not Good*, *Bad*, *Very Bad*) and 11 categories (Education, Productivity, Social Media, Entertainment, News, etc.).
+- **Custom Domain Rules Engine**: Rule-based categorization supporting *Exact Match*, *Subdomain*, and *Wildcard* matching patterns with active toggle switches and rule manager dialog.
+- **Unified Diagnostics Dashboard**: Dual-section tab design integrating **Apps & Usage** and **Websites** diagnostics with synchronized date filters (Today, Weekly, Monthly, Custom Range).
+- **Web Analytics & KPI Cards**: Real-time metrics for Total Visits, Estimated Browsing Time, Productive Domains, Distracting Domains, and Overall Web Productivity Ratio.
+- **Interactive Daily Trend & Category Charts**: Visual bar charts and category distribution bars for daily web activities and app screen time.
+- **Visited Domain Search & Filters**: Search domains by keyword with category filter chips and quick classification edit dialogs.
+- **Room Database Migration (v3 -> v4)**: Added `website_classifications`, `website_events`, and `domain_rules` tables with optimized indices for fast time-series aggregation.
+- **Extended JSON Backup & Portability**: Upgraded JSON backup and restore engine to serialize user domain rules and custom website quality ratings without data loss.
+
 ## [0.3.0] - 2026-08-28
 
 ### Added

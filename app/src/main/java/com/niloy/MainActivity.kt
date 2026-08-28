@@ -56,11 +56,45 @@ class MainActivity : ComponentActivity() {
                 else -> false
             }
 
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+            var permissionsGranted by remember {
+                mutableStateOf(
+                    checkNotificationPermission(context) &&
+                    checkUsagePermission(context) &&
+                    checkAlarmPermission(context)
+                )
+            }
+
+            DisposableEffect(lifecycleOwner) {
+                val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                    if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                        permissionsGranted = checkNotificationPermission(context) &&
+                                checkUsagePermission(context) &&
+                                checkAlarmPermission(context)
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose {
+                    lifecycleOwner.lifecycle.removeObserver(observer)
+                }
+            }
+
             DaynexaTheme(darkTheme = isDark) {
                 if (settingsState.isLoading) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
+                } else if (!settingsState.isOnboardingCompleted) {
+                    OnboardingScreen(onComplete = {
+                        settingsViewModel.completeOnboarding()
+                    })
+                } else if (!permissionsGranted) {
+                    PermissionGateScreen(
+                        onAllPermissionsGranted = {
+                            permissionsGranted = true
+                        }
+                    )
                 } else {
                     MainContent(
                         app = app,
@@ -112,7 +146,8 @@ fun MainContent(
                             )
                         )
                         .navigationBarsPadding()
-                        .padding(start = 10.dp, top = 8.dp, end = 10.dp, bottom = 6.dp),
+                        .offset(y = 0.6.dp)
+                        .padding(start = 10.dp, top = 8.dp, end = 10.dp, bottom = 4.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Surface(
@@ -373,7 +408,7 @@ fun MainContent(
             }
             composable<Screen.Diagnostic> {
                 val diagnosticViewModel: DiagnosticViewModel = viewModel(
-                    factory = DiagnosticViewModel.Factory(app.diagnosticRepository)
+                    factory = DiagnosticViewModel.Factory(app.diagnosticRepository, app.websiteDiagnosticRepository)
                 )
                 DiagnosticScreen(
                     viewModel = diagnosticViewModel,

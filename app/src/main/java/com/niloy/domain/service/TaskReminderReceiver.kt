@@ -66,8 +66,8 @@ class TaskReminderReceiver : BroadcastReceiver() {
         TaskReminderScheduler.createNotificationChannel(context)
 
         val notification = NotificationCompat.Builder(context, TaskReminderScheduler.CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle("⏰ $taskName$finalCategoryText")
+            .setSmallIcon(com.niloy.R.drawable.ic_notification)
+            .setContentTitle("$taskName$finalCategoryText")
             .setContentText(contentMessage)
             .setStyle(NotificationCompat.BigTextStyle().bigText("$contentMessage\nStay consistent with your daily routine!"))
             .setPriority(NotificationCompat.PRIORITY_HIGH)

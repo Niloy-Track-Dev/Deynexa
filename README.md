@@ -16,7 +16,7 @@
 </p>
 
 <p>
-  <a href="https://github.com/Niloy-Track-Dev/Deynexa/releases"><img src="https://img.shields.io/badge/Release-v0.3.0-blue.svg" alt="Latest Release" /></a>
+  <a href="https://github.com/Niloy-Track-Dev/Deynexa/releases"><img src="https://img.shields.io/badge/Release-v0.4.0-blue.svg" alt="Latest Release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-emerald.svg" alt="License: MIT" /></a>
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Platform-Android%208.0%2B%20%28API%2026%2B%29-brightgreen.svg" alt="Platform" /></a>
   <a href="#offline-architecture"><img src="https://img.shields.io/badge/Architecture-100%25%20Offline--First-blueviolet.svg" alt="Offline-First" /></a>
@@ -38,6 +38,9 @@
 - [Key Features](#features)
   - [Routine & Habit Scheduling](#-routine--habit-scheduling)
   - [Visual Analytics & Consistency Heatmap](#-visual-analytics--consistency-heatmap)
+  - [App Usage & Productivity Diagnostics](#-app-usage--productivity-diagnostics)
+  - [Browser & Website Diagnostics](#-browser--website-diagnostics)
+  - [Smart Routine Reminders](#-smart-routine-reminders)
   - [Interactive Calendar Matrix](#-interactive-calendar-matrix)
   - [Custom Categories & Tagging](#-custom-categories--tagging)
   - [Preferences & Portability](#-preferences--portability)
@@ -60,7 +63,7 @@
 
 **Daynexa** is a lightweight, distraction-free productivity application engineered to help you design, track, and sustain meaningful daily routines. Unlike conventional productivity tools that require cloud accounts, display advertisements, or monetize your activity logs, Daynexa operates **100% locally on your device**.
 
-Featuring deterministic schedule computation, an interactive monthly calendar matrix, visual streak analytics, a 14-week consistency heatmap, and complete JSON backup export/import, Daynexa gives you total control over your habits without sacrificing your privacy.
+Featuring deterministic schedule computation, an interactive monthly calendar matrix, visual streak analytics, a 14-week consistency heatmap, **on-device app & website diagnostics**, **smart routine alarms**, and complete JSON backup export/import, Daynexa gives you total control over your habits and digital wellbeing without sacrificing your privacy.
 
 ---
 
@@ -72,8 +75,8 @@ You can download the latest signed production APK directly from the GitHub Relea
 
 ### Installation Steps
 1. Navigate to the **[Releases](https://github.com/Niloy-Track-Dev/Deynexa/releases)** section.
-2. Under the latest release (e.g. `v0.2.0`), look under **Assets**.
-3. Download the file **`Daynexa-v0.2.0-release.apk`**.
+2. Under the latest release (e.g. `v0.4.0`), look under **Assets**.
+3. Download the file **`Daynexa-v0.4.0-release.apk`**.
 4. Open the APK file on your Android device (Android 8.0+ / API 26+) and confirm installation.
 
 ---
@@ -88,7 +91,23 @@ You can download the latest signed production APK directly from the GitHub Relea
 ### 📊 Visual Analytics & Consistency Heatmap
 - **Productivity Dashboard**: Monitor key performance metrics including Current Daily Streak, Completion Rate, Peak Productive Day, and Total Completed Routines.
 - **14-Week Consistency Heatmap**: GitHub-style activity grid visualizing daily habit execution over time with 4-level color intensity scaling.
-- **Multi-Period Segmentation**: Inspect progress aggregated across Today, This Week, and This Month.
+- **Multi-Period Segmentation**: Inspect progress aggregated across Today, This Week, and This Month with dynamic week-over-week productivity score deltas.
+
+### 📱 App Usage & Productivity Diagnostics
+- **On-Device Screen Time Analysis**: Tracks foreground app duration, launch frequencies, and daily trend bar charts using Android `UsageStatsManager`.
+- **Quality Ratings**: Classify applications into *Must Have*, *Nice to Have*, *Distraction*, or *Waste of Time*.
+- **Custom Category Tagging**: Assign multiple custom category tags to apps (Deep Work, Social, Dev, Entertainment) to visualize productive vs non-productive screen time.
+
+### 🌐 Browser & Website Diagnostics
+- **Privacy-First Domain Capture**: On-device DNS packet interception (Port 53) via local `VpnService` with **zero HTTPS payload inspection**, zero cookies, and zero cloud transmission.
+- **Website Quality & Classification**: Categorize domains (*Very Good*, *Good*, *Neutral*, *Not Good*, *Bad*, *Very Bad*) across Education, Productivity, Social Media, Entertainment, and News.
+- **Custom Domain Rules Engine**: Define custom matching rules (Exact, Subdomain, Wildcard) with instant toggle and deletion controls.
+- **Rich Web Analytics**: Domain search, category filter chips, visit counters, estimated browsing durations, and daily web activity trends.
+
+### ⏰ Smart Routine Reminders
+- **Exact & Inexact Alarms**: System-level notifications scheduled via Android `AlarmManager` with high-importance notification channels.
+- **Customizable Offsets**: Set alerts *At start*, *5m*, *10m*, *15m*, or *30m* prior to routine start time.
+- **Reboot Auto-Restoration**: `BootCompletedReceiver` automatically reschedules pending alarms on device restart.
 
 ### 🗓️ Interactive Calendar Matrix
 - **Monthly Overview**: Month-by-month grid indicating completion statuses with visual dot indicators on each day.
@@ -103,7 +122,7 @@ You can download the latest signed production APK directly from the GitHub Relea
 - **Appearance Themes**: Fully dynamic Material 3 styling with System Default, Light Mode, and deep Midnight Dark Mode.
 - **Time Formatting**: Native support for both 12-Hour (AM/PM) and 24-Hour clock formats.
 - **First Day of Week**: Choose whether your calendar starts on Monday or Sunday.
-- **Local Data Export & Import**: Export your complete database as a portable JSON file, and restore it at any time with zero lock-in.
+- **Local Data Export & Import**: Export your complete database as a portable JSON file (including routines, app classifications, website classifications, and custom rules), and restore it at any time.
 
 ---
 
@@ -153,22 +172,22 @@ Daynexa follows modern Android development practices utilizing **Clean Architect
 ```
 ┌──────────────────────────────────────────────────────────┐
 │                Jetpack Compose UI Screens                │
-│         Today │ Calendar │ Statistics │ Settings         │
+│   Today │ Calendar │ Statistics │ Settings │ Diagnostic  │
 └────────────────────────────┬─────────────────────────────┘
                              │ StateFlow & UI Events
 ┌────────────────────────────▼─────────────────────────────┐
 │                     ViewModel Layer                      │
-│     TodayViewModel │ CalendarViewModel │ StatsViewModel  │
+│ TodayViewModel │ CalendarViewModel │ StatsViewModel │... │
 └────────────────────────────┬─────────────────────────────┘
                              │ Kotlin Coroutines & Flow
 ┌────────────────────────────▼─────────────────────────────┐
 │                      Domain Layer                        │
-│    TaskRepository │ SchedulingService │ Business Models  │
+│ TaskRepository │ DiagnosticRepo │ WebsiteRepo │ Services │
 └────────────────────────────┬─────────────────────────────┘
-                             │ Room DAOs
+                             │ Local DAOs & Packet Parsing
 ┌────────────────────────────▼─────────────────────────────┐
-│                    Local SQLite (Room)                   │
-│        CategoryDao │ TaskDao │ TaskOccurrenceDao         │
+│              Local SQLite (Room) & VpnService            │
+│  CategoryDao │ TaskDao │ AppClassDao │ WebClassDao │...  │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -184,6 +203,8 @@ For more architectural details, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 | **UI Framework** | [Jetpack Compose](https://developer.android.com/jetpack/compose) | Declarative Material 3 user interface |
 | **Architecture** | MVVM + Clean Architecture | Unidirectional Data Flow and separation of concerns |
 | **Persistence** | [Android Room](https://developer.android.com/training/data-storage/room) | Local SQLite persistence via Kotlin Symbol Processing (KSP) |
+| **Diagnostics** | `UsageStatsManager` & `VpnService` | On-device app usage & zero-decryption DNS domain capture |
+| **Scheduling** | `AlarmManager` & `BroadcastReceiver` | Exact & inexact notifications with reboot persistence |
 | **Concurrency** | Kotlin Coroutines & StateFlow | Reactive and asynchronous state streaming |
 | **Navigation** | Navigation Compose | Type-safe declarative screen routing |
 | **Serialization** | [Moshi](https://github.com/square/moshi) | Fast, safe JSON serialization for local backup & restore |
@@ -204,7 +225,7 @@ daynexa/
 │   │   ├── main/
 │   │   │   ├── java/com.niloy/
 │   │   │   │   ├── data/     # Room Database, DAOs, Entities, Repository impl
-│   │   │   │   ├── domain/   # Domain Models, Repository interface, Services
+│   │   │   │   ├── domain/   # Domain Models, Repository interface, Services (VPN)
 │   │   │   │   ├── ui/       # Jetpack Compose Screens, Components, Theme
 │   │   │   │   ├── DaynexaApplication.kt
 │   │   │   │   └── MainActivity.kt
@@ -280,7 +301,7 @@ Publish GitHub Release & Upload APK Artifact
 
 ## Roadmap
 
-### Current (Release v0.3.0) — ✅ Completed
+### Current (Release v0.4.0) — ✅ Completed
 - [x] Weekly recurring & one-time task scheduling
 - [x] Today timeline & real-time progress card
 - [x] Monthly calendar matrix with productivity dots
@@ -292,11 +313,14 @@ Publish GitHub Release & Upload APK Artifact
 - [x] **App Usage & Productivity Diagnostic System**: On-device usage stats monitoring (`PACKAGE_USAGE_STATS`)
 - [x] **App Quality Ratings**: *Must Have*, *Nice to Have*, *Distraction*, *Waste of Time*
 - [x] **Multi-Category App Classifications**: Categorize installed apps with search & edit capabilities
+- [x] **Browser & Website Diagnostics**: Zero-decryption DNS packet capture on-device via `VpnService`
+- [x] **Website Quality & Classification**: Categorize visited web domains with custom ratings & categories
+- [x] **Custom Domain Matching Rules**: Exact, subdomain, and wildcard pattern evaluation
 - [x] **Smart Task Reminders**: Exact and inexact `AlarmManager` routine alerts with customizable offsets (At start, 5m, 10m, 15m, 30m)
 - [x] **Device Reboot Alarm Restoration**: `BootCompletedReceiver` for automated persistent alarm scheduling
 - [x] **Advanced Productivity Score**: Dynamic 0-100 metric with consistency and streak ratings
 - [x] **Week-over-Week Productivity Deltas**: Visual performance trend indicators
-- [x] **Room Migration v1 -> v2 -> v3**: Safe database evolution with `app_classifications` and reminder columns
+- [x] **Room Migration v1 -> v2 -> v3 -> v4**: Lossless database evolution across all entities & indices
 
 ### Planned Features (Future Releases) — 📌 Roadmap
 - [ ] *Home Screen Widgets*: Quick glance at today's pending routines.
