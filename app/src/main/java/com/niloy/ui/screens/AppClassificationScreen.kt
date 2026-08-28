@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -127,7 +128,8 @@ fun AppClassificationScreen(
             onDismiss = { viewModel.selectAppToEdit(null) },
             onSave = { pkg, name, categories, rating ->
                 viewModel.saveAppClassification(pkg, name, categories, rating)
-            }
+            },
+            onAddCategory = { name, isProd -> viewModel.saveAppCategory(name, isProd) }
         )
     }
 
@@ -229,10 +231,14 @@ private fun EditAppClassificationDialog(
     app: InstalledAppInfo,
     availableCategories: List<com.niloy.domain.model.AppCategory>,
     onDismiss: () -> Unit,
-    onSave: (String, String, List<String>, AppQualityRating) -> Unit
+    onSave: (String, String, List<String>, AppQualityRating) -> Unit,
+    onAddCategory: (String, Boolean) -> Unit
 ) {
     var selectedCategories by remember { mutableStateOf(app.categories.toSet()) }
     var selectedRating by remember { mutableStateOf(app.qualityRating) }
+    var showQuickAddCategory by remember { mutableStateOf(false) }
+    var newQuickCatName by remember { mutableStateOf("") }
+    var isNewCatProd by remember { mutableStateOf(true) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -277,12 +283,78 @@ private fun EditAppClassificationDialog(
 
                 Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
-                Text(
-                    text = "Categories (Multiple Allowed)",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Categories (Multiple Allowed)",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    TextButton(
+                        onClick = { showQuickAddCategory = !showQuickAddCategory },
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(if (showQuickAddCategory) Icons.Default.Close else Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Text(if (showQuickAddCategory) "Close" else "New", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+
+                if (showQuickAddCategory) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = newQuickCatName,
+                                onValueChange = { newQuickCatName = it },
+                                placeholder = { Text("New category name...", style = MaterialTheme.typography.bodySmall) },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                textStyle = MaterialTheme.typography.bodySmall,
+                                singleLine = true
+                            )
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FilterChip(
+                                    selected = isNewCatProd,
+                                    onClick = { isNewCatProd = true },
+                                    label = { Text("Productive", style = MaterialTheme.typography.labelSmall) },
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                FilterChip(
+                                    selected = !isNewCatProd,
+                                    onClick = { isNewCatProd = false },
+                                    label = { Text("Distracting", style = MaterialTheme.typography.labelSmall) },
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                Spacer(modifier = Modifier.weight(1f))
+                                Button(
+                                    onClick = {
+                                        if (newQuickCatName.isNotBlank()) {
+                                            onAddCategory(newQuickCatName.trim(), isNewCatProd)
+                                            selectedCategories = selectedCategories + newQuickCatName.trim()
+                                            newQuickCatName = ""
+                                            showQuickAddCategory = false
+                                        }
+                                    },
+                                    modifier = Modifier.height(32.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp),
+                                    enabled = newQuickCatName.isNotBlank()
+                                ) {
+                                    Text("Add", style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                        }
+                    }
+                }
 
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),

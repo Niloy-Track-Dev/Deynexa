@@ -451,8 +451,11 @@ class DiagnosticRepositoryImpl(
             lower.contains("whatsapp") || lower.contains("telegram") || lower.contains("messenger") || lower.contains("signal") -> listOf(AppCategories.COMMUNICATION)
             lower.contains("facebook") || lower.contains("instagram") || lower.contains("twitter") || lower.contains("tiktok") || lower.contains("reddit") || lower.contains("snapchat") || lower.contains("x.android") -> listOf(AppCategories.SOCIAL_MEDIA)
             lower.contains("game") || lower.contains("pubg") || lower.contains("roblox") || lower.contains("clash") -> listOf(AppCategories.GAMES)
-            lower.contains("calculator") || lower.contains("clock") || lower.contains("settings") || lower.contains("camera") || lower.contains("gallery") -> listOf(AppCategories.UTILITIES)
+            lower.contains("calculator") || lower.contains("clock") || lower.contains("settings") || lower.contains("camera") || lower.contains("gallery") -> listOf(AppCategories.UTILITIES, AppCategories.TOOLS)
             lower.contains("notion") || lower.contains("slack") || lower.contains("task") || lower.contains("todo") || lower.contains("daynexa") || lower.contains("keep") || lower.contains("calendar") -> listOf(AppCategories.PRODUCTIVITY)
+            lower.contains("ai") || lower.contains("chatgpt") || lower.contains("gemini") || lower.contains("claude") || lower.contains("copilot") -> listOf(AppCategories.AI)
+            lower.contains("android") || lower.contains("system") -> listOf(AppCategories.SYSTEM_APP)
+            lower.contains("code") || lower.contains("ide") || lower.contains("studio") || lower.contains("termux") || lower.contains("github") -> listOf(AppCategories.CODING)
             else -> listOf(AppCategories.UNCLASSIFIED)
         }
     }
@@ -461,11 +464,16 @@ class DiagnosticRepositoryImpl(
         val existing = appCategoryDao.getAllCategoriesOneShot()
         if (existing.isEmpty()) {
             val defaults = listOf<com.niloy.data.local.entity.AppCategoryEntity>(
+                com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.AI, isProductive = true),
+                com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.SYSTEM_APP, isProductive = true),
                 com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.PRODUCTIVITY, isProductive = true),
+                com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.COMMUNICATION, isProductive = true),
+                com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.NAME_JAP, isProductive = true),
+                com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.TOOLS, isProductive = true),
+                com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.CODING, isProductive = true),
                 com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.EDUCATION, isProductive = true),
                 com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.STUDY_TIMER, isProductive = true),
                 com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.BROWSER, isProductive = true),
-                com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.COMMUNICATION, isProductive = true),
                 com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.SOCIAL_MEDIA, isProductive = false),
                 com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.ENTERTAINMENT, isProductive = false),
                 com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.GAMES, isProductive = false),

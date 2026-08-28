@@ -23,21 +23,26 @@ enum class ProductivityType(val label: String) {
 }
 
 object AppCategories {
-    const val SOCIAL_MEDIA = "Social Media"
+    const val AI = "Ai"
+    const val SYSTEM_APP = "System App"
+    const val PRODUCTIVITY = "Productivity"
+    const val COMMUNICATION = "Communication"
+    const val NAME_JAP = "Name Jap"
+    const val TOOLS = "Tools"
+    const val CODING = "Coding"
     const val EDUCATION = "Education"
     const val STUDY_TIMER = "Study Timer"
-    const val PRODUCTIVITY = "Productivity"
-    const val ENTERTAINMENT = "Entertainment"
-    const val COMMUNICATION = "Communication"
     const val BROWSER = "Browser"
+    const val SOCIAL_MEDIA = "Social Media"
+    const val ENTERTAINMENT = "Entertainment"
     const val GAMES = "Games"
     const val UTILITIES = "Utilities"
     const val OTHER = "Other"
     const val UNCLASSIFIED = "Unclassified"
 
     val ALL_CATEGORIES = listOf(
-        PRODUCTIVITY, EDUCATION, STUDY_TIMER, BROWSER,
-        COMMUNICATION, SOCIAL_MEDIA, ENTERTAINMENT, GAMES, UTILITIES, OTHER
+        AI, SYSTEM_APP, PRODUCTIVITY, COMMUNICATION, NAME_JAP, TOOLS, CODING,
+        EDUCATION, STUDY_TIMER, BROWSER, SOCIAL_MEDIA, ENTERTAINMENT, GAMES, UTILITIES, OTHER
     )
 }
 

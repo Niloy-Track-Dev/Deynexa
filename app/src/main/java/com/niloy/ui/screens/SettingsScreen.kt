@@ -111,26 +111,11 @@ fun SettingsScreen(
                         title = "App Theme",
                         subtitle = "Select between Light, Dark, or System mode",
                         trailing = {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                FilterChip(
-                                    selected = uiState.theme == "LIGHT",
-                                    onClick = { viewModel.updateTheme("LIGHT") },
-                                    label = { Text("Light") },
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                FilterChip(
-                                    selected = uiState.theme == "DARK",
-                                    onClick = { viewModel.updateTheme("DARK") },
-                                    label = { Text("Dark") },
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                FilterChip(
-                                    selected = uiState.theme == "SYSTEM",
-                                    onClick = { viewModel.updateTheme("SYSTEM") },
-                                    label = { Text("Auto") },
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                            }
+                            SettingsChipRow(
+                                options = listOf("Light" to "LIGHT", "Dark" to "DARK", "Auto" to "SYSTEM"),
+                                selectedOption = uiState.theme,
+                                onOptionSelected = { viewModel.updateTheme(it) }
+                            )
                         }
                     )
 
@@ -141,20 +126,11 @@ fun SettingsScreen(
                         title = "Time Format",
                         subtitle = "Choose your preferred clock system",
                         trailing = {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                FilterChip(
-                                    selected = uiState.timeFormat == "12H",
-                                    onClick = { viewModel.updateTimeFormat("12H") },
-                                    label = { Text("12H") },
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                FilterChip(
-                                    selected = uiState.timeFormat == "24H",
-                                    onClick = { viewModel.updateTimeFormat("24H") },
-                                    label = { Text("24H") },
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                            }
+                            SettingsChipRow(
+                                options = listOf("12H" to "12H", "24H" to "24H"),
+                                selectedOption = uiState.timeFormat,
+                                onOptionSelected = { viewModel.updateTimeFormat(it) }
+                            )
                         }
                     )
                 }
@@ -168,20 +144,11 @@ fun SettingsScreen(
                         title = "Week Start Day",
                         subtitle = "Select which day starts your routine week",
                         trailing = {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                FilterChip(
-                                    selected = uiState.weekStart == "MONDAY",
-                                    onClick = { viewModel.updateWeekStart("MONDAY") },
-                                    label = { Text("Mon") },
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                FilterChip(
-                                    selected = uiState.weekStart == "SUNDAY",
-                                    onClick = { viewModel.updateWeekStart("SUNDAY") },
-                                    label = { Text("Sun") },
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                            }
+                            SettingsChipRow(
+                                options = listOf("Mon" to "MONDAY", "Sun" to "SUNDAY"),
+                                selectedOption = uiState.weekStart,
+                                onOptionSelected = { viewModel.updateWeekStart(it) }
+                            )
                         }
                     )
                 }
@@ -628,6 +595,40 @@ fun SettingsScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun SettingsChipRow(
+    options: List<Pair<String, String>>,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.padding(vertical = 4.dp)
+    ) {
+        options.forEach { (label, value) ->
+            val isSelected = selectedOption == value
+            FilterChip(
+                selected = isSelected,
+                onClick = { onOptionSelected(value) },
+                label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+                shape = RoundedCornerShape(10.dp),
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    borderColor = if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                    borderWidth = 1.dp,
+                    enabled = true,
+                    selected = isSelected
+                )
+            )
+        }
     }
 }
 
