@@ -33,7 +33,9 @@ import com.niloy.ui.theme.StateSkipped
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    viewModel: SettingsViewModel
+    viewModel: SettingsViewModel,
+    onNavigateToDiagnostic: () -> Unit = {},
+    onNavigateToClassifications: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -236,6 +238,44 @@ fun SettingsScreen(
                 }
             }
 
+            // Diagnostic & App Usage Section
+            item {
+                SettingsSection(title = "APP USAGE DIAGNOSTICS") {
+                    SettingsActionItem(
+                        icon = Icons.Outlined.Insights,
+                        title = "Diagnostic Dashboard",
+                        subtitle = "View focus time, app quality ratings, and usage stats",
+                        onClick = onNavigateToDiagnostic
+                    )
+
+                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                    SettingsActionItem(
+                        icon = Icons.Outlined.Category,
+                        title = "Manage App Classifications",
+                        subtitle = "Categorize installed apps and set quality ratings",
+                        onClick = onNavigateToClassifications
+                    )
+
+                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                    SettingsActionItem(
+                        icon = Icons.Outlined.Security,
+                        title = "Usage Access Permission",
+                        subtitle = "Open Android settings to grant or check usage permission",
+                        onClick = {
+                            try {
+                                val intent = Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                val intent = Intent(android.provider.Settings.ACTION_SETTINGS)
+                                context.startActivity(intent)
+                            }
+                        }
+                    )
+                }
+            }
+
             // System & Release Section
             item {
                 SettingsSection(title = "SYSTEM & RELEASES") {
@@ -299,7 +339,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Build Better Days • v0.1.1",
+                        text = "Build Better Days • v0.2.0",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

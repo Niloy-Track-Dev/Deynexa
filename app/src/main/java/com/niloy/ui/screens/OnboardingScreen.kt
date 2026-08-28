@@ -6,8 +6,10 @@ import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircleOutline
 import androidx.compose.material.icons.outlined.Download
@@ -35,7 +37,7 @@ private const val GITHUB_RELEASES_URL = "https://github.com/Niloy-Track-Dev/Deyn
 
 @Composable
 fun OnboardingScreen(onComplete: () -> Unit) {
-    val context = LocalContext.current
+    val scrollState = rememberScrollState()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -44,91 +46,98 @@ fun OnboardingScreen(onComplete: () -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
+                .systemBarsPadding()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // App Branding Top
             Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(scrollState),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(top = 16.dp)
+                verticalArrangement = Arrangement.Center
             ) {
-                Surface(
-                    modifier = Modifier.size(64.dp),
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                // App Branding Top
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(top = 8.dp)
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Outlined.CheckCircleOutline,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(34.dp)
-                        )
+                    Surface(
+                        modifier = Modifier.size(64.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Outlined.CheckCircleOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(34.dp)
+                            )
+                        }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                Text(
-                    text = "Daynexa",
-                    style = MaterialTheme.typography.displayMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "Build Better Days.",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            // Core Pillars Cards
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                FeaturePillarRow(
-                    icon = Icons.Outlined.Schedule,
-                    title = "Deterministic Routine Tracking",
-                    description = "Manage daily schedules, recurring habits, and all-day goals with zero friction."
-                )
-                FeaturePillarRow(
-                    icon = Icons.Outlined.Insights,
-                    title = "Visual Analytics & Heatmaps",
-                    description = "Gain instant insight into your streaks, best productive days, and consistency patterns."
-                )
-                FeaturePillarRow(
-                    icon = Icons.Outlined.Lock,
-                    title = "100% Offline & Private",
-                    description = "No accounts, no cloud databases, and zero tracking. Your personal data stays on device."
-                )
-            }
-
-            // Action Button (Get Started)
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Get Started Primary CTA
-                Button(
-                    onClick = onComplete,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
                     Text(
-                        text = "Get Started",
+                        text = "Daynexa",
+                        style = MaterialTheme.typography.displayMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = "Build Better Days.",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // Core Pillars Cards
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    FeaturePillarRow(
+                        icon = Icons.Outlined.Schedule,
+                        title = "Deterministic Routine Tracking",
+                        description = "Manage daily schedules, recurring habits, and all-day goals with zero friction."
+                    )
+                    FeaturePillarRow(
+                        icon = Icons.Outlined.Insights,
+                        title = "Visual Analytics & Heatmaps",
+                        description = "Gain instant insight into your streaks, best productive days, and consistency patterns."
+                    )
+                    FeaturePillarRow(
+                        icon = Icons.Outlined.Lock,
+                        title = "100% Offline & Private",
+                        description = "No accounts, no cloud databases, and zero tracking. Your personal data stays on device."
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Action Button (Get Started)
+            Button(
+                onClick = onComplete,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text(
+                    text = "Get Started",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }

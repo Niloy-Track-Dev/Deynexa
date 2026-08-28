@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,6 +24,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -93,22 +95,35 @@ fun MainContent(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    MaterialTheme.colorScheme.background.copy(alpha = 0.75f),
+                                    MaterialTheme.colorScheme.background
+                                )
+                            )
+                        )
+                        .navigationBarsPadding()
+                        .padding(start = 10.dp, top = 8.dp, end = 10.dp, bottom = 6.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(32.dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                        shape = RoundedCornerShape(26.dp),
+                        color = MaterialTheme.colorScheme.surface,
                         tonalElevation = 6.dp,
-                        shadowElevation = 12.dp,
+                        shadowElevation = 8.dp,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
                     ) {
                         NavigationBar(
                             containerColor = Color.Transparent,
                             tonalElevation = 0.dp,
                             windowInsets = WindowInsets(0, 0, 0, 0),
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(70.dp)
+                                .padding(horizontal = 4.dp)
                         ) {
                         val isToday = currentDestination?.route == Screen.Today::class.qualifiedName
                         NavigationBarItem(
@@ -129,6 +144,7 @@ fun MainContent(
                                 )
                             },
                             selected = isToday,
+                            alwaysShowLabel = true,
                             onClick = {
                                 navController.navigate(Screen.Today) {
                                     popUpTo(Screen.Today) { saveState = true }
@@ -164,6 +180,7 @@ fun MainContent(
                                 )
                             },
                             selected = isCalendar,
+                            alwaysShowLabel = true,
                             onClick = {
                                 navController.navigate(Screen.Calendar) {
                                     popUpTo(Screen.Today) { saveState = true }
@@ -199,6 +216,7 @@ fun MainContent(
                                 )
                             },
                             selected = isStats,
+                            alwaysShowLabel = true,
                             onClick = {
                                 navController.navigate(Screen.Statistics) {
                                     popUpTo(Screen.Today) { saveState = true }
@@ -234,6 +252,7 @@ fun MainContent(
                                 )
                             },
                             selected = isCategories,
+                            alwaysShowLabel = true,
                             onClick = {
                                 navController.navigate(Screen.Categories) {
                                     popUpTo(Screen.Today) { saveState = true }
@@ -269,6 +288,7 @@ fun MainContent(
                                 )
                             },
                             selected = isSettings,
+                            alwaysShowLabel = true,
                             onClick = {
                                 navController.navigate(Screen.Settings) {
                                     popUpTo(Screen.Today) { saveState = true }
@@ -289,13 +309,11 @@ fun MainContent(
             }
         }
     }
-    ) { innerPadding ->
+    ) { _ ->
         NavHost(
             navController = navController,
             startDestination = startDestination,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = innerPadding.calculateBottomPadding())
+            modifier = Modifier.fillMaxSize()
         ) {
             composable<Screen.Onboarding> {
                 OnboardingScreen(onComplete = {
@@ -328,7 +346,10 @@ fun MainContent(
                 val statisticsViewModel: StatisticsViewModel = viewModel(
                     factory = StatisticsViewModel.Factory(app.repository, app.schedulingService)
                 )
-                StatisticsScreen(viewModel = statisticsViewModel)
+                StatisticsScreen(
+                    viewModel = statisticsViewModel,
+                    onNavigateToDiagnostic = { navController.navigate(Screen.Diagnostic) }
+                )
             }
             composable<Screen.Categories> {
                 val categoriesViewModel: CategoriesViewModel = viewModel(
@@ -337,7 +358,30 @@ fun MainContent(
                 CategoriesScreen(viewModel = categoriesViewModel)
             }
             composable<Screen.Settings> {
-                SettingsScreen(viewModel = settingsViewModel)
+                SettingsScreen(
+                    viewModel = settingsViewModel,
+                    onNavigateToDiagnostic = { navController.navigate(Screen.Diagnostic) },
+                    onNavigateToClassifications = { navController.navigate(Screen.AppClassification) }
+                )
+            }
+            composable<Screen.Diagnostic> {
+                val diagnosticViewModel: DiagnosticViewModel = viewModel(
+                    factory = DiagnosticViewModel.Factory(app.diagnosticRepository)
+                )
+                DiagnosticScreen(
+                    viewModel = diagnosticViewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToClassifications = { navController.navigate(Screen.AppClassification) }
+                )
+            }
+            composable<Screen.AppClassification> {
+                val classificationViewModel: AppClassificationViewModel = viewModel(
+                    factory = AppClassificationViewModel.Factory(app.diagnosticRepository)
+                )
+                AppClassificationScreen(
+                    viewModel = classificationViewModel,
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
             composable<Screen.TaskDetail> { backStackEntry ->
                 val route: Screen.TaskDetail = backStackEntry.toRoute()

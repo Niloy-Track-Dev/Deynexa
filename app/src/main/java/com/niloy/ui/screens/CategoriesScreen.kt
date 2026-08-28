@@ -67,7 +67,9 @@ fun CategoriesScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.offset(y = 36.dp)
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .padding(bottom = 66.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Category")
             }

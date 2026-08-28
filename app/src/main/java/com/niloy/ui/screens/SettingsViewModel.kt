@@ -33,18 +33,22 @@ class SettingsViewModel(
 
     init {
         viewModelScope.launch {
-            val onboarding = repository.getSetting("onboarding_completed")?.toBoolean() ?: false
-            val theme = repository.getSetting("theme") ?: "SYSTEM"
-            val timeFormat = repository.getSetting("time_format") ?: "24H"
-            val weekStart = repository.getSetting("week_start") ?: "MONDAY"
-            
-            _uiState.update { it.copy(
-                isOnboardingCompleted = onboarding,
-                theme = theme,
-                timeFormat = timeFormat,
-                weekStart = weekStart,
-                isLoading = false
-            ) }
+            try {
+                val onboarding = repository.getSetting("onboarding_completed")?.toBoolean() ?: false
+                val theme = repository.getSetting("theme") ?: "SYSTEM"
+                val timeFormat = repository.getSetting("time_format") ?: "24H"
+                val weekStart = repository.getSetting("week_start") ?: "MONDAY"
+                
+                _uiState.update { it.copy(
+                    isOnboardingCompleted = onboarding,
+                    theme = theme,
+                    timeFormat = timeFormat,
+                    weekStart = weekStart,
+                    isLoading = false
+                ) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false) }
+            }
         }
     }
 

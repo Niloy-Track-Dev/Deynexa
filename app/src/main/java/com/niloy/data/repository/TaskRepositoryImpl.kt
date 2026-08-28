@@ -111,10 +111,20 @@ class TaskRepositoryImpl(
         endTime = endTime,
         isAllDay = isAllDay,
         isRecurring = isRecurring,
-        recurringDays = if (recurringDays.isEmpty()) {
+        recurringDays = if (recurringDays.isBlank()) {
             emptySet()
         } else {
-            recurringDays.split(",").map { DayOfWeek.valueOf(it) }.toSet()
+            recurringDays.split(",")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .mapNotNull {
+                    try {
+                        DayOfWeek.valueOf(it)
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+                .toSet()
         },
         isEnabled = isEnabled,
         createdAt = createdAt,
@@ -139,7 +149,7 @@ class TaskRepositoryImpl(
     private fun TaskOccurrenceEntity.toDomain() = TaskOccurrence(
         taskId = taskId,
         date = date,
-        state = TaskState.valueOf(state),
+        state = try { TaskState.valueOf(state) } catch (e: Exception) { TaskState.PENDING },
         updatedAt = updatedAt
     )
 

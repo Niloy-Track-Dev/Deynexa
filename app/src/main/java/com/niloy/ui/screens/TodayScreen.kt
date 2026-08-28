@@ -131,7 +131,8 @@ fun TodayScreen(
                 shape = RoundedCornerShape(16.dp),
                 elevation = FloatingActionButtonDefaults.elevation(4.dp),
                 modifier = Modifier
-                    .offset(y = 36.dp)
+                    .navigationBarsPadding()
+                    .padding(bottom = 66.dp)
                     .testTag("add_task_fab")
             ) {
                 Icon(

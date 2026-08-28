@@ -7,12 +7,21 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 
+data class AppClassificationBackup(
+    val packageName: String,
+    val appName: String,
+    val categories: String,
+    val qualityRating: String,
+    val customProductivityType: String = "NEUTRAL"
+)
+
 data class BackupData(
-    val version: Int = 1,
+    val version: Int = 2,
     val categories: List<Category>,
     val tasks: List<Task>,
     val occurrences: List<TaskOccurrence>,
-    val settings: Map<String, String>
+    val settings: Map<String, String>,
+    val appClassifications: List<AppClassificationBackup>? = null
 )
 
 class BackupService {
