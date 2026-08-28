@@ -29,6 +29,8 @@ data class Task(
     val recurringDays: Set<DayOfWeek> = emptySet(),
     val color: Int? = null,
     val notes: String = "",
+    val reminderEnabled: Boolean = false,
+    val reminderOffsetMinutes: Int? = null, // null: none, 0: at start, 5: 5 min before, 10: 10 min before, 15: 15 min before, 30: 30 min before
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

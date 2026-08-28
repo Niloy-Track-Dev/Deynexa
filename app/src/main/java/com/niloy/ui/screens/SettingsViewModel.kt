@@ -17,6 +17,8 @@ data class SettingsUiState(
     val theme: String = "SYSTEM",
     val timeFormat: String = "24H",
     val weekStart: String = "MONDAY",
+    val notificationsEnabled: Boolean = true,
+    val defaultReminderOffset: Int = 0,
     val isLoading: Boolean = true,
     val backupJson: String? = null,
     val importMessage: String? = null,
@@ -38,12 +40,16 @@ class SettingsViewModel(
                 val theme = repository.getSetting("theme") ?: "SYSTEM"
                 val timeFormat = repository.getSetting("time_format") ?: "24H"
                 val weekStart = repository.getSetting("week_start") ?: "MONDAY"
+                val notificationsEnabled = repository.getSetting("notifications_enabled")?.toBoolean() ?: true
+                val defaultReminderOffset = repository.getSetting("default_reminder_offset")?.toIntOrNull() ?: 0
                 
                 _uiState.update { it.copy(
                     isOnboardingCompleted = onboarding,
                     theme = theme,
                     timeFormat = timeFormat,
                     weekStart = weekStart,
+                    notificationsEnabled = notificationsEnabled,
+                    defaultReminderOffset = defaultReminderOffset,
                     isLoading = false
                 ) }
             } catch (e: Exception) {
@@ -80,6 +86,20 @@ class SettingsViewModel(
         }
     }
 
+    fun updateNotificationsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.saveSetting("notifications_enabled", enabled.toString())
+            _uiState.update { it.copy(notificationsEnabled = enabled) }
+        }
+    }
+
+    fun updateDefaultReminderOffset(offset: Int) {
+        viewModelScope.launch {
+            repository.saveSetting("default_reminder_offset", offset.toString())
+            _uiState.update { it.copy(defaultReminderOffset = offset) }
+        }
+    }
+
     fun generateBackup() {
         viewModelScope.launch {
             val categories = repository.getCategories().first()
@@ -93,7 +113,9 @@ class SettingsViewModel(
                 settings = mapOf(
                     "theme" to _uiState.value.theme,
                     "time_format" to _uiState.value.timeFormat,
-                    "week_start" to _uiState.value.weekStart
+                    "week_start" to _uiState.value.weekStart,
+                    "notifications_enabled" to _uiState.value.notificationsEnabled.toString(),
+                    "default_reminder_offset" to _uiState.value.defaultReminderOffset.toString()
                 )
             )
             val json = backupService.exportBackup(backupData)

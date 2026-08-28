@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0] - 2026-08-28
+
+### Added
+- **Smart Task Reminders**: Offline, on-device routine alerts using Android `AlarmManager` and `NotificationManager` with high-priority channel support.
+- **Customizable Reminder Offsets**: Choose reminder notifications *At start*, *5 minutes before*, *10 minutes before*, *15 minutes before*, or *30 minutes before* scheduled routines.
+- **Device Reboot Resilience**: Implemented `BootCompletedReceiver` to restore and reschedule all routine alarms automatically upon device restart.
+- **Advanced Productivity Score**: Dynamic 0–100 productivity score calculating consistency streaks, completion ratios, and routine regularity with performance ratings (*Elite*, *High*, *Moderate*, *Building*).
+- **Weekly Comparison Deltas**: Real-time week-over-week performance delta indicator (`▲ +%` / `▼ -%`) on the analytics dashboard.
+- **Notification Settings & Test Alert**: New "Notifications & Reminders" section in Settings to toggle notifications, configure default offsets, and trigger sample alert tests.
+- **Room Database Migration (v2 -> v3)**: Added `reminderEnabled` and `reminderOffsetMinutes` schema support to the `tasks` entity with lossless migration.
+
 ## [0.2.0] - 2026-08-28
 
 ### Added

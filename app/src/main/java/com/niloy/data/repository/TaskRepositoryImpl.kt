@@ -127,6 +127,8 @@ class TaskRepositoryImpl(
                 .toSet()
         },
         isEnabled = isEnabled,
+        reminderEnabled = reminderEnabled,
+        reminderOffsetMinutes = reminderOffsetMinutes,
         createdAt = createdAt,
         updatedAt = updatedAt
     )
@@ -142,6 +144,8 @@ class TaskRepositoryImpl(
         isRecurring = isRecurring,
         recurringDays = recurringDays.joinToString(",") { it.name },
         isEnabled = isEnabled,
+        reminderEnabled = reminderEnabled,
+        reminderOffsetMinutes = reminderOffsetMinutes,
         createdAt = createdAt,
         updatedAt = updatedAt
     )

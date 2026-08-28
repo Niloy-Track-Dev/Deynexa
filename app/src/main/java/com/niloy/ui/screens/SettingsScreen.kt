@@ -211,6 +211,94 @@ fun SettingsScreen(
                 }
             }
 
+            // Notifications & Smart Reminders Section
+            item {
+                SettingsSection(title = "NOTIFICATIONS & REMINDERS") {
+                    SettingsRowItem(
+                        icon = Icons.Outlined.Notifications,
+                        title = "Routine Notifications",
+                        subtitle = if (uiState.notificationsEnabled) "Smart on-device reminder alerts enabled" else "All reminder alerts muted",
+                        trailing = {
+                            Switch(
+                                checked = uiState.notificationsEnabled,
+                                onCheckedChange = { viewModel.updateNotificationsEnabled(it) }
+                            )
+                        }
+                    )
+
+                    if (uiState.notificationsEnabled) {
+                        Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                        SettingsRowItem(
+                            icon = Icons.Outlined.Timer,
+                            title = "Default Reminder Timing",
+                            subtitle = when (uiState.defaultReminderOffset) {
+                                5 -> "5 minutes before routine"
+                                10 -> "10 minutes before routine"
+                                15 -> "15 minutes before routine"
+                                30 -> "30 minutes before routine"
+                                else -> "At start time"
+                            },
+                            trailing = {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    FilterChip(
+                                        selected = uiState.defaultReminderOffset == 0,
+                                        onClick = { viewModel.updateDefaultReminderOffset(0) },
+                                        label = { Text("0m") },
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    FilterChip(
+                                        selected = uiState.defaultReminderOffset == 5,
+                                        onClick = { viewModel.updateDefaultReminderOffset(5) },
+                                        label = { Text("5m") },
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    FilterChip(
+                                        selected = uiState.defaultReminderOffset == 10,
+                                        onClick = { viewModel.updateDefaultReminderOffset(10) },
+                                        label = { Text("10m") },
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    FilterChip(
+                                        selected = uiState.defaultReminderOffset == 15,
+                                        onClick = { viewModel.updateDefaultReminderOffset(15) },
+                                        label = { Text("15m") },
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                }
+                            }
+                        )
+
+                        Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                        SettingsActionItem(
+                            icon = Icons.Outlined.NotificationAdd,
+                            title = "Send Test Routine Alert",
+                            subtitle = "Verify on-device notification sound and banner",
+                            onClick = {
+                                try {
+                                    val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                                    com.niloy.domain.service.TaskReminderScheduler.createNotificationChannel(context)
+                                    val notification = androidx.core.app.NotificationCompat.Builder(context, com.niloy.domain.service.TaskReminderScheduler.CHANNEL_ID)
+                                        .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                                        .setContentTitle("⏰ Daynexa Smart Reminder")
+                                        .setContentText("Your scheduled routine reminder test is working perfectly!")
+                                        .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                                        .setAutoCancel(true)
+                                        .build()
+                                    notificationManager.notify(99999, notification)
+                                    Toast.makeText(context, "Test notification triggered!", Toast.LENGTH_SHORT).show()
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Notification check: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+
             // Data Management Section
             item {
                 SettingsSection(title = "DATA & BACKUP") {
@@ -339,7 +427,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Build Better Days • v0.2.0",
+                        text = "Build Better Days • v0.3.0",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

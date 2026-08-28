@@ -53,6 +53,9 @@ data class StatisticsUiState(
     val bestStreak: Int = 0,
     val bestDayName: String = "—",
     val overallCompletionRate: Float = 0f,
+    val productivityScore: Int = 85,
+    val productivityRating: String = "High",
+    val weeklyComparisonDelta: Int = 0,
     val todayStats: PeriodStats = PeriodStats(),
     val weekStats: PeriodStats = PeriodStats(),
     val monthStats: PeriodStats = PeriodStats(),
@@ -243,6 +246,33 @@ class StatisticsViewModel(
         val allTimeSkipped = allOccurrences.count { it.state == TaskState.SKIPPED }
         val allTimePending = allOccurrences.count { it.state == TaskState.PENDING }
 
+        // Previous week stats for comparison delta
+        val prevWeekStart = startOfWeek.minusDays(7)
+        val prevWeekDays = (0..6).map { prevWeekStart.plusDays(it.toLong()) }
+        var prevWeekTotal = 0
+        var prevWeekCompleted = 0
+        prevWeekDays.forEach { d ->
+            val dTasks = getTasksFor(d)
+            prevWeekTotal += dTasks.size
+            prevWeekCompleted += dTasks.count { it.occurrence.state == TaskState.COMPLETED }
+        }
+        val prevWeekRate = if (prevWeekTotal == 0) 0f else prevWeekCompleted.toFloat() / prevWeekTotal
+        val weeklyDelta = ((weekRate - prevWeekRate) * 100).toInt()
+
+        // Productivity Score (0-100)
+        val baseScore = (weekRate * 60).toInt()
+        val streakScore = (streak.coerceAtMost(7) * 4).coerceAtMost(25)
+        val completionBonus = if (weekCompleted > 0) 15 else 0
+        val finalScore = (baseScore + streakScore + completionBonus).coerceIn(0, 100)
+
+        val scoreRating = when {
+            finalScore >= 85 -> "Elite"
+            finalScore >= 70 -> "High"
+            finalScore >= 50 -> "Moderate"
+            finalScore > 0 -> "Building"
+            else -> "Starting"
+        }
+
         StatisticsUiState(
             totalCompletedAllTime = allTimeCompleted,
             totalPendingAllTime = allTimePending,
@@ -251,6 +281,9 @@ class StatisticsViewModel(
             bestStreak = maxOf(streak, 7),
             bestDayName = bestDayName,
             overallCompletionRate = monthRate,
+            productivityScore = finalScore,
+            productivityRating = scoreRating,
+            weeklyComparisonDelta = weeklyDelta,
             todayStats = PeriodStats(todayTasks.size, todayCompleted, todayPending, todaySkipped, todayRate),
             weekStats = PeriodStats(weekTotal, weekCompleted, weekPending, weekSkipped, weekRate),
             monthStats = PeriodStats(monthTotal, monthCompleted, monthPending, monthSkipped, monthRate),

@@ -11,6 +11,7 @@ import com.niloy.domain.repository.DiagnosticRepository
 import com.niloy.domain.repository.TaskRepository
 import com.niloy.domain.service.BackupService
 import com.niloy.domain.service.SchedulingService
+import com.niloy.domain.service.TaskReminderScheduler
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -20,6 +21,7 @@ class DaynexaApplication : Application() {
     lateinit var diagnosticRepository: DiagnosticRepository
     lateinit var schedulingService: SchedulingService
     lateinit var backupService: BackupService
+    lateinit var reminderScheduler: TaskReminderScheduler
 
     private val MIGRATION_1_2 = object : Migration(1, 2) {
         override fun migrate(db: SupportSQLiteDatabase) {
@@ -37,6 +39,13 @@ class DaynexaApplication : Application() {
         }
     }
 
+    private val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `reminderEnabled` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `reminderOffsetMinutes` INTEGER")
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         database = Room.databaseBuilder(
@@ -44,7 +53,7 @@ class DaynexaApplication : Application() {
             AppDatabase::class.java,
             "daynexa.db"
         )
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .fallbackToDestructiveMigration()
             .build()
 
@@ -62,6 +71,7 @@ class DaynexaApplication : Application() {
         
         schedulingService = SchedulingService()
         backupService = BackupService()
+        reminderScheduler = TaskReminderScheduler(applicationContext)
         
         initDemoData()
     }

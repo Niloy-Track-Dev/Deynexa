@@ -16,7 +16,7 @@ data class AppClassificationBackup(
 )
 
 data class BackupData(
-    val version: Int = 2,
+    val version: Int = 3,
     val categories: List<Category>,
     val tasks: List<Task>,
     val occurrences: List<TaskOccurrence>,

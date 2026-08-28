@@ -378,6 +378,77 @@ fun TaskDetailScreen(
                 }
             }
 
+            // Smart Reminders Card
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Smart Reminder",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = if (uiState.reminderEnabled) "Notify on device before routine starts" else "No reminder alerts configured",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = uiState.reminderEnabled,
+                            onCheckedChange = { viewModel.updateReminderEnabled(it) }
+                        )
+                    }
+
+                    if (uiState.reminderEnabled) {
+                        Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                        Text(
+                            text = "Remind Me:",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf(
+                                0 to "At Start",
+                                5 to "5 min before",
+                                10 to "10 min before",
+                                15 to "15 min before",
+                                30 to "30 min before"
+                            ).forEach { (mins, label) ->
+                                val isSelected = uiState.reminderOffsetMinutes == mins
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { viewModel.updateReminderOffsetMinutes(mins) },
+                                    label = { Text(label, fontSize = 12.sp) },
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(32.dp))
         }
     }

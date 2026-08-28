@@ -16,6 +16,8 @@ data class TaskEntity(
     val isRecurring: Boolean = false,
     val recurringDays: String = "", // Serialized as comma-separated string
     val isEnabled: Boolean = true,
+    val reminderEnabled: Boolean = false,
+    val reminderOffsetMinutes: Int? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

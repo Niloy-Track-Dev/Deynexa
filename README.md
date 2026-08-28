@@ -16,7 +16,7 @@
 </p>
 
 <p>
-  <a href="https://github.com/Niloy-Track-Dev/Deynexa/releases"><img src="https://img.shields.io/badge/Release-v0.2.0-blue.svg" alt="Latest Release" /></a>
+  <a href="https://github.com/Niloy-Track-Dev/Deynexa/releases"><img src="https://img.shields.io/badge/Release-v0.3.0-blue.svg" alt="Latest Release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-emerald.svg" alt="License: MIT" /></a>
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Platform-Android%208.0%2B%20%28API%2026%2B%29-brightgreen.svg" alt="Platform" /></a>
   <a href="#offline-architecture"><img src="https://img.shields.io/badge/Architecture-100%25%20Offline--First-blueviolet.svg" alt="Offline-First" /></a>
@@ -280,7 +280,7 @@ Publish GitHub Release & Upload APK Artifact
 
 ## Roadmap
 
-### Current (Release v0.2.0) — ✅ Completed
+### Current (Release v0.3.0) — ✅ Completed
 - [x] Weekly recurring & one-time task scheduling
 - [x] Today timeline & real-time progress card
 - [x] Monthly calendar matrix with productivity dots
@@ -292,12 +292,14 @@ Publish GitHub Release & Upload APK Artifact
 - [x] **App Usage & Productivity Diagnostic System**: On-device usage stats monitoring (`PACKAGE_USAGE_STATS`)
 - [x] **App Quality Ratings**: *Must Have*, *Nice to Have*, *Distraction*, *Waste of Time*
 - [x] **Multi-Category App Classifications**: Categorize installed apps with search & edit capabilities
-- [x] **Room Migration v1 -> v2**: Safe database evolution with `app_classifications` table
-- [x] **Navigation & Layout Polish**: Context-aware bottom bar visibility and refined FAB placement
+- [x] **Smart Task Reminders**: Exact and inexact `AlarmManager` routine alerts with customizable offsets (At start, 5m, 10m, 15m, 30m)
+- [x] **Device Reboot Alarm Restoration**: `BootCompletedReceiver` for automated persistent alarm scheduling
+- [x] **Advanced Productivity Score**: Dynamic 0-100 metric with consistency and streak ratings
+- [x] **Week-over-Week Productivity Deltas**: Visual performance trend indicators
+- [x] **Room Migration v1 -> v2 -> v3**: Safe database evolution with `app_classifications` and reminder columns
 
 ### Planned Features (Future Releases) — 📌 Roadmap
 - [ ] *Home Screen Widgets*: Quick glance at today's pending routines.
-- [ ] *Local Notification Reminders*: Configurable on-device routine alert timers.
 - [ ] *Encrypted Local Backups*: Optional passphrase encryption for JSON backup exports.
 - [ ] *Extended Analytics*: Yearly activity breakdown and category distribution charts.
 - [ ] *Wear OS Companion App*: Mark routines complete directly from your smartwatch.

@@ -393,7 +393,7 @@ fun MainContent(
             composable<Screen.TaskDetail> { backStackEntry ->
                 val route: Screen.TaskDetail = backStackEntry.toRoute()
                 val detailViewModel: TaskDetailViewModel = viewModel(
-                    factory = TaskDetailViewModel.Factory(app.repository, route.taskId)
+                    factory = TaskDetailViewModel.Factory(app.repository, app.reminderScheduler, route.taskId)
                 )
                 TaskDetailScreen(
                     viewModel = detailViewModel,

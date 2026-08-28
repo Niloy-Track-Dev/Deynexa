@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.niloy.domain.model.Category
 import com.niloy.domain.model.Task
 import com.niloy.domain.repository.TaskRepository
+import com.niloy.domain.service.TaskReminderScheduler
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
@@ -20,12 +21,15 @@ data class TaskDetailUiState(
     val isAllDay: Boolean = false,
     val isRecurring: Boolean = true,
     val recurringDays: Set<DayOfWeek> = DayOfWeek.values().toSet(),
+    val reminderEnabled: Boolean = false,
+    val reminderOffsetMinutes: Int = 0, // 0: at start, 5: 5 min before, 10: 10 min before, 15: 15 min before, 30: 30 min before
     val categories: List<Category> = emptyList(),
     val isSaved: Boolean = false
 )
 
 class TaskDetailViewModel(
     private val repository: TaskRepository,
+    private val reminderScheduler: TaskReminderScheduler?,
     private val taskId: Long?
 ) : ViewModel() {
 
@@ -48,7 +52,9 @@ class TaskDetailViewModel(
                         endTime = task.endTime?.toInt() ?: 480,
                         isAllDay = task.isAllDay,
                         isRecurring = task.isRecurring,
-                        recurringDays = task.recurringDays
+                        recurringDays = task.recurringDays,
+                        reminderEnabled = task.reminderEnabled,
+                        reminderOffsetMinutes = task.reminderOffsetMinutes ?: 0
                     ) }
                 }
             }
@@ -62,6 +68,8 @@ class TaskDetailViewModel(
     fun updateEndTime(minutes: Int) = _uiState.update { it.copy(endTime = minutes) }
     fun updateIsAllDay(isAllDay: Boolean) = _uiState.update { it.copy(isAllDay = isAllDay) }
     fun updateIsRecurring(isRecurring: Boolean) = _uiState.update { it.copy(isRecurring = isRecurring) }
+    fun updateReminderEnabled(enabled: Boolean) = _uiState.update { it.copy(reminderEnabled = enabled) }
+    fun updateReminderOffsetMinutes(offset: Int) = _uiState.update { it.copy(reminderOffsetMinutes = offset) }
     
     fun toggleRecurringDay(day: DayOfWeek) {
         _uiState.update { state ->
@@ -86,20 +94,29 @@ class TaskDetailViewModel(
                 endTime = state.endTime.toLong(),
                 isAllDay = state.isAllDay,
                 isRecurring = state.isRecurring,
-                recurringDays = state.recurringDays
+                recurringDays = state.recurringDays,
+                reminderEnabled = state.reminderEnabled,
+                reminderOffsetMinutes = if (state.reminderEnabled) state.reminderOffsetMinutes else null
             )
-            repository.saveTask(task)
+            val savedId = repository.saveTask(task)
+            val finalTask = if (state.id == 0L) task.copy(id = savedId) else task
+            
+            // Schedule reminder via AlarmManager
+            val catName = state.categories.find { it.id == state.categoryId }?.name ?: ""
+            reminderScheduler?.scheduleReminder(finalTask, catName)
+
             _uiState.update { it.copy(isSaved = true) }
         }
     }
 
     class Factory(
         private val repository: TaskRepository,
+        private val reminderScheduler: TaskReminderScheduler?,
         private val taskId: Long?
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return TaskDetailViewModel(repository, taskId) as T
+            return TaskDetailViewModel(repository, reminderScheduler, taskId) as T
         }
     }
 }
