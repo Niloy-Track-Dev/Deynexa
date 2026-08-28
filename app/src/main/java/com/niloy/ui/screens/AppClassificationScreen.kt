@@ -7,9 +7,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,6 +40,7 @@ fun AppClassificationScreen(
     onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showCategoryManagement by remember { mutableStateOf(false) }
 
     val filteredApps = remember(uiState.installedApps, uiState.searchQuery) {
         if (uiState.searchQuery.isBlank()) {
@@ -56,6 +66,11 @@ fun AppClassificationScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showCategoryManagement = true }) {
+                        Icon(Icons.Outlined.Settings, contentDescription = "Manage Categories")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -108,10 +123,20 @@ fun AppClassificationScreen(
     uiState.selectedAppToEdit?.let { app ->
         EditAppClassificationDialog(
             app = app,
+            availableCategories = uiState.appCategories,
             onDismiss = { viewModel.selectAppToEdit(null) },
             onSave = { pkg, name, categories, rating ->
                 viewModel.saveAppClassification(pkg, name, categories, rating)
             }
+        )
+    }
+
+    if (showCategoryManagement) {
+        ManageAppCategoriesDialog(
+            categories = uiState.appCategories,
+            onDismiss = { showCategoryManagement = false },
+            onAddCategory = { name, isProd -> viewModel.saveAppCategory(name, isProd) },
+            onDeleteCategory = { viewModel.deleteAppCategory(it) }
         )
     }
 }
@@ -202,6 +227,7 @@ private fun InstalledAppRowItem(
 @Composable
 private fun EditAppClassificationDialog(
     app: InstalledAppInfo,
+    availableCategories: List<com.niloy.domain.model.AppCategory>,
     onDismiss: () -> Unit,
     onSave: (String, String, List<String>, AppQualityRating) -> Unit
 ) {
@@ -263,18 +289,29 @@ private fun EditAppClassificationDialog(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    AppCategories.ALL_CATEGORIES.forEach { category ->
-                        val isSelected = selectedCategories.contains(category)
+                    availableCategories.forEach { category ->
+                        val isSelected = selectedCategories.contains(category.name)
                         FilterChip(
                             selected = isSelected,
                             onClick = {
                                 selectedCategories = if (isSelected) {
-                                    selectedCategories - category
+                                    selectedCategories - category.name
                                 } else {
-                                    selectedCategories + category
+                                    selectedCategories + category.name
                                 }
                             },
-                            label = { Text(category, style = MaterialTheme.typography.labelSmall) },
+                            label = { 
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(category.name, style = MaterialTheme.typography.labelSmall)
+                                    if (!category.isProductive) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .background(MaterialTheme.colorScheme.error, CircleShape)
+                                        )
+                                    }
+                                }
+                            },
                             shape = RoundedCornerShape(8.dp)
                         )
                     }
@@ -299,6 +336,107 @@ private fun EditAppClassificationDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+private fun ManageAppCategoriesDialog(
+    categories: List<com.niloy.domain.model.AppCategory>,
+    onDismiss: () -> Unit,
+    onAddCategory: (String, Boolean) -> Unit,
+    onDeleteCategory: (com.niloy.domain.model.AppCategory) -> Unit
+) {
+    var newCatName by remember { mutableStateOf("") }
+    var isProd by remember { mutableStateOf(true) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("App Categories", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
+                // Add New Section
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Add New Category", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    OutlinedTextField(
+                        value = newCatName,
+                        onValueChange = { newCatName = it },
+                        placeholder = { Text("Category name") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = isProd,
+                            onClick = { isProd = true },
+                            label = { Text("Productive") },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        FilterChip(
+                            selected = !isProd,
+                            onClick = { isProd = false },
+                            label = { Text("Distracting") },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        IconButton(
+                            onClick = {
+                                if (newCatName.isNotBlank()) {
+                                    onAddCategory(newCatName.trim(), isProd)
+                                    newCatName = ""
+                                }
+                            },
+                            enabled = newCatName.isNotBlank()
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Add")
+                        }
+                    }
+                }
+
+                Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                // List Section
+                Text("Existing Categories", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 300.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(categories) { cat ->
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                                    .fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text(cat.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                    Text(
+                                        text = if (cat.isProductive) "Productive" else "Distracting",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (cat.isProductive) StateCompleted else MaterialTheme.colorScheme.error
+                                    )
+                                }
+                                IconButton(onClick = { onDeleteCategory(cat) }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Done")
             }
         }
     )

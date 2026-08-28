@@ -85,6 +85,19 @@ class DaynexaApplication : Application() {
         }
     }
 
+    private val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `app_categories` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `name` TEXT NOT NULL,
+                    `isProductive` INTEGER NOT NULL DEFAULT 1,
+                    `createdAt` INTEGER NOT NULL
+                )
+            """.trimIndent())
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         database = Room.databaseBuilder(
@@ -92,7 +105,7 @@ class DaynexaApplication : Application() {
             AppDatabase::class.java,
             "daynexa.db"
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
             .fallbackToDestructiveMigration()
             .build()
 
@@ -106,7 +119,8 @@ class DaynexaApplication : Application() {
         diagnosticRepository = DiagnosticRepositoryImpl(
             applicationContext,
             database.appClassificationDao(),
-            database.focentraStudySessionDao()
+            database.focentraStudySessionDao(),
+            database.appCategoryDao()
         )
 
         focentraIntegrationManager = FocentraIntegrationManager(

@@ -6,13 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.niloy.domain.model.AppQualityRating
 import com.niloy.domain.model.InstalledAppInfo
 import com.niloy.domain.repository.DiagnosticRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 data class AppClassificationUiState(
     val installedApps: List<InstalledAppInfo> = emptyList(),
+    val appCategories: List<com.niloy.domain.model.AppCategory> = emptyList(),
     val searchQuery: String = "",
     val isLoading: Boolean = false,
     val selectedAppToEdit: InstalledAppInfo? = null
@@ -27,6 +26,25 @@ class AppClassificationViewModel(
 
     init {
         loadInstalledApps()
+        observeCategories()
+    }
+
+    private fun observeCategories() {
+        diagnosticRepository.getAppCategories().onEach { categories ->
+            _uiState.update { it.copy(appCategories = categories) }
+        }.launchIn(viewModelScope)
+    }
+
+    fun saveAppCategory(name: String, isProductive: Boolean) {
+        viewModelScope.launch {
+            diagnosticRepository.saveAppCategory(com.niloy.domain.model.AppCategory(name = name, isProductive = isProductive))
+        }
+    }
+
+    fun deleteAppCategory(category: com.niloy.domain.model.AppCategory) {
+        viewModelScope.launch {
+            diagnosticRepository.deleteAppCategory(category)
+        }
     }
 
     fun loadInstalledApps() {

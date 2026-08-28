@@ -67,6 +67,99 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp),
             contentPadding = PaddingValues(top = 16.dp, bottom = 40.dp)
         ) {
+            // Privacy Banner
+            item {
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.CloudOff,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Column {
+                            Text(
+                                text = "100% Offline & Private",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = "Your data stays on your device. No cloud sync, no tracking, no telemetry. Ever.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Appearance Section
+            item {
+                SettingsSection(title = "APPEARANCE") {
+                    SettingsRowItem(
+                        icon = Icons.Outlined.Palette,
+                        title = "App Theme",
+                        subtitle = "Select between Light, Dark, or System mode",
+                        trailing = {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FilterChip(
+                                    selected = uiState.theme == "LIGHT",
+                                    onClick = { viewModel.updateTheme("LIGHT") },
+                                    label = { Text("Light") },
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                FilterChip(
+                                    selected = uiState.theme == "DARK",
+                                    onClick = { viewModel.updateTheme("DARK") },
+                                    label = { Text("Dark") },
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                FilterChip(
+                                    selected = uiState.theme == "SYSTEM",
+                                    onClick = { viewModel.updateTheme("SYSTEM") },
+                                    label = { Text("Auto") },
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                            }
+                        }
+                    )
+
+                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                    SettingsRowItem(
+                        icon = Icons.Outlined.Schedule,
+                        title = "Time Format",
+                        subtitle = "Choose your preferred clock system",
+                        trailing = {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FilterChip(
+                                    selected = uiState.timeFormat == "12H",
+                                    onClick = { viewModel.updateTimeFormat("12H") },
+                                    label = { Text("12H") },
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                FilterChip(
+                                    selected = uiState.timeFormat == "24H",
+                                    onClick = { viewModel.updateTimeFormat("24H") },
+                                    label = { Text("24H") },
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                            }
+                        }
+                    )
+                }
+            }
+
             // General Preferences Section
             item {
                 SettingsSection(title = "GENERAL PREFERENCES") {
@@ -409,7 +502,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Build Better Days • v0.6.0",
+                        text = "Build Better Days • v0.7.0",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

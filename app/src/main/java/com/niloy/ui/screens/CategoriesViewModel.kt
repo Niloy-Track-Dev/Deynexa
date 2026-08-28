@@ -38,9 +38,9 @@ class CategoriesViewModel(
         initialValue = CategoriesUiState()
     )
 
-    fun createCategory(name: String, icon: String, color: Int, isProductive: Boolean = true) {
+    fun createCategory(name: String, icon: String, color: Int) {
         viewModelScope.launch {
-            repository.saveCategory(Category(name = name, icon = icon, color = color, isProductive = isProductive))
+            repository.saveCategory(Category(name = name, icon = icon, color = color))
         }
     }
 

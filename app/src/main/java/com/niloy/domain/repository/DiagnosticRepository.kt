@@ -18,4 +18,9 @@ interface DiagnosticRepository {
     )
     suspend fun clearDiagnosticData()
     suspend fun getInstalledApps(): List<InstalledAppInfo>
+    
+    // App Categories
+    fun getAppCategories(): Flow<List<com.niloy.domain.model.AppCategory>>
+    suspend fun saveAppCategory(category: com.niloy.domain.model.AppCategory)
+    suspend fun deleteAppCategory(category: com.niloy.domain.model.AppCategory)
 }

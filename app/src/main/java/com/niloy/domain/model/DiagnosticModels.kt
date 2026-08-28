@@ -77,6 +77,12 @@ data class CategoryUsageBreakdown(
     val count: Int = 0
 )
 
+data class AppCategory(
+    val id: Long = 0,
+    val name: String,
+    val isProductive: Boolean = true
+)
+
 data class DiagnosticSummary(
     val startDateLabel: String,
     val endDateLabel: String,

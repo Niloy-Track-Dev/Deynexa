@@ -1,6 +1,6 @@
 {
   "name": "Daynexa",
-  "description": "Daynexa v0.5.0 — Privacy-first, offline daily routine, task tracking, diagnostics, and secure Focentra integration.",
+  "description": "Daynexa v0.7.0 — Privacy-first, offline daily routine, task tracking, diagnostics, and secure Focentra integration.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

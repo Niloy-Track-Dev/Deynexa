@@ -7,10 +7,12 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import com.niloy.data.local.dao.AppClassificationDao
 import com.niloy.data.local.entity.AppClassificationEntity
+import com.niloy.data.local.entity.AppCategoryEntity
 import com.niloy.domain.model.*
 import com.niloy.domain.repository.DiagnosticRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDate
@@ -20,8 +22,43 @@ import java.time.format.DateTimeFormatter
 class DiagnosticRepositoryImpl(
     private val context: Context,
     private val classificationDao: AppClassificationDao,
-    private val focentraDao: com.niloy.data.local.dao.FocentraStudySessionDao
+    private val focentraDao: com.niloy.data.local.dao.FocentraStudySessionDao,
+    private val appCategoryDao: com.niloy.data.local.dao.AppCategoryDao
 ) : DiagnosticRepository {
+
+    override fun getAppCategories(): Flow<List<com.niloy.domain.model.AppCategory>> {
+        return appCategoryDao.getAllCategories().map { list ->
+            list.map { entity ->
+                com.niloy.domain.model.AppCategory(id = entity.id, name = entity.name, isProductive = entity.isProductive)
+            }
+        }
+    }
+
+    override suspend fun saveAppCategory(category: com.niloy.domain.model.AppCategory) {
+        withContext(Dispatchers.IO) {
+            val entity = com.niloy.data.local.entity.AppCategoryEntity(
+                id = category.id,
+                name = category.name,
+                isProductive = category.isProductive
+            )
+            if (entity.id == 0L) {
+                appCategoryDao.insert(entity)
+            } else {
+                appCategoryDao.update(entity)
+            }
+        }
+    }
+
+    override suspend fun deleteAppCategory(category: com.niloy.domain.model.AppCategory) {
+        withContext(Dispatchers.IO) {
+            val entity = com.niloy.data.local.entity.AppCategoryEntity(
+                id = category.id,
+                name = category.name,
+                isProductive = category.isProductive
+            )
+            appCategoryDao.delete(entity)
+        }
+    }
 
     override fun isUsagePermissionGranted(): Boolean {
         val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager ?: return false
@@ -420,12 +457,37 @@ class DiagnosticRepositoryImpl(
         }
     }
 
-    private fun determineProductivityType(qualityRating: AppQualityRating, categories: List<String>): ProductivityType {
+    private suspend fun prePopulateCategories() {
+        val existing = appCategoryDao.getAllCategoriesOneShot()
+        if (existing.isEmpty()) {
+            val defaults = listOf<com.niloy.data.local.entity.AppCategoryEntity>(
+                com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.PRODUCTIVITY, isProductive = true),
+                com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.EDUCATION, isProductive = true),
+                com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.STUDY_TIMER, isProductive = true),
+                com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.BROWSER, isProductive = true),
+                com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.COMMUNICATION, isProductive = true),
+                com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.SOCIAL_MEDIA, isProductive = false),
+                com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.ENTERTAINMENT, isProductive = false),
+                com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.GAMES, isProductive = false),
+                com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.UTILITIES, isProductive = true),
+                com.niloy.data.local.entity.AppCategoryEntity(name = AppCategories.OTHER, isProductive = true)
+            )
+            defaults.forEach { appCategoryDao.insert(it) }
+        }
+    }
+
+    private suspend fun determineProductivityType(qualityRating: AppQualityRating, categories: List<String>): ProductivityType {
+        if (qualityRating == AppQualityRating.VERY_GOOD || qualityRating == AppQualityRating.GOOD) return ProductivityType.PRODUCTIVE
+        if (qualityRating == AppQualityRating.BAD || qualityRating == AppQualityRating.VERY_BAD || qualityRating == AppQualityRating.NOT_GOOD) return ProductivityType.NON_PRODUCTIVE
+        
+        prePopulateCategories()
+        val customCats = appCategoryDao.getAllCategoriesOneShot()
+        val prodCats = customCats.filter { it.isProductive }.map { it.name }
+        val nonProdCats = customCats.filter { !it.isProductive }.map { it.name }
+
         return when {
-            qualityRating == AppQualityRating.VERY_GOOD || qualityRating == AppQualityRating.GOOD -> ProductivityType.PRODUCTIVE
-            qualityRating == AppQualityRating.BAD || qualityRating == AppQualityRating.VERY_BAD || qualityRating == AppQualityRating.NOT_GOOD -> ProductivityType.NON_PRODUCTIVE
-            categories.contains(AppCategories.EDUCATION) || categories.contains(AppCategories.STUDY_TIMER) || categories.contains(AppCategories.PRODUCTIVITY) -> ProductivityType.PRODUCTIVE
-            categories.contains(AppCategories.SOCIAL_MEDIA) || categories.contains(AppCategories.ENTERTAINMENT) || categories.contains(AppCategories.GAMES) -> ProductivityType.NON_PRODUCTIVE
+            categories.any { it in prodCats } -> ProductivityType.PRODUCTIVE
+            categories.any { it in nonProdCats } -> ProductivityType.NON_PRODUCTIVE
             else -> ProductivityType.NEUTRAL
         }
     }
