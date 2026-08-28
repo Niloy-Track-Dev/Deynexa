@@ -7,63 +7,51 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.niloy.ui.theme.AccentPrimary
-import com.niloy.ui.theme.StateCompleted
-import com.niloy.ui.theme.StateSkipped
+import com.niloy.domain.model.AppQualityRating
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
-    onNavigateToDiagnostic: () -> Unit = {},
-    onNavigateToClassifications: () -> Unit = {}
+    onNavigateBack: () -> Unit,
+    onNavigateToDiagnostic: () -> Unit,
+    onNavigateToClassifications: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-
+    
+    var showResetDialog by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
-    var showResetDialog by remember { mutableStateOf(false) }
     var importInputText by remember { mutableStateOf("") }
-
-    LaunchedEffect(uiState.importMessage) {
-        uiState.importMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            viewModel.clearImportMessage()
-        }
-    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "Settings",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                title = { Text("Settings", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
@@ -73,128 +61,21 @@ fun SettingsScreen(
     ) { padding ->
         LazyColumn(
             modifier = Modifier
-                .padding(padding)
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(padding)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            contentPadding = PaddingValues(top = 16.dp, bottom = 40.dp)
         ) {
-            // Privacy Guarantee Section (At the top)
+            // General Preferences Section
             item {
-                Surface(
-                    shape = RoundedCornerShape(18.dp),
-                    color = StateCompleted.copy(alpha = 0.08f),
-                    border = BorderStroke(1.dp, StateCompleted.copy(alpha = 0.2f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(StateCompleted.copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Security,
-                                contentDescription = null,
-                                tint = StateCompleted,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        Column {
-                            Text(
-                                text = "100% Offline & Private",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "Daynexa operates entirely on your device. No analytics trackers, no account requirements, and zero remote servers.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Preferences Section
-            item {
-                SettingsSection(title = "PREFERENCES") {
-                    // Time Format
+                SettingsSection(title = "GENERAL PREFERENCES") {
                     SettingsRowItem(
-                        icon = Icons.Outlined.Schedule,
-                        title = "Time Format",
-                        subtitle = if (uiState.timeFormat == "24H") "24-Hour (14:30)" else "12-Hour (2:30 PM)",
+                        icon = Icons.Outlined.CalendarToday,
+                        title = "Week Start Day",
+                        subtitle = "Select which day starts your routine week",
                         trailing = {
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                FilterChip(
-                                    selected = uiState.timeFormat == "24H",
-                                    onClick = { viewModel.updateTimeFormat("24H") },
-                                    label = { Text("24h") },
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                FilterChip(
-                                    selected = uiState.timeFormat == "12H",
-                                    onClick = { viewModel.updateTimeFormat("12H") },
-                                    label = { Text("12h") },
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                            }
-                        }
-                    )
-
-                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-
-                    // Theme
-                    SettingsRowItem(
-                        icon = Icons.Outlined.DarkMode,
-                        title = "Appearance Theme",
-                        subtitle = when (uiState.theme) {
-                            "DARK" -> "Dark Mode"
-                            "LIGHT" -> "Light Mode"
-                            else -> "System Default"
-                        },
-                        trailing = {
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                FilterChip(
-                                    selected = uiState.theme == "SYSTEM",
-                                    onClick = { viewModel.updateTheme("SYSTEM") },
-                                    label = { Text("Auto") },
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                FilterChip(
-                                    selected = uiState.theme == "LIGHT",
-                                    onClick = { viewModel.updateTheme("LIGHT") },
-                                    label = { Text("Light") },
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                FilterChip(
-                                    selected = uiState.theme == "DARK",
-                                    onClick = { viewModel.updateTheme("DARK") },
-                                    label = { Text("Dark") },
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                            }
-                        }
-                    )
-
-                    Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-
-                    // Week Start
-                    SettingsRowItem(
-                        icon = Icons.Outlined.CalendarMonth,
-                        title = "First Day of Week",
-                        subtitle = if (uiState.weekStart == "MONDAY") "Monday" else "Sunday",
-                        trailing = {
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 FilterChip(
                                     selected = uiState.weekStart == "MONDAY",
                                     onClick = { viewModel.updateWeekStart("MONDAY") },
@@ -217,7 +98,6 @@ fun SettingsScreen(
             item {
                 val focentraStatus = uiState.focentraStatus
                 var showConsentDialog by remember { mutableStateOf(false) }
-                var showClearFocentraDialog by remember { mutableStateOf(false) }
 
                 SettingsSection(title = "INTEGRATIONS • FOCENTRA") {
                     SettingsRowItem(
@@ -258,17 +138,6 @@ fun SettingsScreen(
                             }
                         }
                     )
-
-                    if (focentraStatus?.isInstalled == true && focentraStatus.isConnected) {
-                        Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                        SettingsActionItem(
-                            icon = Icons.Outlined.DeleteSweep,
-                            title = "Clear Focentra Data",
-                            subtitle = "Remove imported study sessions (${focentraStatus.totalImportedSessions} records)",
-                            titleColor = MaterialTheme.colorScheme.error,
-                            onClick = { showClearFocentraDialog = true }
-                        )
-                    }
                 }
 
                 if (showConsentDialog) {
@@ -293,30 +162,6 @@ fun SettingsScreen(
                         },
                         dismissButton = {
                             TextButton(onClick = { showConsentDialog = false }) {
-                                Text("Cancel")
-                            }
-                        }
-                    )
-                }
-
-                if (showClearFocentraDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showClearFocentraDialog = false },
-                        title = { Text("Clear Focentra Imported Data?") },
-                        text = { Text("This will delete all imported Focentra study session records from Daynexa. Your tasks, habits, and app usage diagnostics will remain completely untouched.") },
-                        confirmButton = {
-                            Button(
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                                onClick = {
-                                    showClearFocentraDialog = false
-                                    viewModel.clearFocentraData()
-                                }
-                            ) {
-                                Text("Clear Data")
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showClearFocentraDialog = false }) {
                                 Text("Cancel")
                             }
                         }
@@ -564,7 +409,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Build Better Days • v0.3.0",
+                        text = "Build Better Days • v0.6.0",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

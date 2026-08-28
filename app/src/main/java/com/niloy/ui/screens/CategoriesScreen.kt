@@ -69,7 +69,7 @@ fun CategoriesScreen(
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .navigationBarsPadding()
-                    .padding(bottom = 46.dp, end = 16.dp)
+                    .padding(bottom = 26.dp, end = 16.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Category")
             }
@@ -140,11 +140,11 @@ fun CategoriesScreen(
         CategoryDialog(
             category = editingCategory,
             onDismiss = { showAddEditDialog = false },
-            onSave = { name, icon, color ->
+            onSave = { name, icon, color, isProductive ->
                 if (editingCategory != null) {
-                    viewModel.updateCategory(editingCategory!!.copy(name = name, icon = icon, color = color))
+                    viewModel.updateCategory(editingCategory!!.copy(name = name, icon = icon, color = color, isProductive = isProductive))
                 } else {
-                    viewModel.createCategory(name, icon, color)
+                    viewModel.createCategory(name, icon, color, isProductive)
                 }
                 showAddEditDialog = false
             }
@@ -220,12 +220,27 @@ private fun CategoryItemCard(
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = category.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = category.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (!category.isProductive) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = "Distracting",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = "${categoryWithCount.taskCount} routines",
@@ -280,12 +295,13 @@ private fun CategoryItemCard(
 private fun CategoryDialog(
     category: Category?,
     onDismiss: () -> Unit,
-    onSave: (String, String, Int) -> Unit
+    onSave: (String, String, Int, Boolean) -> Unit
 ) {
     var name by remember { mutableStateOf(category?.name ?: "") }
     var selectedIcon by remember { mutableStateOf(category?.icon ?: "favorite") }
     val defaultColorInt = CategoryBlue.toArgb()
     var selectedColor by remember { mutableStateOf(category?.color ?: defaultColorInt) }
+    var isProductive by remember { mutableStateOf(category?.isProductive ?: true) }
 
     val colorsList = listOf(
         CategoryBlue.toArgb(),
@@ -358,6 +374,39 @@ private fun CategoryDialog(
                 }
 
                 Text(
+                    text = "Productivity Nature",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = isProductive,
+                        onClick = { isProductive = true },
+                        label = { Text("Good (Productive)") },
+                        leadingIcon = if (isProductive) {
+                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                        } else null,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = !isProductive,
+                        onClick = { isProductive = false },
+                        label = { Text("Bad (Distracting)") },
+                        leadingIcon = if (!isProductive) {
+                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                        } else null,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Text(
                     text = "Icon",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
@@ -400,7 +449,7 @@ private fun CategoryDialog(
             Button(
                 onClick = {
                     if (name.isNotBlank()) {
-                        onSave(name.trim(), selectedIcon, selectedColor)
+                        onSave(name.trim(), selectedIcon, selectedColor, isProductive)
                     }
                 },
                 enabled = name.isNotBlank(),

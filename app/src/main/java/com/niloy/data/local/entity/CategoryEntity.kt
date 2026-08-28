@@ -10,5 +10,6 @@ data class CategoryEntity(
     val name: String,
     val icon: String = "folder",
     val color: Int = -16776961,
+    val isProductive: Boolean = true,
     val createdAt: Long = System.currentTimeMillis()
 )

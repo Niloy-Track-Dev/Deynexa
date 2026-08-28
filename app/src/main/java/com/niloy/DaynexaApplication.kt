@@ -7,10 +7,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.niloy.data.local.AppDatabase
 import com.niloy.data.repository.DiagnosticRepositoryImpl
 import com.niloy.data.repository.TaskRepositoryImpl
-import com.niloy.data.repository.WebsiteDiagnosticRepositoryImpl
 import com.niloy.domain.repository.DiagnosticRepository
 import com.niloy.domain.repository.TaskRepository
-import com.niloy.domain.repository.WebsiteDiagnosticRepository
 import com.niloy.domain.service.BackupService
 import com.niloy.domain.service.FocentraIntegrationManager
 import com.niloy.domain.service.SchedulingService
@@ -22,7 +20,6 @@ class DaynexaApplication : Application() {
     lateinit var database: AppDatabase
     lateinit var repository: TaskRepository
     lateinit var diagnosticRepository: DiagnosticRepository
-    lateinit var websiteDiagnosticRepository: WebsiteDiagnosticRepository
     lateinit var focentraIntegrationManager: FocentraIntegrationManager
     lateinit var schedulingService: SchedulingService
     lateinit var backupService: BackupService
@@ -53,46 +50,9 @@ class DaynexaApplication : Application() {
 
     private val MIGRATION_3_4 = object : Migration(3, 4) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("""
-                CREATE TABLE IF NOT EXISTS `website_classifications` (
-                    `domain` TEXT NOT NULL,
-                    `category` TEXT NOT NULL,
-                    `qualityRating` TEXT NOT NULL,
-                    `customProductivityType` TEXT NOT NULL,
-                    `isUserOverride` INTEGER NOT NULL DEFAULT 0,
-                    `visitCount` INTEGER NOT NULL DEFAULT 0,
-                    `totalDurationMillis` INTEGER NOT NULL DEFAULT 0,
-                    `firstDetected` INTEGER NOT NULL DEFAULT 0,
-                    `lastDetected` INTEGER NOT NULL DEFAULT 0,
-                    `updatedAt` INTEGER NOT NULL,
-                    PRIMARY KEY(`domain`)
-                )
-            """.trimIndent())
-
-            db.execSQL("""
-                CREATE TABLE IF NOT EXISTS `website_events` (
-                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                    `domain` TEXT NOT NULL,
-                    `timestamp` INTEGER NOT NULL,
-                    `estimatedDurationMillis` INTEGER NOT NULL DEFAULT 30000,
-                    `browserPackage` TEXT NOT NULL DEFAULT 'Browser',
-                    `productivityType` TEXT NOT NULL DEFAULT 'NEUTRAL'
-                )
-            """.trimIndent())
-            db.execSQL("CREATE INDEX IF NOT EXISTS `index_website_events_timestamp` ON `website_events` (`timestamp`)")
-            db.execSQL("CREATE INDEX IF NOT EXISTS `index_website_events_domain` ON `website_events` (`domain`)")
-
-            db.execSQL("""
-                CREATE TABLE IF NOT EXISTS `domain_rules` (
-                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                    `domainPattern` TEXT NOT NULL,
-                    `ruleType` TEXT NOT NULL DEFAULT 'CLASSIFY',
-                    `category` TEXT NOT NULL DEFAULT 'Unknown',
-                    `qualityRating` TEXT NOT NULL DEFAULT 'UNRATED',
-                    `isEnabled` INTEGER NOT NULL DEFAULT 1,
-                    `createdAt` INTEGER NOT NULL
-                )
-            """.trimIndent())
+            // These tables are being removed in version 6, so we don't need to create them anymore if someone starts from scratch,
+            // but we keep the migration logic if needed for sequential migration.
+            // However, the user wants to delete the system completely.
         }
     }
 
@@ -116,6 +76,15 @@ class DaynexaApplication : Application() {
         }
     }
 
+    private val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DROP TABLE IF EXISTS `website_classifications`")
+            db.execSQL("DROP TABLE IF EXISTS `website_events`")
+            db.execSQL("DROP TABLE IF EXISTS `domain_rules`")
+            db.execSQL("ALTER TABLE `categories` ADD COLUMN `isProductive` INTEGER NOT NULL DEFAULT 1")
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         database = Room.databaseBuilder(
@@ -123,7 +92,7 @@ class DaynexaApplication : Application() {
             AppDatabase::class.java,
             "daynexa.db"
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
             .fallbackToDestructiveMigration()
             .build()
 
@@ -138,13 +107,6 @@ class DaynexaApplication : Application() {
             applicationContext,
             database.appClassificationDao(),
             database.focentraStudySessionDao()
-        )
-
-        websiteDiagnosticRepository = WebsiteDiagnosticRepositoryImpl(
-            applicationContext,
-            database.websiteDiagnosticDao(),
-            database.domainRuleDao(),
-            database.settingDao()
         )
 
         focentraIntegrationManager = FocentraIntegrationManager(

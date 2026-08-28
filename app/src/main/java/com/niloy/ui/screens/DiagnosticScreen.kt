@@ -1,22 +1,16 @@
 package com.niloy.ui.screens
 
-import android.app.Activity
 import android.content.Intent
 import android.graphics.drawable.Drawable
-import android.net.VpnService
 import android.provider.Settings
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -41,10 +35,8 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.niloy.domain.model.*
-import com.niloy.domain.service.WebsiteDiagnosticVpnService
 import com.niloy.ui.theme.AccentPrimary
 import com.niloy.ui.theme.StateCompleted
-import com.niloy.ui.theme.StatePending
 import com.niloy.ui.theme.StateSkipped
 import java.time.Instant
 import java.time.LocalDate
@@ -61,15 +53,6 @@ fun DiagnosticScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-
-    // VPN Preparation Launcher
-    val vpnLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            WebsiteDiagnosticVpnService.start(context)
-        }
-    }
 
     // Auto refresh when returning from Android System Settings
     DisposableEffect(lifecycleOwner) {
@@ -92,7 +75,7 @@ fun DiagnosticScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (uiState.selectedDiagnosticSection == 0) "App Diagnostics" else "Website Diagnostics",
+                        text = "App Usage Diagnostics",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -103,14 +86,8 @@ fun DiagnosticScreen(
                     }
                 },
                 actions = {
-                    if (uiState.selectedDiagnosticSection == 0) {
-                        IconButton(onClick = onNavigateToClassifications) {
-                            Icon(Icons.Outlined.Category, contentDescription = "Classifications")
-                        }
-                    } else {
-                        IconButton(onClick = { viewModel.setShowRulesDialog(true) }) {
-                            Icon(Icons.Outlined.Rule, contentDescription = "Domain Rules")
-                        }
+                    IconButton(onClick = onNavigateToClassifications) {
+                        Icon(Icons.Outlined.Category, contentDescription = "Classifications")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -126,85 +103,27 @@ fun DiagnosticScreen(
                 .background(MaterialTheme.colorScheme.background)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Section Tabs: Apps vs Websites
-                TabRow(
-                    selectedTabIndex = uiState.selectedDiagnosticSection,
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Tab(
-                        selected = uiState.selectedDiagnosticSection == 0,
-                        onClick = { viewModel.setDiagnosticSection(0) },
-                        text = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(Icons.Outlined.Apps, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Text("Apps & Usage", fontWeight = FontWeight.SemiBold)
+                // Apps & Usage Diagnostics Section
+                if (!uiState.isPermissionGranted) {
+                    PermissionExplanationView(
+                        onGrantPermission = {
+                            try {
+                                val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                val intent = Intent(Settings.ACTION_SETTINGS)
+                                context.startActivity(intent)
                             }
                         }
                     )
-                    Tab(
-                        selected = uiState.selectedDiagnosticSection == 1,
-                        onClick = { viewModel.setDiagnosticSection(1) },
-                        text = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(Icons.Outlined.Language, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Text("Websites", fontWeight = FontWeight.SemiBold)
-                            }
-                        }
-                    )
-                }
-
-                if (uiState.selectedDiagnosticSection == 0) {
-                    // Apps & Usage Diagnostics Section
-                    if (!uiState.isPermissionGranted) {
-                        PermissionExplanationView(
-                            onGrantPermission = {
-                                try {
-                                    val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-                                    context.startActivity(intent)
-                                } catch (e: Exception) {
-                                    val intent = Intent(Settings.ACTION_SETTINGS)
-                                    context.startActivity(intent)
-                                }
-                            }
-                        )
-                    } else if (uiState.isLoading) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                        }
-                    } else {
-                        AppDiagnosticsContent(
-                            uiState = uiState,
-                            viewModel = viewModel,
-                            onSelectStartDate = { showStartDatePicker = true },
-                            onSelectEndDate = { showEndDatePicker = true }
-                        )
+                } else if (uiState.isLoading) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 } else {
-                    // Website Diagnostics Section
-                    WebsiteDiagnosticsContent(
+                    AppDiagnosticsContent(
                         uiState = uiState,
                         viewModel = viewModel,
-                        isVpnRunning = uiState.isVpnRunning,
-                        onToggleVpn = {
-                            if (uiState.isVpnRunning) {
-                                WebsiteDiagnosticVpnService.stop(context)
-                            } else {
-                                val prepareIntent = VpnService.prepare(context)
-                                if (prepareIntent != null) {
-                                    vpnLauncher.launch(prepareIntent)
-                                } else {
-                                    WebsiteDiagnosticVpnService.start(context)
-                                }
-                            }
-                        },
                         onSelectStartDate = { showStartDatePicker = true },
                         onSelectEndDate = { showEndDatePicker = true }
                     )
@@ -221,30 +140,6 @@ fun DiagnosticScreen(
             onSaveClassification = { pkg, name, cats, rating ->
                 viewModel.updateAppClassification(pkg, name, cats, rating)
             }
-        )
-    }
-
-    // Website Domain Detail Dialog
-    uiState.selectedDomainDetail?.let { domain ->
-        WebsiteDomainDetailDialog(
-            domainClassification = domain,
-            onDismiss = { viewModel.selectDomainDetail(null) },
-            onSave = { d, cat, rating ->
-                viewModel.updateWebsiteClassification(d, cat, rating)
-            }
-        )
-    }
-
-    // Domain Rules Dialog
-    if (uiState.showRulesDialog) {
-        WebsiteRulesDialog(
-            rules = uiState.rules,
-            onDismiss = { viewModel.setShowRulesDialog(false) },
-            onAddRule = { pattern, type, cat, rating ->
-                viewModel.addDomainRule(pattern, type, cat, rating)
-            },
-            onDeleteRule = { viewModel.deleteDomainRule(it) },
-            onToggleRule = { id, enabled -> viewModel.toggleDomainRule(id, enabled) }
         )
     }
 
@@ -500,384 +395,6 @@ private fun AppDiagnosticsContent(
 }
 
 // ----------------------------------------------------
-// WEBSITE DIAGNOSTICS CONTENT
-// ----------------------------------------------------
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun WebsiteDiagnosticsContent(
-    uiState: DiagnosticUiState,
-    viewModel: DiagnosticViewModel,
-    isVpnRunning: Boolean,
-    onToggleVpn: () -> Unit,
-    onSelectStartDate: () -> Unit,
-    onSelectEndDate: () -> Unit
-) {
-    val summary = uiState.websiteSummary
-    val filteredDomains = remember(summary, uiState.domainSearchQuery, uiState.selectedCategoryFilter) {
-        if (summary == null) emptyList()
-        else {
-            summary.topDomains.filter { domain ->
-                val matchesSearch = uiState.domainSearchQuery.isBlank() || domain.domain.contains(uiState.domainSearchQuery.trim(), ignoreCase = true)
-                val matchesCategory = uiState.selectedCategoryFilter == null || domain.category == uiState.selectedCategoryFilter
-                matchesSearch && matchesCategory
-            }
-        }
-    }
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // VPN Diagnostic Control Card
-        item {
-            Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = if (isVpnRunning) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                border = BorderStroke(1.dp, if (isVpnRunning) StateCompleted.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = if (isVpnRunning) StateCompleted.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface,
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = if (isVpnRunning) Icons.Outlined.Shield else Icons.Outlined.VpnLock,
-                                        contentDescription = null,
-                                        tint = if (isVpnRunning) StateCompleted else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
-                            Column {
-                                Text(
-                                    text = if (isVpnRunning) "Diagnostics Active" else "Diagnostics Inactive",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = if (isVpnRunning) "Monitoring visited domains locally" else "Tap below to enable local domain capture",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        FilledTonalButton(
-                            onClick = onToggleVpn,
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = if (isVpnRunning) StateSkipped.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primary,
-                                contentColor = if (isVpnRunning) StateSkipped else MaterialTheme.colorScheme.onPrimary
-                            )
-                        ) {
-                            Text(if (isVpnRunning) "Stop" else "Start", fontWeight = FontWeight.Bold)
-                        }
-                    }
-
-                    // Privacy Shield Notice
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Lock,
-                                contentDescription = null,
-                                tint = StateCompleted,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = "Privacy First: Daynexa records only domain names on-device. No HTTPS inspection, passwords, or cloud syncing.",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    // Quick Actions (Rules, Sample Simulate)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedButton(
-                            onClick = { viewModel.setShowRulesDialog(true) },
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Icon(Icons.Outlined.Rule, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Domain Rules", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                        }
-
-                        OutlinedButton(
-                            onClick = { viewModel.simulateSampleWebsiteVisits() },
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Icon(Icons.Outlined.Science, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Sample Data", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                }
-            }
-        }
-
-        // Period Selector
-        item {
-            PeriodSelectorRow(
-                selectedPeriodTab = uiState.selectedPeriodTab,
-                onSelectPeriod = { viewModel.setPeriodTab(it) }
-            )
-        }
-
-        // Custom Date Range Pickers
-        if (uiState.selectedPeriodTab == 3) {
-            item {
-                CustomDateRangeCard(
-                    startDate = uiState.customStartDate,
-                    endDate = uiState.customEndDate,
-                    onSelectStartDate = onSelectStartDate,
-                    onSelectEndDate = onSelectEndDate
-                )
-            }
-        }
-
-        if (summary == null || summary.totalVisits == 0) {
-            item {
-                EmptyStateCard(
-                    icon = Icons.Outlined.Language,
-                    title = "No website diagnostic activity",
-                    subtitle = "Start the Website Diagnostics service or tap 'Sample Data' above to preview metrics."
-                )
-            }
-        } else {
-            // Diagnostic KPI Grid
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        DiagnosticKpiCard(
-                            title = "Total Visits",
-                            value = "${summary.totalVisits}",
-                            subtitle = formatDurationMillis(summary.totalDurationMillis) + " estimated",
-                            icon = Icons.Outlined.Visibility,
-                            iconColor = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.weight(1f)
-                        )
-                        DiagnosticKpiCard(
-                            title = "Productive Web",
-                            value = "${summary.productiveDomainsCount} domains",
-                            subtitle = formatDurationMillis(summary.productiveTimeMillis),
-                            icon = Icons.Outlined.CheckCircle,
-                            iconColor = StateCompleted,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        DiagnosticKpiCard(
-                            title = "Productivity Ratio",
-                            value = "${summary.productivityRate.toInt()}%",
-                            subtitle = if (summary.productivityRate >= 50) "Good Ratio" else "Review Domains",
-                            icon = Icons.Outlined.TrendingUp,
-                            iconColor = if (summary.productivityRate >= 50) StateCompleted else StateSkipped,
-                            modifier = Modifier.weight(1f)
-                        )
-                        DiagnosticKpiCard(
-                            title = "Distracting Web",
-                            value = "${summary.nonProductiveDomainsCount} domains",
-                            subtitle = formatDurationMillis(summary.nonProductiveTimeMillis),
-                            icon = Icons.Outlined.Cancel,
-                            iconColor = StateSkipped,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-
-            // Most Visited Domain Highlight
-            summary.mostVisitedDomain?.let { topDomain ->
-                item {
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { viewModel.selectDomainDetail(topDomain) }
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                modifier = Modifier.size(44.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        Icons.Outlined.Language,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Most Visited Domain",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = topDomain.domain,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "${topDomain.visitCount} visits • ${topDomain.category} (${topDomain.qualityRating.label})",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Icon(Icons.Outlined.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                        }
-                    }
-                }
-            }
-
-            // Daily Website Trend Chart
-            if (summary.dailyTrend.isNotEmpty()) {
-                item {
-                    WebsiteTrendCard(points = summary.dailyTrend)
-                }
-            }
-
-            // Category Breakdown Card
-            if (summary.categoryBreakdown.isNotEmpty()) {
-                item {
-                    WebsiteCategoryBreakdownCard(breakdown = summary.categoryBreakdown)
-                }
-            }
-
-            // Visited Domains Search and Filters
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Visited Domains",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${filteredDomains.size} listed",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    OutlinedTextField(
-                        value = uiState.domainSearchQuery,
-                        onValueChange = { viewModel.setDomainSearchQuery(it) },
-                        placeholder = { Text("Search domain (e.g. github, reddit)...") },
-                        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                        trailingIcon = {
-                            if (uiState.domainSearchQuery.isNotEmpty()) {
-                                IconButton(onClick = { viewModel.setDomainSearchQuery("") }) {
-                                    Icon(Icons.Outlined.Clear, contentDescription = "Clear")
-                                }
-                            }
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    // Category Filter Chips
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        FilterChip(
-                            selected = uiState.selectedCategoryFilter == null,
-                            onClick = { viewModel.setCategoryFilter(null) },
-                            label = { Text("All") },
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        WebsiteCategories.ALL_CATEGORIES.forEach { category ->
-                            FilterChip(
-                                selected = uiState.selectedCategoryFilter == category,
-                                onClick = {
-                                    if (uiState.selectedCategoryFilter == category) {
-                                        viewModel.setCategoryFilter(null)
-                                    } else {
-                                        viewModel.setCategoryFilter(category)
-                                    }
-                                },
-                                label = { Text(category, fontSize = 11.sp) },
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Visited Domain List Items
-            items(filteredDomains, key = { it.domain }) { domain ->
-                WebsiteDomainListItem(
-                    domain = domain,
-                    onClick = { viewModel.selectDomainDetail(domain) }
-                )
-            }
-        }
-    }
-}
-
-// ----------------------------------------------------
 // SHARED REUSABLE COMPONENTS
 // ----------------------------------------------------
 
@@ -1096,44 +613,6 @@ private fun UsageTrendCard(points: List<DailyUsagePoint>) {
 }
 
 @Composable
-private fun WebsiteTrendCard(points: List<WebsiteDailyPoint>) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Daily Website Activity Trend",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-
-                // Compact Legend
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    LegendItem(color = StateCompleted, label = "Productive")
-                    LegendItem(color = StateSkipped, label = "Distracting")
-                }
-            }
-
-            WebsiteUsageBarChart(points = points)
-        }
-    }
-}
-
-@Composable
 private fun LegendItem(color: Color, label: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -1179,47 +658,6 @@ private fun CategoryBreakdownCard(breakdown: List<CategoryUsageBreakdown>) {
                     ) {
                         Text(item.category, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
                         Text("${item.percentage.toInt()}% • ${formatDurationMillis(item.durationMillis)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    LinearProgressIndicator(
-                        progress = { (item.percentage / 100f).coerceIn(0f, 1f) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp)),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WebsiteCategoryBreakdownCard(breakdown: List<CategoryUsageBreakdown>) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "Usage by Website Category",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
-            )
-            breakdown.take(5).forEach { item ->
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(item.category, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
-                        Text("${item.percentage.toInt()}% • ${item.count} visits", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     LinearProgressIndicator(
                         progress = { (item.percentage / 100f).coerceIn(0f, 1f) },
@@ -1297,177 +735,7 @@ private fun AppUsageListItem(
 }
 
 @Composable
-private fun WebsiteDomainListItem(
-    domain: DomainClassification,
-    onClick: () -> Unit
-) {
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(38.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Outlined.Language,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = domain.domain,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val badgeColor = when (domain.productivityType) {
-                        WebsiteProductivityType.PRODUCTIVE -> StateCompleted
-                        WebsiteProductivityType.NON_PRODUCTIVE -> StateSkipped
-                        WebsiteProductivityType.NEUTRAL -> MaterialTheme.colorScheme.outline
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = badgeColor.copy(alpha = 0.15f)
-                    ) {
-                        Text(
-                            text = domain.qualityRating.label,
-                            color = badgeColor,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                        )
-                    }
-                    Text(
-                        text = domain.category,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Column(horizontalAlignment = Alignment.End) {
-                Text("${domain.visitCount} visits", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                Text(formatDurationMillis(domain.totalDurationMillis), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-            }
-        }
-    }
-}
-
-@Composable
 private fun AppUsageBarChart(points: List<DailyUsagePoint>) {
-    val displayPoints = if (points.size > 7) points.takeLast(7) else points
-    val maxMillis = (displayPoints.maxOfOrNull { it.totalMillis } ?: 1L).coerceAtLeast(60000L)
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(135.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Bottom
-    ) {
-        displayPoints.forEach { point ->
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Bottom,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-            ) {
-                // Top duration label
-                Text(
-                    text = if (point.totalMillis > 0) formatShortDuration(point.totalMillis) else "",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontSize = 9.sp,
-                    maxLines = 1,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                val totalRatio = (point.totalMillis.toFloat() / maxMillis.toFloat()).coerceIn(0f, 1f)
-                val barHeight = (80.dp * totalRatio).coerceAtLeast(if (point.totalMillis > 0) 8.dp else 4.dp)
-
-                Box(
-                    modifier = Modifier
-                        .width(20.dp)
-                        .height(barHeight)
-                        .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp, bottomStart = 3.dp, bottomEnd = 3.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                    contentAlignment = Alignment.BottomCenter
-                ) {
-                    if (point.totalMillis > 0) {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.Bottom
-                        ) {
-                            if (point.neutralMillis > 0) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .weight(point.neutralMillis.toFloat().coerceAtLeast(0.001f))
-                                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                                )
-                            }
-                            if (point.nonProductiveMillis > 0) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .weight(point.nonProductiveMillis.toFloat().coerceAtLeast(0.001f))
-                                        .background(StateSkipped)
-                                )
-                            }
-                            if (point.productiveMillis > 0) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .weight(point.productiveMillis.toFloat().coerceAtLeast(0.001f))
-                                        .background(StateCompleted)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = point.dateLabel,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun WebsiteUsageBarChart(points: List<WebsiteDailyPoint>) {
     val displayPoints = if (points.size > 7) points.takeLast(7) else points
     val maxMillis = (displayPoints.maxOfOrNull { it.totalMillis } ?: 1L).coerceAtLeast(60000L)
 
@@ -1618,76 +886,58 @@ private fun AppDetailDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 AppIconImage(packageName = appInfo.packageName, modifier = Modifier.size(36.dp))
-                Column {
-                    Text(appInfo.appName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(
-                        formatDurationMillis(appInfo.totalTimeInForegroundMillis) + " active time",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
+                Text(appInfo.appName, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         },
         text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
-                    text = "App Quality Rating",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
+                    text = "Package: ${appInfo.packageName}",
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    AppQualityRating.values().filter { it != AppQualityRating.UNRATED }.forEach { rating ->
-                        FilterChip(
-                            selected = selectedRating == rating,
-                            onClick = { selectedRating = rating },
-                            label = { Text(rating.label, style = MaterialTheme.typography.labelSmall) },
-                            shape = RoundedCornerShape(8.dp)
-                        )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Productivity Rating", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        AppQualityRating.entries.forEach { rating ->
+                            FilterChip(
+                                selected = selectedRating == rating,
+                                onClick = { selectedRating = rating },
+                                label = { Text(rating.label, fontSize = 11.sp) },
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                        }
                     }
                 }
 
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-
-                Text(
-                    text = "Categories (Multiple Allowed)",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    AppCategories.ALL_CATEGORIES.forEach { category ->
-                        val isSelected = selectedCategories.contains(category)
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = {
-                                selectedCategories = if (isSelected) {
-                                    selectedCategories - category
-                                } else {
-                                    selectedCategories + category
-                                }
-                            },
-                            label = { Text(category, style = MaterialTheme.typography.labelSmall) },
-                            shape = RoundedCornerShape(8.dp)
-                        )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Categories", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        AppCategories.ALL_CATEGORIES.forEach { category ->
+                            FilterChip(
+                                selected = selectedCategories.contains(category),
+                                onClick = {
+                                    selectedCategories = if (selectedCategories.contains(category)) {
+                                        selectedCategories - category
+                                    } else {
+                                        selectedCategories + category
+                                    }
+                                },
+                                label = { Text(category, fontSize = 11.sp) },
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -1695,17 +945,12 @@ private fun AppDetailDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    onSaveClassification(
-                        appInfo.packageName,
-                        appInfo.appName,
-                        selectedCategories.toList(),
-                        selectedRating
-                    )
+                    onSaveClassification(appInfo.packageName, appInfo.appName, selectedCategories.toList(), selectedRating)
                     onDismiss()
                 },
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text("Save Classification")
+                Text("Save Changes")
             }
         },
         dismissButton = {
@@ -1718,69 +963,54 @@ private fun AppDetailDialog(
 
 @Composable
 private fun PermissionExplanationView(onGrantPermission: () -> Unit) {
-    Column(
+    Surface(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        color = Color.Transparent
     ) {
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primaryContainer,
-            modifier = Modifier.size(80.dp)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Outlined.Security,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(40.dp)
-                )
+            Icon(
+                imageVector = Icons.Outlined.Shield,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(64.dp)
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Usage Permission Required",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Daynexa needs 'Usage Access' permission to diagnostic which apps you use most. This data stays 100% on your device.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+            Button(
+                onClick = onGrantPermission,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(16.dp)
+            ) {
+                Text("Grant Usage Access", fontWeight = FontWeight.Bold)
             }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "Usage Access Required",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "To measure your daily productivity, categorize digital time, and correlate habits with planned tasks, Daynexa requires Android Usage Access permission.\n\nAll diagnostic calculations are computed 100% on-device and never leave your phone.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            lineHeight = 22.sp
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Button(
-            onClick = onGrantPermission,
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-        ) {
-            Icon(Icons.Outlined.Check, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Grant Usage Access", fontWeight = FontWeight.Bold)
         }
     }
 }
 
-fun formatDurationMillis(millis: Long): String {
-    if (millis <= 0) return "0m"
-    val totalMinutes = millis / 1000 / 60
+private fun formatDurationMillis(millis: Long): String {
+    val totalMinutes = millis / 60000
     val hours = totalMinutes / 60
     val minutes = totalMinutes % 60
-
     return when {
         hours > 0 && minutes > 0 -> "${hours}h ${minutes}m"
         hours > 0 -> "${hours}h"

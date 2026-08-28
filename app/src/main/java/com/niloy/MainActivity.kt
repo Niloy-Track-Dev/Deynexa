@@ -402,13 +402,14 @@ fun MainContent(
             composable<Screen.Settings> {
                 SettingsScreen(
                     viewModel = settingsViewModel,
+                    onNavigateBack = { navController.popBackStack() },
                     onNavigateToDiagnostic = { navController.navigate(Screen.Diagnostic) },
                     onNavigateToClassifications = { navController.navigate(Screen.AppClassification) }
                 )
             }
             composable<Screen.Diagnostic> {
                 val diagnosticViewModel: DiagnosticViewModel = viewModel(
-                    factory = DiagnosticViewModel.Factory(app.diagnosticRepository, app.websiteDiagnosticRepository)
+                    factory = DiagnosticViewModel.Factory(app.diagnosticRepository)
                 )
                 DiagnosticScreen(
                     viewModel = diagnosticViewModel,

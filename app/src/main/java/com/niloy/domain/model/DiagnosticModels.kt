@@ -70,6 +70,13 @@ data class DailyUsagePoint(
     val totalMillis: Long
 )
 
+data class CategoryUsageBreakdown(
+    val category: String,
+    val durationMillis: Long,
+    val percentage: Float,
+    val count: Int = 0
+)
+
 data class DiagnosticSummary(
     val startDateLabel: String,
     val endDateLabel: String,

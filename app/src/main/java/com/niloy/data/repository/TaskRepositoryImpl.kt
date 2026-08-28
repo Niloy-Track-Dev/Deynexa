@@ -92,14 +92,16 @@ class TaskRepositoryImpl(
         id = id,
         name = name,
         icon = icon,
-        color = color
+        color = color,
+        isProductive = isProductive
     )
 
     private fun Category.toEntity() = CategoryEntity(
         id = id,
         name = name,
         icon = icon,
-        color = color
+        color = color,
+        isProductive = isProductive
     )
 
     private fun TaskEntity.toDomain() = Task(

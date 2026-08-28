@@ -12,7 +12,8 @@ data class Category(
     val id: Long = 0,
     val name: String,
     val icon: String, // Material Icon name or resource name
-    val color: Int
+    val color: Int,
+    val isProductive: Boolean = true
 )
 
 data class Task(

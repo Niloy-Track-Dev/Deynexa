@@ -278,7 +278,7 @@ class DiagnosticRepositoryImpl(
         // Find most productive day
         val mostProductiveDay = dailyTrend.maxByOrNull { it.productiveMillis }?.dateLabel ?: "N/A"
 
-        val categoryBreakdown = categoryDurationMap.map { (cat, duration) ->
+        val categoryBreakdown: List<CategoryUsageBreakdown> = categoryDurationMap.map { (cat, duration) ->
             CategoryUsageBreakdown(
                 category = cat,
                 count = categoryCountMap.getOrDefault(cat, 0),
@@ -448,9 +448,9 @@ class DiagnosticRepositoryImpl(
             nonProductiveAppsCount = 0,
             productivityRate = 0f,
             mostProductiveDayName = "N/A",
-            topApps = emptyList(),
-            dailyTrend = emptyList(),
-            categoryBreakdown = emptyList()
+            topApps = emptyList<AppUsageInfo>(),
+            dailyTrend = emptyList<DailyUsagePoint>(),
+            categoryBreakdown = emptyList<CategoryUsageBreakdown>()
         )
     }
 }
