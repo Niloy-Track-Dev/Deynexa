@@ -55,7 +55,7 @@ fun CalendarScreen(
                 title = {
                     Text(
                         text = uiState.currentMonth.format(monthTitleFormatter),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
