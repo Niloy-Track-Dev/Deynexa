@@ -352,7 +352,7 @@ private fun CategoryDialog(
                         val isSelected = selectedColor == colorInt
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(36.dp)
                                 .clip(CircleShape)
                                 .background(Color(colorInt))
                                 .clickable { selectedColor = colorInt },
@@ -363,7 +363,7 @@ private fun CategoryDialog(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = "Selected",
                                     tint = Color.White,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         }

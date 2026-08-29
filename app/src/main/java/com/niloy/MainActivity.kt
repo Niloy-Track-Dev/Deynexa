@@ -69,11 +69,12 @@ class MainActivity : ComponentActivity() {
             )
             val settingsState by settingsViewModel.uiState.collectAsState()
 
+            val systemDark = isSystemInDarkTheme()
             val isDark = when (settingsState.theme) {
                 "DARK" -> true
                 "LIGHT" -> false
-                "SYSTEM" -> false // Auto explicitly uses Light mode
-                else -> false
+                "SYSTEM" -> systemDark
+                else -> systemDark
             }
 
             val context = androidx.compose.ui.platform.LocalContext.current
@@ -303,7 +304,7 @@ fun MainContent(
                             icon = {
                                 Icon(
                                     if (isStats) Icons.Filled.Insights else Icons.Outlined.Insights,
-                                    contentDescription = "Analytics",
+                                    contentDescription = "Stats",
                                     modifier = Modifier.size(22.dp)
                                 )
                             },
@@ -339,13 +340,13 @@ fun MainContent(
                             icon = {
                                 Icon(
                                     if (isCategories) Icons.Filled.Category else Icons.Outlined.Category,
-                                    contentDescription = "Category",
+                                    contentDescription = "Categories",
                                     modifier = Modifier.size(22.dp)
                                 )
                             },
                             label = {
                                 Text(
-                                    "Category",
+                                    "Categories",
                                     fontWeight = FontWeight.SemiBold,
                                     style = MaterialTheme.typography.labelSmall,
                                     maxLines = 1,

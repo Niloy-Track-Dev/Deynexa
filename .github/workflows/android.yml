@@ -98,20 +98,23 @@ jobs:
       - name: Locate & Prepare Release Artifact
         id: prepare-apk
         run: |
-          APK_PATH=$(find app/build/outputs/apk -type f -name "*.apk" | head -n 1)
+          APK_PATH=$(find app/build/outputs/apk/release -type f -name "*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ] || [ ! -f "$APK_PATH" ]; then
+            APK_PATH=$(find app/build/outputs/apk -type f -name "*.apk" | head -n 1)
+          fi
           if [ -z "$APK_PATH" ] || [ ! -f "$APK_PATH" ]; then
             echo "::error::No APK found in build outputs"
             exit 1
           fi
           echo "Found APK at: $APK_PATH"
-          cp "$APK_PATH" Daynexa-v0.3.0-release.apk
-          echo "apk_path=Daynexa-v0.3.0-release.apk" >> "$GITHUB_OUTPUT"
+          cp "$APK_PATH" Daynexa-v0.8.0-release.apk
+          echo "apk_path=Daynexa-v0.8.0-release.apk" >> "$GITHUB_OUTPUT"
 
       - name: Upload APK Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Daynexa-Release-APK
-          path: Daynexa-v0.3.0-release.apk
+          path: Daynexa-v0.8.0-release.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -119,25 +122,27 @@ jobs:
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          name: "v0.3.0"
-          tag_name: "v0.3.0"
-          files: Daynexa-v0.3.0-release.apk
+          name: "v0.8.0"
+          tag_name: "v0.8.0"
+          files: Daynexa-v0.8.0-release.apk
           draft: false
           prerelease: false
           body: |
-            ### Daynexa v0.3.0 Release
+            ### Daynexa v0.8.0 Release
 
-            Welcome to release v0.3.0 of **Daynexa** — the privacy-first, 100% offline daily routine and habit management Android application.
+            Welcome to release v0.8.0 of **Daynexa** — the privacy-first, 100% offline daily routine and habit management Android application built with Jetpack Compose.
 
-            #### Highlights in v0.3.0
-            - **Smart Task Reminders**: Exact and inexact offline alarm alerts with customizable timing offsets (*At start*, *5m*, *10m*, *15m*, *30m*).
-            - **Device Reboot Alarm Restoration**: Automatically restores all scheduled alarms on device reboot with `BootCompletedReceiver`.
-            - **Advanced Productivity Score**: Dynamic 0–100 score engine calculating streak consistency, routine regularity, and completion ratios.
-            - **Week-over-Week Productivity Deltas**: Real-time performance progression indicators (`▲ +%` / `▼ -%`).
-            - **Notifications & Reminders Settings**: Dedicated control center to manage notifications, default reminder timing, and send test alerts.
-            - **Room Database Migration (v2 -> v3)**: Seamless SQLite schema upgrade preserving all existing data and offline backups.
+            #### What's New & Major Highlights in v0.8.0
+            - **UI/UX Aesthetics & Design System Overhaul**: Complete visual upgrade with Material 3 dynamic color scheme tokens, elevated surface cards, clean typography, and responsive layouts across all screens.
+            - **Accessibility & Touch Target Standards**: Standardized interactive touch targets to 48dp+ (check toggles, menu options, calendar grid cells, and navigation chevrons).
+            - **System Theme & Dark Mode Resolution**: Fixed system dark mode mapping to automatically adapt to system-wide dark/light preferences seamlessly.
+            - **App Usage & Diagnostic Dashboard**: Track screen time, foreground app durations, app quality ratings (*Must Have*, *Nice to Have*, *Distraction*, *Waste of Time*), and multi-category classifications.
+            - **Browser & Website Diagnostics**: Zero-decryption local DNS domain capture via `VpnService` with custom domain rules engine and website quality ratings.
+            - **Smart Routine Reminders**: `AlarmManager` offline notifications with customizable timing offsets (*At start*, *5m*, *10m*, *15m*, *30m*) and `BootCompletedReceiver` auto-restoration.
+            - **Data Portability & Backup Engine**: Export and import complete database state via JSON with flexible *Merge* and *Overwrite* modes.
 
-            #### Download
-            - Download `Daynexa-v0.3.0-release.apk` below and install directly on Android 8.0+ (API 26+).
+            #### Installation Instructions
+            1. Download **`Daynexa-v0.8.0-release.apk`** below.
+            2. Open the APK on your Android device (Android 8.0+ / API 26+) and confirm installation.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

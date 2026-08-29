@@ -103,16 +103,16 @@ fun TaskCard(
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Animated Check Button
+            // Animated Check Button with minimum 48dp touch target
             Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .clickable { onToggle() },
                 contentAlignment = Alignment.Center
             ) {
                 Surface(
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(26.dp),
                     shape = CircleShape,
                     color = if (isCompleted) StateCompleted else Color.Transparent,
                     border = BorderStroke(
@@ -126,14 +126,14 @@ fun TaskCard(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = "Completed",
                                 tint = Color.White,
-                                modifier = Modifier.size(14.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                         } else if (isSkipped) {
                             Icon(
                                 imageVector = Icons.Outlined.SkipNext,
                                 contentDescription = "Skipped",
                                 tint = StateSkipped,
-                                modifier = Modifier.size(13.dp)
+                                modifier = Modifier.size(14.dp)
                             )
                         }
                     }
@@ -299,17 +299,17 @@ fun TaskCard(
                 }
             }
 
-            // Options menu
+            // Options menu with minimum 48dp touch target
             Box {
                 IconButton(
                     onClick = { showMenu = true },
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = "Options",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 
