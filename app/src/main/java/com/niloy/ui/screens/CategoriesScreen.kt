@@ -184,6 +184,7 @@ private fun CategoryItemCard(
     val category = categoryWithCount.category
     val catColor = Color(category.color)
     var showMenu by remember { mutableStateOf(false) }
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
 
     Surface(
         modifier = Modifier

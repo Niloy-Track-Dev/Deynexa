@@ -40,6 +40,7 @@ import com.niloy.domain.model.Category
 import com.niloy.domain.model.RecurrenceType
 import com.niloy.domain.model.TaskState
 import com.niloy.domain.service.TaskWithOccurrence
+import androidx.compose.foundation.isSystemInDarkTheme
 import com.niloy.ui.theme.StateCompleted
 import com.niloy.ui.theme.StateSkipped
 import com.niloy.ui.util.TimeUtils
@@ -77,13 +78,13 @@ fun TaskCard(
         label = "check_border"
     )
 
+    val isDark = isSystemInDarkTheme()
     val categoryColor = category?.color?.let { Color(it) } ?: MaterialTheme.colorScheme.primary
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .alpha(cardAlpha)
-            .clip(RoundedCornerShape(16.dp))
             .clickable { onToggle() }
             .testTag("task_item_${item.task.id}"),
         shape = RoundedCornerShape(16.dp),

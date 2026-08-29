@@ -152,7 +152,7 @@ fun MainContent(
                         )
                         .navigationBarsPadding()
                         .offset(y = 0.6.dp)
-                        .padding(start = 10.dp, top = 8.dp, end = 10.dp, bottom = 4.dp),
+                        .padding(start = 12.dp, top = 8.dp, end = 12.dp, bottom = 6.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Surface(

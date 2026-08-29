@@ -9,15 +9,15 @@ val AccentPrimaryContainer = Color(0xFFDBEAFE) // Darker light blue for better v
 val AccentPrimaryContainerDark = Color(0xFF1E3A8A)
 
 // Neutral Canvas - Light Mode
-val BackgroundLight = Color(0xFFF1F5F9) // Slightly darker for contrast against white surface
+val BackgroundLight = Color(0xFFF8FAFC) // Ultra-clean premium off-white canvas
 val SurfaceLight = Color(0xFFFFFFFF)
-val SurfaceElevatedLight = Color(0xFFE2E8F0) // Darker for better contrast when used with alpha
-val SurfaceHighlightLight = Color(0xFFCBD5E1)
-val OutlineLight = Color(0xFFCBD5E1)
-val OutlineVariantLight = Color(0xFF94A3B8)
+val SurfaceElevatedLight = Color(0xFFF1F5F9)
+val SurfaceHighlightLight = Color(0xFFE2E8F0)
+val OutlineLight = Color(0xFFE2E8F0)
+val OutlineVariantLight = Color(0xFFCBD5E1)
 val TextPrimaryLight = Color(0xFF0F172A)
-val TextSecondaryLight = Color(0xFF334155) // Darker secondary text
-val TextTertiaryLight = Color(0xFF64748B)
+val TextSecondaryLight = Color(0xFF475569) 
+val TextTertiaryLight = Color(0xFF94A3B8)
 
 // Neutral Canvas - Dark Mode
 val BackgroundDark = Color(0xFF090D16)

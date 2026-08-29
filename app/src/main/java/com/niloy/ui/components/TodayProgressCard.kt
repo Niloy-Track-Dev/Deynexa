@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +32,7 @@ fun TodayProgressCard(
     completionPercentage: Float,
     modifier: Modifier = Modifier
 ) {
+    val isDark = isSystemInDarkTheme()
     val animatedProgress by animateFloatAsState(
         targetValue = completionPercentage,
         animationSpec = tween(durationMillis = 600),
@@ -57,7 +59,7 @@ fun TodayProgressCard(
                     Text(
                         text = "Today's Progress",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(2.dp))
@@ -75,7 +77,7 @@ fun TodayProgressCard(
 
                 // Percentage Badge
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(12.dp),
                     color = if (completionPercentage >= 1f && totalCount > 0)
                         StateCompleted.copy(alpha = 0.15f)
                     else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
@@ -87,7 +89,7 @@ fun TodayProgressCard(
                         color = if (completionPercentage >= 1f && totalCount > 0)
                             StateCompleted
                         else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
             }
@@ -97,10 +99,10 @@ fun TodayProgressCard(
                 progress = { animatedProgress },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(6.dp)
+                    .height(8.dp)
                     .clip(CircleShape),
                 color = if (completionPercentage >= 1f && totalCount > 0) StateCompleted else MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                 strokeCap = StrokeCap.Round
             )
 
@@ -141,15 +143,17 @@ private fun StatPill(
     color: Color,
     modifier: Modifier = Modifier
 ) {
+    val isDark = isSystemInDarkTheme()
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+        shape = RoundedCornerShape(12.dp),
+        color = if (isDark) Color(0xFF1E293B).copy(alpha = 0.6f) else Color.White.copy(alpha = 0.7f),
+        border = BorderStroke(1.dp, if (isDark) Color(0xFF334155).copy(alpha = 0.3f) else Color(0xFFE2E8F0).copy(alpha = 0.8f))
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(
                 modifier = Modifier
