@@ -16,7 +16,7 @@
 </p>
 
 <p>
-  <a href="https://github.com/Niloy-Track-Dev/Deynexa/releases"><img src="https://img.shields.io/badge/Release-v0.4.0-blue.svg" alt="Latest Release" /></a>
+  <a href="https://github.com/Niloy-Track-Dev/Deynexa/releases"><img src="https://img.shields.io/badge/Release-v0.8.0-blue.svg" alt="Latest Release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-emerald.svg" alt="License: MIT" /></a>
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Platform-Android%208.0%2B%20%28API%2026%2B%29-brightgreen.svg" alt="Platform" /></a>
   <a href="#offline-architecture"><img src="https://img.shields.io/badge/Architecture-100%25%20Offline--First-blueviolet.svg" alt="Offline-First" /></a>
@@ -75,8 +75,8 @@ You can download the latest signed production APK directly from the GitHub Relea
 
 ### Installation Steps
 1. Navigate to the **[Releases](https://github.com/Niloy-Track-Dev/Deynexa/releases)** section.
-2. Under the latest release (e.g. `v0.4.0`), look under **Assets**.
-3. Download the file **`Daynexa-v0.4.0-release.apk`**.
+2. Under the latest release (`v0.8.0`), look under **Assets**.
+3. Download the file **`Daynexa-v0.8.0-release.apk`**.
 4. Open the APK file on your Android device (Android 8.0+ / API 26+) and confirm installation.
 
 ---
@@ -301,7 +301,9 @@ Publish GitHub Release & Upload APK Artifact
 
 ## Roadmap
 
-### Current (Release v0.4.0) — ✅ Completed
+### Current (Release v0.8.0) — ✅ Completed
+- [x] **UI/UX Aesthetics & Design System Overhaul**: Material 3 elevated card surfaces, clean dark/light dynamic tokens, responsive screens, and keyboard IME navigation.
+- [x] **Accessibility Standards**: Minimum 48dp touch targets on all interactive buttons, toggle chips, and navigation icons.
 - [x] Weekly recurring & one-time task scheduling
 - [x] Today timeline & real-time progress card
 - [x] Monthly calendar matrix with productivity dots
