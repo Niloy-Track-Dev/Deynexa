@@ -42,13 +42,13 @@ fun TodayProgressCard(
         else -> "Making steady progress!"
     }
 
-    Card(
+    Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF5F8FC) // Clean, soft light bluish/grey card background matching image
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        tonalElevation = 2.dp,
+        shadowElevation = 3.dp
     ) {
         Column(
             modifier = Modifier
@@ -69,28 +69,27 @@ fun TodayProgressCard(
                             fontSize = 22.sp
                         ),
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E293B) // Premium dark charcoal
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = statusText,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF64748B) // Slate grey description
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
                 // Percentage Pill (Soft Blue Background + Dark Blue Text)
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFE8F0FE))
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
                 ) {
                     Text(
                         text = "${(completionPercentage * 100).toInt()}%",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1A73E8)
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
                     )
                 }
             }
@@ -100,10 +99,10 @@ fun TodayProgressCard(
                 progress = { animatedProgress },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(6.dp)
+                    .height(8.dp)
                     .clip(CircleShape),
-                color = Color(0xFF1A73E8),
-                trackColor = Color(0xFFE2E8F0),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 strokeCap = StrokeCap.Round
             )
 
@@ -142,9 +141,9 @@ private fun StatePill(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        color = Color.White, // pure white as requested
-        border = BorderStroke(1.dp, Color(0xFFE2E8F0)), // clean subtle border
-        shadowElevation = 1.dp
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
+        tonalElevation = 1.dp
     ) {
         Row(
             modifier = Modifier
@@ -153,27 +152,25 @@ private fun StatePill(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Small Colored Indicator Dot
             Box(
                 modifier = Modifier
-                    .size(8.dp)
+                    .size(10.dp)
                     .clip(CircleShape)
                     .background(dotColor)
             )
 
-            // Count and Label
             Column {
                 Text(
                     text = count.toString(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = label,
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium,
-                    color = Color(0xFF64748B)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
