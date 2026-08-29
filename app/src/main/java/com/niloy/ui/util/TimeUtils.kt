@@ -26,6 +26,9 @@ object TimeUtils {
         }
     }
 
+    fun formatMinutes(minutes: Long, is24Hour: Boolean = true): String = formatTime(minutes, is24Hour)
+    fun formatMinutes(minutes: Int, is24Hour: Boolean = true): String = formatTime(minutes.toLong(), is24Hour)
+
     fun formatTimeRange(startTime: Long?, endTime: Long?, isAllDay: Boolean, is24Hour: Boolean = true): String {
         if (isAllDay) return "All Day"
         if (startTime == null && endTime == null) return "All Day"

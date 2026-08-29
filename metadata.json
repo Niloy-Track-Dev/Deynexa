@@ -1,6 +1,6 @@
 {
   "name": "Daynexa",
-  "description": "Daynexa v0.7.0 — Privacy-first, offline daily routine, task tracking, diagnostics, and secure Focentra integration.",
+  "description": "Daynexa v0.7.0 — Advanced Recurring Task & Smart Scheduling with custom recurrence rules, flexible rescheduling, conflict detection, routine templates, and productivity insights.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

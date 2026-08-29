@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.0] - 2026-08-29
+
+### Added
+- **Full Data Portability & Backup Engine v2**: Complete offline backup and restore system with structured JSON serialization, format verification, and preview statistics.
+- **Selective Restoration Modes**: Choose between *Merge (Recommended)* to preserve existing records and update entities, or *Replace / Overwrite* for complete clean restore.
+- **Dedicated Focentra Focus Data Export**: Standalone JSON export specifically for imported Focentra study session history without mixing with local routine definitions.
+- **Dynamic App Diagnostic Categories & Custom Categories**: Full custom category creation, editing, and deletion during app categorization and diagnostic flows with instant UI update.
+- **Default Category Seeding**: Out-of-the-box preloaded categories (*Ai*, *System App*, *Productivity*, *Communication*, *Name Jap*, *Tools*, *Coding*, *Education*, *Study Timer*, *Social Media*, *Entertainment*, *Games*, *Browser*, *Utilities*).
+- **100% Offline & Private Card**: Re-introduced prominent privacy badge in Settings detailing strictly local device persistence.
+
+### Fixed
+- Fixed category selection in App Usages Categories and App Diagnostic screens to allow adding custom categories inline.
+- Resolved transaction handling and UI state synchronization during import/restore operations.
+
 ## [0.5.0] - 2026-08-28
 
 ### Added

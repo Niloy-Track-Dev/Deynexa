@@ -45,7 +45,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             val app = application as DaynexaApplication
             val settingsViewModel: SettingsViewModel = viewModel(
-                factory = SettingsViewModel.Factory(app.repository, app.backupService, app.focentraIntegrationManager)
+                factory = SettingsViewModel.Factory(
+                    app.repository,
+                    app.backupService,
+                    app.focentraIntegrationManager,
+                    app.dataPortabilityManager
+                )
             )
             val settingsState by settingsViewModel.uiState.collectAsState()
 
@@ -429,7 +434,12 @@ fun MainContent(
             composable<Screen.TaskDetail> { backStackEntry ->
                 val route: Screen.TaskDetail = backStackEntry.toRoute()
                 val detailViewModel: TaskDetailViewModel = viewModel(
-                    factory = TaskDetailViewModel.Factory(app.repository, app.reminderScheduler, route.taskId)
+                    factory = TaskDetailViewModel.Factory(
+                        app.repository,
+                        app.reminderScheduler,
+                        app.schedulingService,
+                        route.taskId
+                    )
                 )
                 TaskDetailScreen(
                     viewModel = detailViewModel,

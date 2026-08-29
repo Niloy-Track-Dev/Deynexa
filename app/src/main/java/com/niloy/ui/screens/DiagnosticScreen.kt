@@ -11,8 +11,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.*
@@ -134,11 +136,16 @@ fun DiagnosticScreen(
 
     // App Detail Dialog
     uiState.selectedAppDetail?.let { app ->
+        val dynamicCategoryNames = (uiState.appCategories.map { it.name } + AppCategories.ALL_CATEGORIES + app.categories).distinct()
         AppDetailDialog(
             appInfo = app,
+            availableCategories = dynamicCategoryNames,
             onDismiss = { viewModel.selectAppDetail(null) },
             onSaveClassification = { pkg, name, cats, rating ->
                 viewModel.updateAppClassification(pkg, name, cats, rating)
+            },
+            onAddCustomCategory = { newCatName ->
+                viewModel.saveAppCategory(newCatName, isProductive = true)
             }
         )
     }
@@ -877,11 +884,15 @@ fun AppIconImage(packageName: String, modifier: Modifier = Modifier) {
 @Composable
 private fun AppDetailDialog(
     appInfo: AppUsageInfo,
+    availableCategories: List<String>,
     onDismiss: () -> Unit,
-    onSaveClassification: (String, String, List<String>, AppQualityRating) -> Unit
+    onSaveClassification: (String, String, List<String>, AppQualityRating) -> Unit,
+    onAddCustomCategory: (String) -> Unit
 ) {
     var selectedCategories by remember { mutableStateOf(appInfo.categories.toSet()) }
     var selectedRating by remember { mutableStateOf(appInfo.qualityRating) }
+    var showAddCategoryInput by remember { mutableStateOf(false) }
+    var newCategoryName by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -892,7 +903,10 @@ private fun AppDetailDialog(
             }
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
                 Text(
                     text = "Package: ${appInfo.packageName}",
                     style = MaterialTheme.typography.bodySmall,
@@ -918,13 +932,65 @@ private fun AppDetailDialog(
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Categories", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Categories", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        TextButton(
+                            onClick = { showAddCategoryInput = !showAddCategoryInput },
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (showAddCategoryInput) Icons.Outlined.Close else Icons.Outlined.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(if (showAddCategoryInput) "Cancel" else "Add Custom", fontSize = 12.sp)
+                        }
+                    }
+
+                    if (showAddCategoryInput) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = newCategoryName,
+                                onValueChange = { newCategoryName = it },
+                                placeholder = { Text("Category name...", fontSize = 12.sp) },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            Button(
+                                onClick = {
+                                    val trimmed = newCategoryName.trim()
+                                    if (trimmed.isNotBlank()) {
+                                        onAddCustomCategory(trimmed)
+                                        selectedCategories = selectedCategories + trimmed
+                                        newCategoryName = ""
+                                        showAddCategoryInput = false
+                                    }
+                                },
+                                enabled = newCategoryName.isNotBlank(),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp)
+                            ) {
+                                Text("Add", fontSize = 12.sp)
+                            }
+                        }
+                    }
+
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        AppCategories.ALL_CATEGORIES.forEach { category ->
+                        availableCategories.forEach { category ->
                             FilterChip(
                                 selected = selectedCategories.contains(category),
                                 onClick = {

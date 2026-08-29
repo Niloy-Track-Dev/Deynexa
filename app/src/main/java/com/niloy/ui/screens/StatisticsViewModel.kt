@@ -10,6 +10,7 @@ import com.niloy.domain.model.TaskState
 import com.niloy.domain.repository.TaskRepository
 import com.niloy.domain.service.SchedulingService
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
@@ -70,23 +71,42 @@ class StatisticsViewModel(
     private val schedulingService: SchedulingService
 ) : ViewModel() {
 
+    private val _weekendDays = MutableStateFlow(setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY))
+
+    init {
+        viewModelScope.launch {
+            val weekendStr = repository.getSetting("weekend_days") ?: "SATURDAY,SUNDAY"
+            if (weekendStr.isNotBlank()) {
+                val parsed = weekendStr.split(",").mapNotNull {
+                    try { DayOfWeek.valueOf(it.trim()) } catch (e: Exception) { null }
+                }.toSet()
+                if (parsed.isNotEmpty()) {
+                    _weekendDays.value = parsed
+                }
+            }
+        }
+    }
+
     val uiState: StateFlow<StatisticsUiState> = combine(
         repository.getTasks(),
         repository.getAllOccurrences(),
-        repository.getCategories()
-    ) { tasks, allOccurrences, categories ->
+        repository.getCategories(),
+        _weekendDays
+    ) { tasks, allOccurrences, categories, weekendDays ->
         if (tasks.isEmpty()) {
             return@combine StatisticsUiState(isLoading = false)
         }
 
         val today = LocalDate.now()
-        val occurrencesMap = allOccurrences.groupBy { it.date }
 
         // Helper to compute tasks for any date
         fun getTasksFor(date: LocalDate): List<com.niloy.domain.service.TaskWithOccurrence> {
-            val dateStr = date.toString()
-            val occs = occurrencesMap[dateStr] ?: emptyList()
-            return schedulingService.getTasksForDate(tasks, occs, date)
+            return schedulingService.getTasksForDate(
+                tasks = tasks,
+                occurrences = allOccurrences,
+                date = date,
+                customWeekend = weekendDays
+            )
         }
 
         // Today Stats
@@ -170,56 +190,21 @@ class StatisticsViewModel(
             )
         }
 
-        // Calculate Streak (consecutive days with completed >= 1 and completionRate >= 0.5)
-        var streak = 0
-        var checkDate = today
-        // If today has tasks but none completed yet, check starting yesterday for streak
-        if (todayTasks.isNotEmpty() && todayCompleted == 0) {
-            checkDate = today.minusDays(1)
-        }
-        while (true) {
-            val dTasks = getTasksFor(checkDate)
-            if (dTasks.isEmpty()) {
-                // If no tasks scheduled on weekend or break, don't break streak if checked within past 30 days
-                val isWeekend = checkDate.dayOfWeek == DayOfWeek.SATURDAY || checkDate.dayOfWeek == DayOfWeek.SUNDAY
-                if (isWeekend) {
-                    checkDate = checkDate.minusDays(1)
-                    if (checkDate.isBefore(today.minusDays(60))) break
-                    continue
-                } else {
-                    break
-                }
-            }
-            val dComp = dTasks.count { it.occurrence.state == TaskState.COMPLETED }
-            if (dComp > 0 && (dComp.toFloat() / dTasks.size) >= 0.5f) {
-                streak++
-                checkDate = checkDate.minusDays(1)
-                if (checkDate.isBefore(today.minusDays(365))) break
-            } else {
-                break
-            }
-        }
+        // Productivity Insights Engine
+        val insights = schedulingService.calculateProductivityInsights(
+            tasks = tasks,
+            allOccurrences = allOccurrences,
+            customWeekend = weekendDays
+        )
 
-        // Best Day of Week Calculation (Monday to Sunday)
-        val dayOfWeekStats = DayOfWeek.values().map { day ->
-            var dayOccurrencesTotal = 0
-            var dayOccurrencesComp = 0
-            (0..60).forEach { offset ->
-                val d = today.minusDays(offset.toLong())
-                if (d.dayOfWeek == day) {
-                    val dTasks = getTasksFor(d)
-                    dayOccurrencesTotal += dTasks.size
-                    dayOccurrencesComp += dTasks.count { it.occurrence.state == TaskState.COMPLETED }
-                }
-            }
-            val rate = if (dayOccurrencesTotal == 0) 0f else dayOccurrencesComp.toFloat() / dayOccurrencesTotal
-            day to rate
-        }
-        val bestDayEntry = dayOfWeekStats.maxByOrNull { it.second }
-        val bestDayName = if (bestDayEntry != null && bestDayEntry.second > 0f) {
-            bestDayEntry.first.getDisplayName(TextStyle.FULL, Locale.getDefault())
-        } else {
-            "Every Day"
+        // Best Day of Week
+        val bestDayName = insights.bestCompletionWeekday.ifBlank { "Every Day" }
+
+        val productivityScore = (monthRate * 100).toInt().coerceIn(0, 100)
+        val productivityRating = when {
+            productivityScore >= 80 -> "High"
+            productivityScore >= 50 -> "Medium"
+            else -> "Growing"
         }
 
         // Category Stats
@@ -259,30 +244,16 @@ class StatisticsViewModel(
         val prevWeekRate = if (prevWeekTotal == 0) 0f else prevWeekCompleted.toFloat() / prevWeekTotal
         val weeklyDelta = ((weekRate - prevWeekRate) * 100).toInt()
 
-        // Productivity Score (0-100)
-        val baseScore = (weekRate * 60).toInt()
-        val streakScore = (streak.coerceAtMost(7) * 4).coerceAtMost(25)
-        val completionBonus = if (weekCompleted > 0) 15 else 0
-        val finalScore = (baseScore + streakScore + completionBonus).coerceIn(0, 100)
-
-        val scoreRating = when {
-            finalScore >= 85 -> "Elite"
-            finalScore >= 70 -> "High"
-            finalScore >= 50 -> "Moderate"
-            finalScore > 0 -> "Building"
-            else -> "Starting"
-        }
-
         StatisticsUiState(
             totalCompletedAllTime = allTimeCompleted,
             totalPendingAllTime = allTimePending,
             totalSkippedAllTime = allTimeSkipped,
-            currentStreak = streak,
-            bestStreak = maxOf(streak, 7),
+            currentStreak = insights.currentStreak,
+            bestStreak = insights.longestRecurringStreak,
             bestDayName = bestDayName,
             overallCompletionRate = monthRate,
-            productivityScore = finalScore,
-            productivityRating = scoreRating,
+            productivityScore = productivityScore,
+            productivityRating = productivityRating,
             weeklyComparisonDelta = weeklyDelta,
             todayStats = PeriodStats(todayTasks.size, todayCompleted, todayPending, todaySkipped, todayRate),
             weekStats = PeriodStats(weekTotal, weekCompleted, weekPending, weekSkipped, weekRate),

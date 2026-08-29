@@ -1,8 +1,11 @@
 package com.niloy.ui.screens
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,19 +15,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.ChevronLeft
-import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.Event
-import androidx.compose.material.icons.outlined.TaskAlt
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.niloy.domain.model.Category
 import com.niloy.domain.model.TaskState
 import com.niloy.domain.service.TaskWithOccurrence
@@ -43,6 +45,131 @@ fun TodayScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isToday = uiState.selectedDate == LocalDate.now()
+    val context = LocalContext.current
+
+    // Reschedule Dialog State
+    var reschedulingItem by remember { mutableStateOf<TaskWithOccurrence?>(null) }
+    var rescheduleStartTime by remember { mutableStateOf(480L) }
+    var rescheduleEndTime by remember { mutableStateOf(540L) }
+    var rescheduleDate by remember { mutableStateOf(LocalDate.now().toString()) }
+    var rescheduleNotes by remember { mutableStateOf("") }
+
+    // Reschedule Dialog
+    reschedulingItem?.let { item ->
+        AlertDialog(
+            onDismissRequest = { reschedulingItem = null },
+            icon = { Icon(Icons.Outlined.Update, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = { Text("Reschedule Occurrence", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Adjust timing or date for \"${item.task.name}\" without altering your master recurring rule:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Target Date Selector
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val parsed = try { LocalDate.parse(rescheduleDate) } catch (e: Exception) { LocalDate.now() }
+                                DatePickerDialog(
+                                    context,
+                                    { _, y, m, d ->
+                                        rescheduleDate = LocalDate.of(y, m + 1, d).toString()
+                                    },
+                                    parsed.year,
+                                    parsed.monthValue - 1,
+                                    parsed.dayOfMonth
+                                ).show()
+                            }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Target Date", style = MaterialTheme.typography.bodyMedium)
+                            Text(rescheduleDate, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+
+                    // Start Time Selector
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val h = (rescheduleStartTime / 60).toInt()
+                                val m = (rescheduleStartTime % 60).toInt()
+                                TimePickerDialog(
+                                    context,
+                                    { _, hour, min ->
+                                        rescheduleStartTime = (hour * 60 + min).toLong()
+                                        if (rescheduleStartTime >= rescheduleEndTime) {
+                                            rescheduleEndTime = rescheduleStartTime + 30
+                                        }
+                                    },
+                                    h,
+                                    m,
+                                    true
+                                ).show()
+                            }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Start Time", style = MaterialTheme.typography.bodyMedium)
+                            Text(TimeUtils.formatMinutes(rescheduleStartTime, true), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+
+                    // Notes / Reason
+                    OutlinedTextField(
+                        value = rescheduleNotes,
+                        onValueChange = { rescheduleNotes = it },
+                        label = { Text("Reason / Notes (Optional)") },
+                        placeholder = { Text("e.g., Doctor appointment delay") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.rescheduleOccurrence(
+                            taskId = item.task.id,
+                            originalDate = item.occurrence.date,
+                            newStartTime = rescheduleStartTime,
+                            newEndTime = rescheduleEndTime,
+                            newDate = if (rescheduleDate != item.occurrence.date) rescheduleDate else null,
+                            notes = rescheduleNotes.ifBlank { null }
+                        )
+                        reschedulingItem = null
+                    }
+                ) {
+                    Text("Apply Adjustment")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { reschedulingItem = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -161,6 +288,48 @@ fun TodayScreen(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Streak & Productivity Insight Header
+                if (uiState.productivityInsights.currentStreak > 0) {
+                    item {
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.25f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.LocalFireDepartment,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        text = "${uiState.productivityInsights.currentStreak}-Day Consistency Streak",
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                }
+                                Text(
+                                    text = "Best: ${uiState.productivityInsights.longestRecurringStreak}d",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // Progress Card
                 item {
                     TodayProgressCard(
@@ -172,7 +341,7 @@ fun TodayScreen(
                     )
                 }
 
-                // Category Filter Chips (if multiple categories exist)
+                // Category Filter Chips
                 if (uiState.categories.isNotEmpty()) {
                     item {
                         CategoryFilterRow(
@@ -235,6 +404,13 @@ fun TodayScreen(
                                 onEdit = {
                                     onEditTask(item.task.id)
                                 },
+                                onReschedule = {
+                                    reschedulingItem = item
+                                    rescheduleStartTime = item.effectiveStartTime ?: 480L
+                                    rescheduleEndTime = item.effectiveEndTime ?: 540L
+                                    rescheduleDate = item.occurrence.date
+                                    rescheduleNotes = item.occurrence.notes ?: ""
+                                },
                                 onDelete = {
                                     viewModel.deleteTask(item.task)
                                 }
@@ -279,6 +455,13 @@ fun TodayScreen(
                                 },
                                 onEdit = {
                                     onEditTask(item.task.id)
+                                },
+                                onReschedule = {
+                                    reschedulingItem = item
+                                    rescheduleStartTime = item.effectiveStartTime ?: 480L
+                                    rescheduleEndTime = item.effectiveEndTime ?: 540L
+                                    rescheduleDate = item.occurrence.date
+                                    rescheduleNotes = item.occurrence.notes ?: ""
                                 },
                                 onDelete = {
                                     viewModel.deleteTask(item.task)

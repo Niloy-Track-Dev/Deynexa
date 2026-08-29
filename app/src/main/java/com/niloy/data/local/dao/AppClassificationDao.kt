@@ -9,6 +9,9 @@ interface AppClassificationDao {
     @Query("SELECT * FROM app_classifications")
     fun getAllClassifications(): Flow<List<AppClassificationEntity>>
 
+    @Query("SELECT * FROM app_classifications")
+    suspend fun getAllClassificationsOnce(): List<AppClassificationEntity>
+
     @Query("SELECT * FROM app_classifications WHERE packageName = :packageName")
     suspend fun getClassification(packageName: String): AppClassificationEntity?
 

@@ -4,32 +4,38 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.niloy.domain.model.Category
-import com.niloy.domain.model.Task
-import com.niloy.domain.model.TaskOccurrence
 import com.niloy.domain.repository.TaskRepository
-import com.niloy.domain.service.BackupData
-import com.niloy.domain.service.BackupService
+import com.niloy.domain.service.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+
+import java.time.DayOfWeek
 
 data class SettingsUiState(
     val isOnboardingCompleted: Boolean = false,
     val theme: String = "SYSTEM",
     val timeFormat: String = "24H",
     val weekStart: String = "MONDAY",
+    val weekendDays: Set<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY),
+    val dayBoundary: String = "12:00 AM (Midnight)",
     val notificationsEnabled: Boolean = true,
     val defaultReminderOffset: Int = 0,
     val isLoading: Boolean = true,
-    val backupJson: String? = null,
-    val importMessage: String? = null,
-    val isExportSuccess: Boolean = false,
+    val isExporting: Boolean = false,
+    val isImporting: Boolean = false,
+    val exportDialogType: String? = null, // "FULL" or "FOCENTRA"
+    val generatedExportJson: String? = null,
+    val validationResult: BackupValidationResult? = null,
+    val importFeedbackMessage: String? = null,
+    val isImportSuccess: Boolean = false,
     val focentraStatus: com.niloy.domain.model.FocentraIntegrationStatus? = null
 )
 
 class SettingsViewModel(
     private val repository: TaskRepository,
     private val backupService: BackupService,
-    private val focentraIntegrationManager: com.niloy.domain.service.FocentraIntegrationManager
+    private val focentraIntegrationManager: com.niloy.domain.service.FocentraIntegrationManager,
+    private val dataPortabilityManager: DataPortabilityManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -42,6 +48,13 @@ class SettingsViewModel(
                 val theme = repository.getSetting("theme") ?: "SYSTEM"
                 val timeFormat = repository.getSetting("time_format") ?: "24H"
                 val weekStart = repository.getSetting("week_start") ?: "MONDAY"
+                val weekendStr = repository.getSetting("weekend_days") ?: "SATURDAY,SUNDAY"
+                val weekendDays = if (weekendStr.isNotBlank()) {
+                    weekendStr.split(",").mapNotNull {
+                        try { DayOfWeek.valueOf(it.trim()) } catch (e: Exception) { null }
+                    }.toSet()
+                } else setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+
                 val notificationsEnabled = repository.getSetting("notifications_enabled")?.toBoolean() ?: true
                 val defaultReminderOffset = repository.getSetting("default_reminder_offset")?.toIntOrNull() ?: 0
                 
@@ -50,6 +63,7 @@ class SettingsViewModel(
                     theme = theme,
                     timeFormat = timeFormat,
                     weekStart = weekStart,
+                    weekendDays = weekendDays,
                     notificationsEnabled = notificationsEnabled,
                     defaultReminderOffset = defaultReminderOffset,
                     isLoading = false
@@ -121,6 +135,25 @@ class SettingsViewModel(
         }
     }
 
+    fun toggleWeekendDay(day: DayOfWeek) {
+        viewModelScope.launch {
+            val current = _uiState.value.weekendDays
+            val updated = if (current.contains(day)) {
+                if (current.size > 1) current - day else current // Keep at least 1 weekend day
+            } else {
+                if (current.size >= 2) {
+                    // Replace the first item to maintain max 2
+                    current.drop(1).toSet() + day
+                } else {
+                    current + day
+                }
+            }
+            val settingStr = updated.joinToString(",") { it.name }
+            repository.saveSetting("weekend_days", settingStr)
+            _uiState.update { it.copy(weekendDays = updated) }
+        }
+    }
+
     fun updateNotificationsEnabled(enabled: Boolean) {
         viewModelScope.launch {
             repository.saveSetting("notifications_enabled", enabled.toString())
@@ -135,85 +168,101 @@ class SettingsViewModel(
         }
     }
 
-    fun generateBackup() {
+    fun generateFullBackup() {
         viewModelScope.launch {
-            val categories = repository.getCategories().first()
-            val tasks = repository.getTasks().first()
-            val occurrences = repository.getAllOccurrences().first()
-            val focentraSessions = focentraIntegrationManager.getAllSessions()
-            
-            val backupData = BackupData(
-                categories = categories,
-                tasks = tasks,
-                occurrences = occurrences,
-                focentraSessions = focentraSessions.map {
-                    com.niloy.domain.service.FocentraSessionBackup(
-                        sessionId = it.sessionId,
-                        subject = it.subject,
-                        topic = it.topic,
-                        startTime = it.startTime,
-                        endTime = it.endTime,
-                        duration = it.duration,
-                        completionStatus = it.completionStatus,
-                        focusScore = it.focusScore,
-                        schemaVersion = it.schemaVersion,
-                        importedAt = it.importedAt
+            _uiState.update { it.copy(isExporting = true) }
+            try {
+                val backupData = dataPortabilityManager.generateFullBackup()
+                val json = backupService.exportBackup(backupData)
+                _uiState.update {
+                    it.copy(
+                        isExporting = false,
+                        exportDialogType = "FULL",
+                        generatedExportJson = json
                     )
-                },
-                settings = mapOf(
-                    "theme" to _uiState.value.theme,
-                    "time_format" to _uiState.value.timeFormat,
-                    "week_start" to _uiState.value.weekStart,
-                    "notifications_enabled" to _uiState.value.notificationsEnabled.toString(),
-                    "default_reminder_offset" to _uiState.value.defaultReminderOffset.toString()
-                )
-            )
-            val json = backupService.exportBackup(backupData)
-            _uiState.update { it.copy(backupJson = json, isExportSuccess = true) }
-        }
-    }
-
-    fun importBackup(jsonString: String) {
-        viewModelScope.launch {
-            val backupData = backupService.importBackup(jsonString)
-            if (backupData != null) {
-                if (backupData.categories.isNotEmpty()) {
-                    repository.saveCategories(backupData.categories)
                 }
-                if (backupData.tasks.isNotEmpty()) {
-                    repository.saveTasks(backupData.tasks)
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isExporting = false,
+                        importFeedbackMessage = "Export failed: ${e.localizedMessage}",
+                        isImportSuccess = false
+                    )
                 }
-                if (backupData.occurrences.isNotEmpty()) {
-                    repository.saveOccurrences(backupData.occurrences)
-                }
-                backupData.focentraSessions?.let { sessions ->
-                    focentraIntegrationManager.insertOrUpdateSessions(sessions.map {
-                        com.niloy.data.local.entity.FocentraStudySessionEntity(
-                            sessionId = it.sessionId,
-                            subject = it.subject,
-                            topic = it.topic,
-                            startTime = it.startTime,
-                            endTime = it.endTime,
-                            duration = it.duration,
-                            completionStatus = it.completionStatus,
-                            focusScore = it.focusScore,
-                            schemaVersion = it.schemaVersion,
-                            importedAt = it.importedAt
-                        )
-                    })
-                }
-                backupData.settings.forEach { (k, v) ->
-                    repository.saveSetting(k, v)
-                }
-                _uiState.update { it.copy(importMessage = "Data successfully imported!") }
-            } else {
-                _uiState.update { it.copy(importMessage = "Invalid backup format.") }
             }
         }
     }
 
-    fun clearImportMessage() {
-        _uiState.update { it.copy(importMessage = null, backupJson = null) }
+    fun generateFocentraExport() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExporting = true) }
+            try {
+                val bundle = dataPortabilityManager.generateFocentraExportBundle()
+                val json = backupService.exportFocentraBundle(bundle)
+                _uiState.update {
+                    it.copy(
+                        isExporting = false,
+                        exportDialogType = "FOCENTRA",
+                        generatedExportJson = json
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isExporting = false,
+                        importFeedbackMessage = "Export failed: ${e.localizedMessage}",
+                        isImportSuccess = false
+                    )
+                }
+            }
+        }
+    }
+
+    fun validateImportJson(rawJson: String) {
+        val result = backupService.validateBackup(rawJson)
+        _uiState.update { it.copy(validationResult = result) }
+    }
+
+    fun executeImport(mode: ImportMode) {
+        val validation = _uiState.value.validationResult ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isImporting = true) }
+            val success = when (validation) {
+                is BackupValidationResult.ValidFull -> {
+                    dataPortabilityManager.restoreFullBackup(validation.data, mode)
+                }
+                is BackupValidationResult.ValidFocentra -> {
+                    dataPortabilityManager.restoreFocentraBackup(validation.bundle, mode)
+                }
+                is BackupValidationResult.Invalid -> false
+            }
+
+            _uiState.update {
+                it.copy(
+                    isImporting = false,
+                    validationResult = null,
+                    isImportSuccess = success,
+                    importFeedbackMessage = if (success) {
+                        if (mode == ImportMode.REPLACE) "Database replaced and restored successfully!"
+                        else "Backup data merged seamlessly without loss!"
+                    } else {
+                        "Failed to restore backup data."
+                    }
+                )
+            }
+        }
+    }
+
+    fun dismissExportDialog() {
+        _uiState.update { it.copy(exportDialogType = null, generatedExportJson = null) }
+    }
+
+    fun dismissValidationDialog() {
+        _uiState.update { it.copy(validationResult = null) }
+    }
+
+    fun clearFeedbackMessage() {
+        _uiState.update { it.copy(importFeedbackMessage = null) }
     }
 
     fun resetAllData() {
@@ -222,6 +271,7 @@ class SettingsViewModel(
             tasks.forEach { repository.deleteTask(it) }
             val categories = repository.getCategories().first()
             categories.forEach { repository.deleteCategory(it) }
+            focentraIntegrationManager.clearFocentraData()
             
             // Re-seed default clean categories
             repository.saveCategory(Category(name = "Health", icon = "fitness", color = 0xFF10B981.toInt()))
@@ -233,11 +283,12 @@ class SettingsViewModel(
     class Factory(
         private val repository: TaskRepository,
         private val backupService: BackupService,
-        private val focentraIntegrationManager: com.niloy.domain.service.FocentraIntegrationManager
+        private val focentraIntegrationManager: com.niloy.domain.service.FocentraIntegrationManager,
+        private val dataPortabilityManager: DataPortabilityManager
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return SettingsViewModel(repository, backupService, focentraIntegrationManager) as T
+            return SettingsViewModel(repository, backupService, focentraIntegrationManager, dataPortabilityManager) as T
         }
     }
 }

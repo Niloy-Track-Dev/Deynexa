@@ -19,9 +19,11 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.EventRepeat
 import androidx.compose.material.icons.outlined.Redo
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.SkipNext
+import androidx.compose.material.icons.outlined.Update
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,17 +33,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.niloy.domain.model.Category
+import com.niloy.domain.model.RecurrenceType
 import com.niloy.domain.model.TaskState
 import com.niloy.domain.service.TaskWithOccurrence
 import com.niloy.ui.theme.StateCompleted
-import com.niloy.ui.theme.StatePending
 import com.niloy.ui.theme.StateSkipped
 import com.niloy.ui.util.TimeUtils
+import java.time.format.TextStyle
+import java.util.Locale
 
 @Composable
 fun TaskCard(
@@ -51,23 +54,19 @@ fun TaskCard(
     onToggle: () -> Unit,
     onSkip: () -> Unit,
     onEdit: () -> Unit,
+    onReschedule: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val isCompleted = item.occurrence.state == TaskState.COMPLETED
     val isSkipped = item.occurrence.state == TaskState.SKIPPED
+    val isRescheduled = item.occurrence.rescheduledStartTime != null || item.occurrence.rescheduledDate != null || item.occurrence.isException
 
     val cardAlpha by animateFloatAsState(
         targetValue = if (isCompleted) 0.8f else if (isSkipped) 0.6f else 1f,
         animationSpec = spring(),
         label = "task_alpha"
-    )
-
-    val checkContainerColor by animateColorAsState(
-        targetValue = if (isCompleted) StateCompleted else Color.Transparent,
-        animationSpec = spring(),
-        label = "check_container"
     )
 
     val checkBorderColor by animateColorAsState(
@@ -93,7 +92,7 @@ fun TaskCard(
             1.dp,
             if (isCompleted) StateCompleted.copy(alpha = 0.2f)
             else if (isSkipped) StateSkipped.copy(alpha = 0.15f)
-            else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+            else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
         ),
         tonalElevation = if (isCompleted || isSkipped) 0.dp else 1.dp
     ) {
@@ -121,19 +120,14 @@ fun TaskCard(
                     )
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        androidx.compose.animation.AnimatedVisibility(
-                            visible = isCompleted,
-                            enter = fadeIn() + scaleIn(initialScale = 0.6f),
-                            exit = fadeOut() + scaleOut(targetScale = 0.6f)
-                        ) {
+                        if (isCompleted) {
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = "Completed",
                                 tint = Color.White,
                                 modifier = Modifier.size(14.dp)
                             )
-                        }
-                        if (isSkipped) {
+                        } else if (isSkipped) {
                             Icon(
                                 imageVector = Icons.Outlined.SkipNext,
                                 contentDescription = "Skipped",
@@ -180,13 +174,31 @@ fun TaskCard(
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
+                    } else if (isRescheduled) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f)
+                        ) {
+                            Text(
+                                text = "Adjusted",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 }
 
-                if (item.task.description.isNotBlank()) {
+                if (item.task.description.isNotBlank() || !item.occurrence.notes.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(2.dp))
+                    val displayText = if (!item.occurrence.notes.isNullOrBlank()) {
+                        "Note: ${item.occurrence.notes}"
+                    } else {
+                        item.task.description
+                    }
                     Text(
-                        text = item.task.description,
+                        text = displayText,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                         maxLines = 1,
@@ -196,14 +208,14 @@ fun TaskCard(
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // Time and Category row
+                // Time, Recurrence & Category row
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val timeString = TimeUtils.formatTimeRange(
-                        startTime = item.task.startTime,
-                        endTime = item.task.endTime,
+                        startTime = item.effectiveStartTime,
+                        endTime = item.effectiveEndTime,
                         isAllDay = item.task.isAllDay,
                         is24Hour = is24Hour
                     )
@@ -215,14 +227,41 @@ fun TaskCard(
                         Icon(
                             imageVector = Icons.Outlined.Schedule,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            tint = if (isRescheduled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             modifier = Modifier.size(13.dp)
                         )
                         Text(
                             text = timeString,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            fontWeight = if (isRescheduled) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isRescheduled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+
+                    // Recurrence badge
+                    if (item.task.isRecurring) {
+                        Text(
+                            text = "•",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+                        val recurrenceLabel = formatRecurrenceShort(item.task)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(
+                                Icons.Outlined.EventRepeat,
+                                contentDescription = null,
+                                modifier = Modifier.size(11.dp),
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                            )
+                            Text(
+                                text = recurrenceLabel,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                            )
+                        }
                     }
 
                     if (category != null) {
@@ -278,15 +317,25 @@ fun TaskCard(
                     onDismissRequest = { showMenu = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Edit Task") },
+                        text = { Text("Edit Routine") },
                         leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
                         onClick = {
                             showMenu = false
                             onEdit()
                         }
                     )
+                    if (onReschedule != null) {
+                        DropdownMenuItem(
+                            text = { Text("Reschedule / Adjust") },
+                            leadingIcon = { Icon(Icons.Outlined.Update, contentDescription = null) },
+                            onClick = {
+                                showMenu = false
+                                onReschedule()
+                            }
+                        )
+                    }
                     DropdownMenuItem(
-                        text = { Text(if (isSkipped) "Unskip" else "Skip for Today") },
+                        text = { Text(if (isSkipped) "Unskip" else "Skip Today") },
                         leadingIcon = {
                             Icon(
                                 if (isSkipped) Icons.Outlined.Redo else Icons.Outlined.SkipNext,
@@ -317,5 +366,28 @@ fun TaskCard(
                 }
             }
         }
+    }
+}
+
+private fun formatRecurrenceShort(task: com.niloy.domain.model.Task): String {
+    return when (task.recurrenceType) {
+        RecurrenceType.DAILY -> if (task.recurrenceInterval > 1) "Every ${task.recurrenceInterval}d" else "Daily"
+        RecurrenceType.WEEKDAYS -> "Weekdays"
+        RecurrenceType.WEEKENDS -> "Weekends"
+        RecurrenceType.SPECIFIC_DAYS -> {
+            if (task.recurringDays.size == 7) "Daily"
+            else if (task.recurringDays.size <= 3) {
+                task.recurringDays.joinToString(",") { it.getDisplayName(TextStyle.NARROW, Locale.getDefault()) }
+            } else {
+                "${task.recurringDays.size}d/wk"
+            }
+        }
+        RecurrenceType.EVERY_X_DAYS -> "Every ${task.recurrenceInterval}d"
+        RecurrenceType.EVERY_X_WEEKS -> "Every ${task.recurrenceInterval}w"
+        RecurrenceType.MONTHLY -> "Monthly"
+        RecurrenceType.SPECIFIC_DAY_OF_MONTH -> "Day ${task.recurrenceDayOfMonth ?: 1}"
+        RecurrenceType.YEARLY -> "Yearly"
+        RecurrenceType.CUSTOM -> "Custom"
+        RecurrenceType.NONE -> "One-time"
     }
 }

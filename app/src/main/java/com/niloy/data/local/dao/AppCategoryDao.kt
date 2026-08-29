@@ -23,4 +23,10 @@ interface AppCategoryDao {
 
     @Query("SELECT * FROM app_categories WHERE name = :name LIMIT 1")
     suspend fun getByName(name: String): AppCategoryEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(categories: List<AppCategoryEntity>)
+
+    @Query("DELETE FROM app_categories")
+    suspend fun deleteAll()
 }

@@ -3,15 +3,13 @@ package com.niloy.ui.screens
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.niloy.domain.model.Category
-import com.niloy.domain.model.Task
-import com.niloy.domain.model.TaskOccurrence
-import com.niloy.domain.model.TaskState
+import com.niloy.domain.model.*
 import com.niloy.domain.repository.TaskRepository
 import com.niloy.domain.service.SchedulingService
 import com.niloy.domain.service.TaskWithOccurrence
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 import java.time.LocalDate
 
 data class TodayUiState(
@@ -25,13 +23,16 @@ data class TodayUiState(
     val skippedCount: Int = 0,
     val completionPercentage: Float = 0f,
     val is24Hour: Boolean = true,
+    val weekendDays: Set<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY),
+    val productivityInsights: ProductivityInsights = ProductivityInsights(),
     val isLoading: Boolean = true
 )
 
 private data class RepoData(
     val tasks: List<Task>,
     val occurrences: List<TaskOccurrence>,
-    val categories: List<Category>
+    val categories: List<Category>,
+    val weekendDays: Set<DayOfWeek>
 )
 
 class TodayViewModel(
@@ -46,20 +47,32 @@ class TodayViewModel(
     val selectedCategoryId = _selectedCategoryId.asStateFlow()
 
     private val _is24Hour = MutableStateFlow(true)
+    private val _weekendDays = MutableStateFlow(setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY))
 
     init {
         viewModelScope.launch {
             val format = repository.getSetting("time_format") ?: "24H"
             _is24Hour.value = format == "24H"
+
+            val weekendStr = repository.getSetting("weekend_days") ?: "SATURDAY,SUNDAY"
+            if (weekendStr.isNotBlank()) {
+                val parsed = weekendStr.split(",").mapNotNull {
+                    try { DayOfWeek.valueOf(it.trim()) } catch (e: Exception) { null }
+                }.toSet()
+                if (parsed.isNotEmpty()) {
+                    _weekendDays.value = parsed
+                }
+            }
         }
     }
 
     private val repoDataFlow: Flow<RepoData> = combine(
         repository.getTasks(),
         repository.getAllOccurrences(),
-        repository.getCategories()
-    ) { tasks, occurrences, categories ->
-        RepoData(tasks, occurrences, categories)
+        repository.getCategories(),
+        _weekendDays
+    ) { tasks, occurrences, categories, weekendDays ->
+        RepoData(tasks, occurrences, categories, weekendDays)
     }
 
     val uiState: StateFlow<TodayUiState> = combine(
@@ -68,9 +81,12 @@ class TodayViewModel(
         _is24Hour,
         repoDataFlow
     ) { date, categoryIdFilter, is24H, repoData ->
-        val dateStr = date.toString()
-        val occurrencesForDate = repoData.occurrences.filter { it.date == dateStr }
-        val filteredForDate = schedulingService.getTasksForDate(repoData.tasks, occurrencesForDate, date)
+        val filteredForDate = schedulingService.getTasksForDate(
+            tasks = repoData.tasks,
+            occurrences = repoData.occurrences,
+            date = date,
+            customWeekend = repoData.weekendDays
+        )
         
         val completedCount = filteredForDate.count { it.occurrence.state == TaskState.COMPLETED }
         val pendingCount = filteredForDate.count { it.occurrence.state == TaskState.PENDING }
@@ -82,9 +98,12 @@ class TodayViewModel(
             filteredForDate.filter { it.task.categoryId == categoryIdFilter }
         } else {
             filteredForDate
-        }.sortedWith(
-            compareBy<TaskWithOccurrence> { it.task.isAllDay }
-                .thenBy { it.task.startTime ?: Long.MAX_VALUE }
+        }
+
+        val insights = schedulingService.calculateProductivityInsights(
+            tasks = repoData.tasks,
+            allOccurrences = repoData.occurrences,
+            customWeekend = repoData.weekendDays
         )
 
         TodayUiState(
@@ -98,6 +117,8 @@ class TodayViewModel(
             skippedCount = skippedCount,
             completionPercentage = percentage,
             is24Hour = is24H,
+            weekendDays = repoData.weekendDays,
+            productivityInsights = insights,
             isLoading = false
         )
     }.stateIn(
@@ -129,31 +150,48 @@ class TodayViewModel(
     fun toggleTaskCompletion(taskId: Long, date: String, currentState: TaskState) {
         viewModelScope.launch {
             val newState = if (currentState == TaskState.COMPLETED) TaskState.PENDING else TaskState.COMPLETED
-            repository.saveOccurrence(
-                TaskOccurrence(
-                    taskId = taskId,
-                    date = date,
-                    state = newState
-                )
+            val existing = repository.getAllOccurrences().first().find { it.taskId == taskId && it.date == date }
+            val updated = (existing ?: TaskOccurrence(taskId = taskId, date = date)).copy(
+                state = newState,
+                updatedAt = System.currentTimeMillis()
             )
+            repository.saveOccurrence(updated)
         }
     }
 
-    fun toggleSkipTask(taskId: Long, date: String, currentState: TaskState) {
+    fun toggleSkipTask(taskId: Long, date: String, currentState: TaskState, reason: String? = null) {
         viewModelScope.launch {
             val newState = if (currentState == TaskState.SKIPPED) TaskState.PENDING else TaskState.SKIPPED
-            repository.saveOccurrence(
-                TaskOccurrence(
-                    taskId = taskId,
-                    date = date,
-                    state = newState
-                )
+            val existing = repository.getAllOccurrences().first().find { it.taskId == taskId && it.date == date }
+            val updated = (existing ?: TaskOccurrence(taskId = taskId, date = date)).copy(
+                state = newState,
+                notes = if (newState == TaskState.SKIPPED) reason else existing?.notes,
+                updatedAt = System.currentTimeMillis()
             )
+            repository.saveOccurrence(updated)
         }
     }
 
-    fun skipTask(taskId: Long, date: String, currentState: TaskState = TaskState.PENDING) {
-        toggleSkipTask(taskId, date, currentState)
+    fun rescheduleOccurrence(
+        taskId: Long,
+        originalDate: String,
+        newStartTime: Long?,
+        newEndTime: Long?,
+        newDate: String?,
+        notes: String?
+    ) {
+        viewModelScope.launch {
+            val existing = repository.getAllOccurrences().first().find { it.taskId == taskId && it.date == originalDate }
+            val updated = (existing ?: TaskOccurrence(taskId = taskId, date = originalDate)).copy(
+                rescheduledStartTime = newStartTime,
+                rescheduledEndTime = newEndTime,
+                rescheduledDate = newDate,
+                isException = true,
+                notes = notes,
+                updatedAt = System.currentTimeMillis()
+            )
+            repository.saveOccurrence(updated)
+        }
     }
 
     fun deleteTask(task: Task) {

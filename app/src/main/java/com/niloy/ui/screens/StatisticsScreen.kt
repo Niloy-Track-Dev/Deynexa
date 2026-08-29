@@ -480,37 +480,6 @@ fun StatisticsScreen(
                             }
 
                             HeatmapGrid(cells = uiState.heatmapCells)
-
-                            // Heatmap Legend
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Less",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 10.sp
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                listOf(0, 1, 2, 3).forEach { lvl ->
-                                    Box(
-                                        modifier = Modifier
-                                            .size(10.dp)
-                                            .clip(RoundedCornerShape(2.dp))
-                                            .background(getHeatmapColor(lvl))
-                                    )
-                                    Spacer(modifier = Modifier.width(3.dp))
-                                }
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text(
-                                    text = "More",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 10.sp
-                                )
-                            }
                         }
                     }
                 }

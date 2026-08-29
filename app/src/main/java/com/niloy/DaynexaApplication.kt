@@ -23,6 +23,7 @@ class DaynexaApplication : Application() {
     lateinit var focentraIntegrationManager: FocentraIntegrationManager
     lateinit var schedulingService: SchedulingService
     lateinit var backupService: BackupService
+    lateinit var dataPortabilityManager: com.niloy.domain.service.DataPortabilityManager
     lateinit var reminderScheduler: TaskReminderScheduler
 
     private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -98,6 +99,45 @@ class DaynexaApplication : Application() {
         }
     }
 
+    private val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `recurrenceType` TEXT NOT NULL DEFAULT 'DAILY'")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `recurrenceInterval` INTEGER NOT NULL DEFAULT 1")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `recurrenceDayOfMonth` INTEGER")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `recurrenceMonthOfYear` INTEGER")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `recurrenceEndType` TEXT NOT NULL DEFAULT 'NEVER'")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `recurrenceEndDate` TEXT")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `recurrenceCount` INTEGER")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `seriesId` INTEGER")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `startDate` TEXT NOT NULL DEFAULT ''")
+
+            db.execSQL("ALTER TABLE `task_occurrences` ADD COLUMN `rescheduledStartTime` INTEGER")
+            db.execSQL("ALTER TABLE `task_occurrences` ADD COLUMN `rescheduledEndTime` INTEGER")
+            db.execSQL("ALTER TABLE `task_occurrences` ADD COLUMN `rescheduledDate` TEXT")
+            db.execSQL("ALTER TABLE `task_occurrences` ADD COLUMN `isException` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `task_occurrences` ADD COLUMN `notes` TEXT")
+
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `task_templates` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `name` TEXT NOT NULL,
+                    `description` TEXT NOT NULL DEFAULT '',
+                    `categoryId` INTEGER NOT NULL,
+                    `defaultDurationMinutes` INTEGER NOT NULL DEFAULT 45,
+                    `startTime` INTEGER,
+                    `endTime` INTEGER,
+                    `isAllDay` INTEGER NOT NULL DEFAULT 0,
+                    `recurrenceType` TEXT NOT NULL DEFAULT 'DAILY',
+                    `recurringDays` TEXT NOT NULL DEFAULT '',
+                    `recurrenceInterval` INTEGER NOT NULL DEFAULT 1,
+                    `reminderEnabled` INTEGER NOT NULL DEFAULT 0,
+                    `reminderOffsetMinutes` INTEGER NOT NULL DEFAULT 0,
+                    `createdAt` INTEGER NOT NULL
+                )
+            """.trimIndent())
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         database = Room.databaseBuilder(
@@ -105,7 +145,7 @@ class DaynexaApplication : Application() {
             AppDatabase::class.java,
             "daynexa.db"
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
             .fallbackToDestructiveMigration()
             .build()
 
@@ -113,7 +153,8 @@ class DaynexaApplication : Application() {
             database.categoryDao(),
             database.taskDao(),
             database.taskOccurrenceDao(),
-            database.settingDao()
+            database.settingDao(),
+            database.taskTemplateDao()
         )
         
         diagnosticRepository = DiagnosticRepositoryImpl(
@@ -131,6 +172,7 @@ class DaynexaApplication : Application() {
         
         schedulingService = SchedulingService()
         backupService = BackupService()
+        dataPortabilityManager = com.niloy.domain.service.DataPortabilityManager(database, backupService)
         reminderScheduler = TaskReminderScheduler(applicationContext)
         
         initDemoData()

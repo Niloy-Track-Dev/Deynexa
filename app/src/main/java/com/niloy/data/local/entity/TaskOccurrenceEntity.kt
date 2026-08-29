@@ -26,6 +26,11 @@ data class TaskOccurrenceEntity(
     val taskId: Long,
     val date: String, // YYYY-MM-DD format
     val state: String = "PENDING", // TaskState.name
+    val rescheduledStartTime: Long? = null,
+    val rescheduledEndTime: Long? = null,
+    val rescheduledDate: String? = null,
+    val isException: Boolean = false,
+    val notes: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

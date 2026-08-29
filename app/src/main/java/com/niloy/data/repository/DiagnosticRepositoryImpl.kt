@@ -13,6 +13,7 @@ import com.niloy.domain.repository.DiagnosticRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDate
@@ -25,6 +26,36 @@ class DiagnosticRepositoryImpl(
     private val focentraDao: com.niloy.data.local.dao.FocentraStudySessionDao,
     private val appCategoryDao: com.niloy.data.local.dao.AppCategoryDao
 ) : DiagnosticRepository {
+
+    init {
+        kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+            seedDefaultCategoriesIfNeeded()
+        }
+    }
+
+    private suspend fun seedDefaultCategoriesIfNeeded() {
+        val existing = appCategoryDao.getAllCategoriesOneShot()
+        if (existing.isEmpty()) {
+            val defaults = listOf(
+                AppCategoryEntity(name = AppCategories.AI, isProductive = true),
+                AppCategoryEntity(name = AppCategories.SYSTEM_APP, isProductive = true),
+                AppCategoryEntity(name = AppCategories.PRODUCTIVITY, isProductive = true),
+                AppCategoryEntity(name = AppCategories.COMMUNICATION, isProductive = true),
+                AppCategoryEntity(name = AppCategories.NAME_JAP, isProductive = true),
+                AppCategoryEntity(name = AppCategories.TOOLS, isProductive = true),
+                AppCategoryEntity(name = AppCategories.CODING, isProductive = true),
+                AppCategoryEntity(name = AppCategories.EDUCATION, isProductive = true),
+                AppCategoryEntity(name = AppCategories.STUDY_TIMER, isProductive = true),
+                AppCategoryEntity(name = AppCategories.BROWSER, isProductive = true),
+                AppCategoryEntity(name = AppCategories.SOCIAL_MEDIA, isProductive = false),
+                AppCategoryEntity(name = AppCategories.ENTERTAINMENT, isProductive = false),
+                AppCategoryEntity(name = AppCategories.GAMES, isProductive = false),
+                AppCategoryEntity(name = AppCategories.UTILITIES, isProductive = true),
+                AppCategoryEntity(name = AppCategories.OTHER, isProductive = true)
+            )
+            appCategoryDao.insertAll(defaults)
+        }
+    }
 
     override fun getAppCategories(): Flow<List<com.niloy.domain.model.AppCategory>> {
         return appCategoryDao.getAllCategories().map { list ->

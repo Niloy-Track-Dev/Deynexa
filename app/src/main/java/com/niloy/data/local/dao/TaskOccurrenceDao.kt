@@ -46,4 +46,7 @@ interface TaskOccurrenceDao {
 
     @Query("SELECT * FROM task_occurrences WHERE date BETWEEN :startDate AND :endDate ORDER BY date ASC")
     suspend fun getOccurrencesByDateRange(startDate: String, endDate: String): List<TaskOccurrenceEntity>
+
+    @Query("DELETE FROM task_occurrences")
+    suspend fun deleteAll()
 }

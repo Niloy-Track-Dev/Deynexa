@@ -3,6 +3,7 @@ package com.niloy.domain.repository
 import com.niloy.domain.model.Category
 import com.niloy.domain.model.Task
 import com.niloy.domain.model.TaskOccurrence
+import com.niloy.domain.model.TaskTemplate
 import kotlinx.coroutines.flow.Flow
 
 interface TaskRepository {
@@ -25,7 +26,15 @@ interface TaskRepository {
     suspend fun deleteOccurrence(occurrence: TaskOccurrence)
     suspend fun saveOccurrences(occurrences: List<TaskOccurrence>)
 
+    // Task Template operations (v0.7.0)
+    fun getTaskTemplates(): Flow<List<TaskTemplate>>
+    suspend fun getTaskTemplateById(id: Long): TaskTemplate?
+    suspend fun saveTaskTemplate(template: TaskTemplate): Long
+    suspend fun deleteTaskTemplate(template: TaskTemplate)
+    suspend fun saveTaskTemplates(templates: List<TaskTemplate>)
+
     // Settings operations
     suspend fun getSetting(key: String): String?
     suspend fun saveSetting(key: String, value: String)
 }
+

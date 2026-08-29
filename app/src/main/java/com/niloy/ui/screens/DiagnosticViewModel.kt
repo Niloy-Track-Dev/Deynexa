@@ -18,7 +18,8 @@ data class DiagnosticUiState(
     val summary: DiagnosticSummary? = null,
     val isLoading: Boolean = false,
     val selectedAppDetail: AppUsageInfo? = null,
-    val selectedCategoryFilter: String? = null
+    val selectedCategoryFilter: String? = null,
+    val appCategories: List<AppCategory> = emptyList()
 )
 
 class DiagnosticViewModel(
@@ -29,7 +30,22 @@ class DiagnosticViewModel(
     val uiState: StateFlow<DiagnosticUiState> = _uiState.asStateFlow()
 
     init {
+        observeCategories()
         checkPermissionAndLoadData()
+    }
+
+    private fun observeCategories() {
+        viewModelScope.launch {
+            diagnosticRepository.getAppCategories().collect { cats ->
+                _uiState.update { it.copy(appCategories = cats) }
+            }
+        }
+    }
+
+    fun saveAppCategory(name: String, isProductive: Boolean) {
+        viewModelScope.launch {
+            diagnosticRepository.saveAppCategory(com.niloy.domain.model.AppCategory(name = name, isProductive = isProductive))
+        }
     }
 
     fun checkPermissionAndLoadData() {
