@@ -1,5 +1,10 @@
 package com.niloy
 
+import android.os.Build
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.graphicsLayer
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -196,31 +201,34 @@ fun MainContent(
                     label = "bottomBarOffset"
                 )
 
-                Box(
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .offset(y = bottomBarOffsetY)
-                        .navigationBarsPadding()
-                        .padding(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 6.dp),
-                    contentAlignment = Alignment.Center
+                        .then(
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                Modifier.graphicsLayer {
+                                    renderEffect = RenderEffect.createBlurEffect(
+                                        25f, 25f, Shader.TileMode.CLAMP
+                                    ).asComposeRenderEffect()
+                                }
+                            } else Modifier
+                        ),
+                    shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+                    tonalElevation = 6.dp,
+                    shadowElevation = 8.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
                 ) {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(26.dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                        tonalElevation = 4.dp,
-                        shadowElevation = 8.dp,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                    NavigationBar(
+                        containerColor = Color.Transparent,
+                        tonalElevation = 0.dp,
+                        windowInsets = WindowInsets.navigationBars,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(72.dp)
+                            .padding(horizontal = 4.dp)
                     ) {
-                        NavigationBar(
-                            containerColor = Color.Transparent,
-                            tonalElevation = 0.dp,
-                            windowInsets = WindowInsets(0, 0, 0, 0),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(70.dp)
-                                .padding(horizontal = 4.dp)
-                        ) {
                         val isToday = currentDestination?.route == Screen.Today::class.qualifiedName
                         NavigationBarItem(
                             icon = {
@@ -404,7 +412,6 @@ fun MainContent(
                 }
             }
         }
-    }
 ) { innerPadding ->
         CompositionLocalProvider(LocalBottomBarVisible provides isBottomBarVisible) {
             NavHost(

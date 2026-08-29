@@ -2,27 +2,25 @@ package com.niloy.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.isSystemInDarkTheme
-import com.niloy.ui.theme.StateCompleted
-import com.niloy.ui.theme.StatePending
-import com.niloy.ui.theme.StateSkipped
 
 @Composable
 fun TodayProgressCard(
@@ -31,147 +29,132 @@ fun TodayProgressCard(
     pendingCount: Int,
     skippedCount: Int,
     completionPercentage: Float,
+    currentStreak: Int = 0,
+    totalFocusMinutes: Long = 0L,
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
     val animatedProgress by animateFloatAsState(
         targetValue = completionPercentage,
         animationSpec = tween(durationMillis = 600),
         label = "progress"
     )
 
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
-        tonalElevation = 1.dp
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "Today's Progress",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = when {
-                            totalCount == 0 -> "No tasks scheduled today"
-                            completedCount == totalCount -> "All tasks completed"
-                            completedCount > 0 -> "$completedCount of $totalCount tasks completed"
-                            else -> "Ready to get started"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+    // Calculate Focus Time display
+    val focusMinutes = if (totalFocusMinutes > 0) totalFocusMinutes else (completedCount * 30L)
+    val hours = focusMinutes / 60
+    val mins = focusMinutes % 60
+    val formattedFocus = String.format("%02dh %02dm", hours, mins)
 
-                // Percentage Badge
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = if (completionPercentage >= 1f && totalCount > 0)
-                        StateCompleted.copy(alpha = 0.15f)
-                    else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+    val goalMinutes = 480L // 8 hours goal
+    val leftMinutes = maxOf(0L, goalMinutes - focusMinutes)
+    val leftHours = leftMinutes / 60
+    val leftMins = leftMinutes % 60
+    val formattedLeft = "${leftHours}h ${leftMins}m"
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(6.dp, RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(24.dp)),
+        shape = RoundedCornerShape(24.dp),
+        color = Color.Transparent,
+        tonalElevation = 0.dp
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            Color(0xFF637BFE),
+                            Color(0xFF3B82F6)
+                        )
+                    )
+                )
+                .padding(20.dp)
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // Top Header Row: Title & Streak Pill
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "${(completionPercentage * 100).toInt()}%",
+                        text = "Today's Focus Time",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (completionPercentage >= 1f && totalCount > 0)
-                            StateCompleted
-                        else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White.copy(alpha = 0.92f)
+                    )
+
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = 0.22f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocalFireDepartment,
+                                contentDescription = "Streak",
+                                tint = Color(0xFFFFB74D),
+                                modifier = Modifier.size(17.dp)
+                            )
+                            Text(
+                                text = "$currentStreak Days",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+
+                // Focus Time Big Text Display
+                Text(
+                    text = formattedFocus,
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontSize = 36.sp,
+                        letterSpacing = (-0.5).sp
+                    ),
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White
+                )
+
+                // Goal Stats Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "${(completionPercentage * 100).toInt()}% of 8h 0m goal",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White.copy(alpha = 0.9f)
+                    )
+                    Text(
+                        text = "Left: $formattedLeft",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White.copy(alpha = 0.9f)
                     )
                 }
-            }
 
-            // Sleek Animated Linear Progress Bar
-            LinearProgressIndicator(
-                progress = { animatedProgress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(CircleShape),
-                color = if (completionPercentage >= 1f && totalCount > 0) StateCompleted else MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                strokeCap = StrokeCap.Round
-            )
-
-            // Scannable Stat Indicators
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                StatPill(
-                    label = "Completed",
-                    count = completedCount,
-                    color = StateCompleted,
-                    modifier = Modifier.weight(1f)
-                )
-                StatPill(
-                    label = "Pending",
-                    count = pendingCount,
-                    color = StatePending,
-                    modifier = Modifier.weight(1f)
-                )
-                if (skippedCount > 0) {
-                    StatPill(
-                        label = "Skipped",
-                        count = skippedCount,
-                        color = StateSkipped,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatPill(
-    label: String,
-    count: Int,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(color)
-            )
-            Column {
-                Text(
-                    text = count.toString(),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 10.sp
+                // Linear Progress Indicator
+                LinearProgressIndicator(
+                    progress = { animatedProgress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(9.dp)
+                        .clip(CircleShape),
+                    color = Color.White,
+                    trackColor = Color.White.copy(alpha = 0.25f),
+                    strokeCap = StrokeCap.Round
                 )
             }
         }
