@@ -235,7 +235,7 @@ fun TodayScreen(
 
                         IconButton(
                             onClick = { viewModel.previousDay() },
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(48.dp)
                         ) {
                             Icon(
                                 Icons.Outlined.ChevronLeft,
@@ -246,7 +246,7 @@ fun TodayScreen(
 
                         IconButton(
                             onClick = { viewModel.nextDay() },
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(48.dp)
                         ) {
                             Icon(
                                 Icons.Outlined.ChevronRight,

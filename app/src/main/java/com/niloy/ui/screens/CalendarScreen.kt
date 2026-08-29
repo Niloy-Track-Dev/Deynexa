@@ -246,7 +246,7 @@ private fun MonthCalendarGrid(
                         )
                     } else {
                         // Empty placeholder cell
-                        Spacer(modifier = Modifier.size(38.dp))
+                        Spacer(modifier = Modifier.size(42.dp))
                     }
                 }
             }
@@ -279,7 +279,7 @@ private fun CalendarDayCell(
 
     Box(
         modifier = Modifier
-            .size(38.dp)
+            .size(42.dp)
             .clip(CircleShape)
             .background(cellBgColor)
             .clickable { onClick() },
