@@ -187,8 +187,13 @@ fun TodayScreen(
             TopAppBar(
                 title = {
                     Column {
+                        val subtitleText = when {
+                            isToday -> TimeUtils.getDayGreeting()
+                            uiState.selectedDate.isBefore(LocalDate.now()) -> "Viewing History"
+                            else -> "Viewing Future"
+                        }
                         Text(
-                            text = if (isToday) TimeUtils.getDayGreeting() else "Viewing History / Future",
+                            text = subtitleText,
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
