@@ -1,6 +1,6 @@
 {
   "name": "Daynexa",
-  "description": "Daynexa v0.7.0 — Advanced Recurring Task & Smart Scheduling with custom recurrence rules, flexible rescheduling, conflict detection, routine templates, and productivity insights.",
+  "description": "Daynexa v0.8.0 — Advanced Productivity Intelligence & Unified Backup with Smart Daily Planner, Task Priority, Deadlines, Goals & Streaks, Productivity Score 2.0, Weekly Review, and Unified SAF File Backup.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

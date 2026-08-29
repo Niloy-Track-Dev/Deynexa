@@ -10,6 +10,7 @@ data class TaskTemplateEntity(
     val name: String,
     val description: String = "",
     val categoryId: Long,
+    val priority: String = "MEDIUM",
     val defaultDurationMinutes: Int = 45,
     val startTime: Long? = 420,
     val endTime: Long? = 465,

@@ -1,11 +1,13 @@
 package com.niloy.data.repository
 
 import com.niloy.data.local.dao.CategoryDao
+import com.niloy.data.local.dao.GoalDao
 import com.niloy.data.local.dao.SettingDao
 import com.niloy.data.local.dao.TaskDao
 import com.niloy.data.local.dao.TaskOccurrenceDao
 import com.niloy.data.local.dao.TaskTemplateDao
 import com.niloy.data.local.entity.CategoryEntity
+import com.niloy.data.local.entity.GoalEntity
 import com.niloy.data.local.entity.SettingEntity
 import com.niloy.data.local.entity.TaskEntity
 import com.niloy.data.local.entity.TaskOccurrenceEntity
@@ -21,7 +23,8 @@ class TaskRepositoryImpl(
     private val taskDao: TaskDao,
     private val occurrenceDao: TaskOccurrenceDao,
     private val settingDao: SettingDao,
-    private val taskTemplateDao: TaskTemplateDao? = null
+    private val taskTemplateDao: TaskTemplateDao? = null,
+    private val goalDao: GoalDao? = null
 ) : TaskRepository {
 
     override fun getCategories(): Flow<List<Category>> =
@@ -101,6 +104,33 @@ class TaskRepositoryImpl(
         taskTemplateDao?.insertAll(templates.map { it.toEntity() })
     }
 
+    // Goal operations (v0.8.0)
+    override fun getGoals(): Flow<List<Goal>> =
+        (goalDao?.getAllGoals() ?: kotlinx.coroutines.flow.flowOf(emptyList())).map { entities ->
+            entities.map { it.toDomain() }
+        }
+
+    override fun getActiveGoals(): Flow<List<Goal>> =
+        (goalDao?.getActiveGoals() ?: kotlinx.coroutines.flow.flowOf(emptyList())).map { entities ->
+            entities.map { it.toDomain() }
+        }
+
+    override suspend fun getGoalById(id: Long): Goal? {
+        return goalDao?.getById(id)?.toDomain()
+    }
+
+    override suspend fun saveGoal(goal: Goal): Long {
+        return goalDao?.insert(goal.toEntity()) ?: 0L
+    }
+
+    override suspend fun deleteGoal(goal: Goal) {
+        goalDao?.delete(goal.toEntity())
+    }
+
+    override suspend fun saveGoals(goals: List<Goal>) {
+        goalDao?.insertAll(goals.map { it.toEntity() })
+    }
+
     override suspend fun getSetting(key: String): String? {
         return settingDao.getByKey(key)?.value
     }
@@ -144,6 +174,9 @@ class TaskRepositoryImpl(
         name = name,
         description = description,
         categoryId = categoryId,
+        priority = try { TaskPriority.valueOf(priority) } catch (e: Exception) { TaskPriority.MEDIUM },
+        deadlineDate = deadlineDate,
+        deadlineTime = deadlineTime,
         startTime = startTime,
         endTime = endTime,
         isAllDay = isAllDay,
@@ -170,6 +203,9 @@ class TaskRepositoryImpl(
         name = name,
         description = description,
         categoryId = categoryId,
+        priority = priority.name,
+        deadlineDate = deadlineDate,
+        deadlineTime = deadlineTime,
         startTime = startTime,
         endTime = endTime,
         isAllDay = isAllDay,
@@ -220,6 +256,7 @@ class TaskRepositoryImpl(
         name = name,
         description = description,
         categoryId = categoryId,
+        priority = try { TaskPriority.valueOf(priority) } catch (e: Exception) { TaskPriority.MEDIUM },
         defaultDurationMinutes = defaultDurationMinutes,
         startTime = startTime,
         endTime = endTime,
@@ -237,6 +274,7 @@ class TaskRepositoryImpl(
         name = name,
         description = description,
         categoryId = categoryId,
+        priority = priority.name,
         defaultDurationMinutes = defaultDurationMinutes,
         startTime = startTime,
         endTime = endTime,
@@ -246,6 +284,36 @@ class TaskRepositoryImpl(
         recurrenceInterval = recurrenceInterval,
         reminderEnabled = reminderEnabled,
         reminderOffsetMinutes = reminderOffsetMinutes,
+        createdAt = createdAt
+    )
+
+    private fun GoalEntity.toDomain() = Goal(
+        id = id,
+        title = title,
+        targetType = try { GoalType.valueOf(targetType) } catch (e: Exception) { GoalType.TASKS_COMPLETED },
+        targetPeriod = try { GoalPeriod.valueOf(targetPeriod) } catch (e: Exception) { GoalPeriod.DAILY },
+        targetValue = targetValue,
+        unit = unit,
+        categoryId = categoryId,
+        currentStreak = currentStreak,
+        longestStreak = longestStreak,
+        lastCompletedPeriod = lastCompletedPeriod,
+        isActive = isActive,
+        createdAt = createdAt
+    )
+
+    private fun Goal.toEntity() = GoalEntity(
+        id = id,
+        title = title,
+        targetType = targetType.name,
+        targetPeriod = targetPeriod.name,
+        targetValue = targetValue,
+        unit = unit,
+        categoryId = categoryId,
+        currentStreak = currentStreak,
+        longestStreak = longestStreak,
+        lastCompletedPeriod = lastCompletedPeriod,
+        isActive = isActive,
         createdAt = createdAt
     )
 }

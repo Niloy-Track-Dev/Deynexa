@@ -8,6 +8,13 @@ enum class TaskState {
     SKIPPED
 }
 
+enum class TaskPriority {
+    LOW,
+    MEDIUM,
+    HIGH,
+    CRITICAL
+}
+
 enum class RecurrenceType {
     NONE,                   // One-time task
     DAILY,                  // Every Day
@@ -34,6 +41,53 @@ enum class RecurrenceEditMode {
     ENTIRE_SERIES
 }
 
+enum class GoalType {
+    TASKS_COMPLETED,
+    FOCUS_MINUTES,
+    HIGH_PRIORITY_TASKS
+}
+
+enum class GoalPeriod {
+    DAILY,
+    WEEKLY,
+    MONTHLY
+}
+
+data class Goal(
+    val id: Long = 0,
+    val title: String,
+    val targetType: GoalType = GoalType.TASKS_COMPLETED,
+    val targetPeriod: GoalPeriod = GoalPeriod.DAILY,
+    val targetValue: Int = 5,
+    val unit: String = "tasks",
+    val categoryId: Long? = null,
+    val currentStreak: Int = 0,
+    val longestStreak: Int = 0,
+    val lastCompletedPeriod: String? = null,
+    val isActive: Boolean = true,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+data class GoalProgress(
+    val goal: Goal,
+    val currentValue: Int,
+    val targetValue: Int,
+    val percentage: Float,
+    val isCompleted: Boolean,
+    val periodLabel: String
+)
+
+data class ScoreBreakdown(
+    val totalScore: Int,
+    val rating: String,
+    val taskCompletionPoints: Int,
+    val priorityPoints: Int,
+    val focusPoints: Int,
+    val streakPoints: Int,
+    val penaltyPoints: Int,
+    val explanation: String
+)
+
 data class Category(
     val id: Long = 0,
     val name: String,
@@ -47,13 +101,16 @@ data class Task(
     val description: String = "",
     val categoryId: Long,
     val icon: String = "",
+    val priority: TaskPriority = TaskPriority.MEDIUM,
+    val deadlineDate: String? = null, // yyyy-MM-dd
+    val deadlineTime: Long? = null, // Minutes since midnight
     val startTime: Long? = null, // Minutes since midnight
     val endTime: Long? = null, // Minutes since midnight
     val isAllDay: Boolean = false,
     val isEnabled: Boolean = true,
     val isRecurring: Boolean = true,
     val recurringDays: Set<DayOfWeek> = emptySet(),
-    // Advanced Recurrence fields (v0.7.0)
+    // Advanced Recurrence fields
     val recurrenceType: RecurrenceType = RecurrenceType.DAILY,
     val recurrenceInterval: Int = 1,
     val recurrenceDayOfMonth: Int? = null,
@@ -89,6 +146,7 @@ data class TaskTemplate(
     val name: String,
     val description: String = "",
     val categoryId: Long,
+    val priority: TaskPriority = TaskPriority.MEDIUM,
     val defaultDurationMinutes: Int = 45,
     val startTime: Long? = 420,
     val endTime: Long? = 465,
@@ -122,5 +180,26 @@ data class ProductivityInsights(
     val lowestCompletionWeekday: String = "—",
     val lowestCompletionWeekdayRate: Float = 0f,
     val currentStreak: Int = 0,
-    val longestRecurringStreak: Int = 0
+    val longestRecurringStreak: Int = 0,
+    val averageFocusSessionMinutes: Long = 0L,
+    val longestFocusSessionMinutes: Long = 0L,
+    val totalFocusMinutes: Long = 0L,
+    val bestFocusDay: String = "—"
+)
+
+data class WeeklyReviewData(
+    val weekStartDate: String,
+    val weekEndDate: String,
+    val totalScheduled: Int,
+    val totalCompleted: Int,
+    val totalSkipped: Int,
+    val completionRate: Float,
+    val focentraFocusMinutes: Long,
+    val longestFocusSessionMinutes: Long,
+    val bestFocusDay: String,
+    val averageProductivityScore: Int,
+    val bestDayName: String,
+    val activeGoalsCount: Int,
+    val completedGoalsCount: Int,
+    val highlights: List<String>
 )

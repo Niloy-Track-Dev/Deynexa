@@ -18,6 +18,7 @@ class DataPortabilityManager(
         val tasks = database.taskDao().getAllTasksOnce().map { it.toDomain() }
         val occurrences = database.taskOccurrenceDao().getAllOccurrencesOnce().map { it.toDomain() }
         val templates = database.taskTemplateDao().getAllTemplatesOnce().map { it.toDomain() }
+        val goals = database.goalDao().getAllGoalsOnce().map { it.toDomain() }
         val settings = database.settingDao().getAllSettingsOnce().associate { it.key to it.value }
         
         val appCategories = database.appCategoryDao().getAllCategoriesOneShot().map {
@@ -59,11 +60,12 @@ class DataPortabilityManager(
         }
 
         BackupData(
-            backupVersion = 3,
-            appVersion = "0.7.0",
+            backupVersion = 4,
+            appVersion = "0.8.0",
             createdAt = System.currentTimeMillis(),
             backupType = "FULL_BACKUP",
             source = "Daynexa",
+            format = "daynexa-backup",
             categories = categories,
             tasks = tasks,
             occurrences = occurrences,
@@ -71,7 +73,8 @@ class DataPortabilityManager(
             appCategories = appCategories,
             appClassifications = appClassifications,
             focentraSessions = focentraSessions,
-            taskTemplates = templates
+            taskTemplates = templates,
+            goals = goals
         )
     }
 
@@ -113,6 +116,7 @@ class DataPortabilityManager(
                     database.taskDao().deleteAll()
                     database.taskOccurrenceDao().deleteAll()
                     database.taskTemplateDao().deleteAll()
+                    database.goalDao().deleteAll()
                     database.categoryDao().deleteAll()
                     database.appCategoryDao().deleteAll()
                     database.appClassificationDao().deleteAll()
@@ -130,6 +134,11 @@ class DataPortabilityManager(
                     data.taskTemplates?.let { list ->
                         if (list.isNotEmpty()) {
                             database.taskTemplateDao().insertAll(list.map { it.toEntity() })
+                        }
+                    }
+                    data.goals?.let { list ->
+                        if (list.isNotEmpty()) {
+                            database.goalDao().insertAll(list.map { it.toEntity() })
                         }
                     }
                     data.appCategories?.let { list ->
@@ -240,7 +249,15 @@ class DataPortabilityManager(
                         )
                     }
 
-                    // 5. App Categories
+                    // 5. Goals
+                    data.goals?.forEach { incomingGoal ->
+                        val remappedCatId = incomingGoal.categoryId?.let { categoryIdRemap[it] ?: it }
+                        database.goalDao().insert(
+                            incomingGoal.toEntity().copy(id = 0, categoryId = remappedCatId)
+                        )
+                    }
+
+                    // 6. App Categories
                     data.appCategories?.forEach { incomingAppCat ->
                         val existing = database.appCategoryDao().getByName(incomingAppCat.name)
                         if (existing == null) {
@@ -255,7 +272,7 @@ class DataPortabilityManager(
                         }
                     }
 
-                    // 6. App Classifications
+                    // 7. App Classifications
                     data.appClassifications?.forEach { incomingClass ->
                         database.appClassificationDao().insertOrUpdate(
                             AppClassificationEntity(
@@ -269,7 +286,7 @@ class DataPortabilityManager(
                         )
                     }
 
-                    // 7. Focentra Sessions (Deduplicated by sessionId)
+                    // 8. Focentra Sessions (Deduplicated by sessionId)
                     data.focentraSessions?.forEach { incomingSession ->
                         database.focentraStudySessionDao().insertSession(
                             FocentraStudySessionEntity(
@@ -287,7 +304,7 @@ class DataPortabilityManager(
                         )
                     }
 
-                    // 8. Settings
+                    // 9. Settings
                     data.settings.forEach { (k, v) ->
                         val existing = database.settingDao().getByKey(k)
                         if (existing == null) {
@@ -453,6 +470,36 @@ class DataPortabilityManager(
         recurrenceInterval = recurrenceInterval,
         reminderEnabled = reminderEnabled,
         reminderOffsetMinutes = reminderOffsetMinutes,
+        createdAt = createdAt
+    )
+
+    private fun GoalEntity.toDomain() = Goal(
+        id = id,
+        title = title,
+        targetType = try { GoalType.valueOf(targetType) } catch (e: Exception) { GoalType.TASKS_COMPLETED },
+        targetPeriod = try { GoalPeriod.valueOf(targetPeriod) } catch (e: Exception) { GoalPeriod.DAILY },
+        targetValue = targetValue,
+        unit = unit,
+        categoryId = categoryId,
+        currentStreak = currentStreak,
+        longestStreak = longestStreak,
+        lastCompletedPeriod = lastCompletedPeriod,
+        isActive = isActive,
+        createdAt = createdAt
+    )
+
+    private fun Goal.toEntity() = GoalEntity(
+        id = id,
+        title = title,
+        targetType = targetType.name,
+        targetPeriod = targetPeriod.name,
+        targetValue = targetValue,
+        unit = unit,
+        categoryId = categoryId,
+        currentStreak = currentStreak,
+        longestStreak = longestStreak,
+        lastCompletedPeriod = lastCompletedPeriod,
+        isActive = isActive,
         createdAt = createdAt
     )
 }

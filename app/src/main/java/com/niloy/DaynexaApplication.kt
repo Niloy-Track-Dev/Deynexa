@@ -138,6 +138,31 @@ class DaynexaApplication : Application() {
         }
     }
 
+    private val MIGRATION_8_9 = object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `priority` TEXT NOT NULL DEFAULT 'MEDIUM'")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `deadlineDate` TEXT")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `deadlineTime` INTEGER")
+            db.execSQL("ALTER TABLE `task_templates` ADD COLUMN `priority` TEXT NOT NULL DEFAULT 'MEDIUM'")
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `goals` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `title` TEXT NOT NULL,
+                    `targetType` TEXT NOT NULL,
+                    `targetPeriod` TEXT NOT NULL,
+                    `targetValue` INTEGER NOT NULL,
+                    `unit` TEXT NOT NULL DEFAULT 'tasks',
+                    `categoryId` INTEGER,
+                    `currentStreak` INTEGER NOT NULL DEFAULT 0,
+                    `longestStreak` INTEGER NOT NULL DEFAULT 0,
+                    `lastCompletedPeriod` TEXT,
+                    `isActive` INTEGER NOT NULL DEFAULT 1,
+                    `createdAt` INTEGER NOT NULL
+                )
+            """.trimIndent())
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         database = Room.databaseBuilder(
@@ -145,7 +170,7 @@ class DaynexaApplication : Application() {
             AppDatabase::class.java,
             "daynexa.db"
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
             .fallbackToDestructiveMigration()
             .build()
 
@@ -154,7 +179,8 @@ class DaynexaApplication : Application() {
             database.taskDao(),
             database.taskOccurrenceDao(),
             database.settingDao(),
-            database.taskTemplateDao()
+            database.taskTemplateDao(),
+            database.goalDao()
         )
         
         diagnosticRepository = DiagnosticRepositoryImpl(

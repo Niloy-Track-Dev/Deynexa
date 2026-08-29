@@ -1,11 +1,14 @@
 package com.niloy.domain.service
 
 import com.niloy.domain.model.Category
+import com.niloy.domain.model.Goal
 import com.niloy.domain.model.Task
 import com.niloy.domain.model.TaskOccurrence
+import com.niloy.domain.model.TaskTemplate
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.json.JSONObject
+import java.security.MessageDigest
 
 data class AppClassificationBackup(
     val packageName: String,
@@ -41,7 +44,7 @@ data class FocentraSessionBackup(
 
 data class FocentraExportBundle(
     val exportVersion: Int = 1,
-    val appVersion: String = "0.7.0",
+    val appVersion: String = "0.8.0",
     val createdAt: Long = System.currentTimeMillis(),
     val source: String = "Focentra",
     val origin: String = "Focentra Integration API v1",
@@ -51,11 +54,12 @@ data class FocentraExportBundle(
 )
 
 data class BackupData(
-    val backupVersion: Int = 3,
-    val appVersion: String = "0.7.0",
+    val backupVersion: Int = 4,
+    val appVersion: String = "0.8.0",
     val createdAt: Long = System.currentTimeMillis(),
     val backupType: String = "FULL_BACKUP",
     val source: String = "Daynexa",
+    val format: String = "daynexa-backup",
     val categories: List<Category> = emptyList(),
     val tasks: List<Task> = emptyList(),
     val occurrences: List<TaskOccurrence> = emptyList(),
@@ -63,7 +67,9 @@ data class BackupData(
     val appCategories: List<AppCategoryBackup>? = null,
     val appClassifications: List<AppClassificationBackup>? = null,
     val focentraSessions: List<FocentraSessionBackup>? = null,
-    val taskTemplates: List<com.niloy.domain.model.TaskTemplate>? = null
+    val taskTemplates: List<TaskTemplate>? = null,
+    val goals: List<Goal>? = null,
+    val checksum: String? = null
 )
 
 data class BackupPreviewInfo(
@@ -73,6 +79,8 @@ data class BackupPreviewInfo(
     val tasksCount: Int,
     val categoriesCount: Int,
     val occurrencesCount: Int,
+    val taskTemplatesCount: Int,
+    val goalsCount: Int,
     val focentraSessionsCount: Int,
     val appClassificationsCount: Int,
     val appCategoriesCount: Int,
@@ -98,8 +106,20 @@ class BackupService {
     private val fullBackupAdapter = moshi.adapter(BackupData::class.java).indent("  ")
     private val focentraBundleAdapter = moshi.adapter(FocentraExportBundle::class.java).indent("  ")
 
+    fun calculateSha256(content: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val hash = digest.digest(content.toByteArray(Charsets.UTF_8))
+        return hash.joinToString("") { "%02x".format(it) }
+    }
+
     fun exportBackup(data: BackupData): String {
-        return fullBackupAdapter.toJson(data)
+        val dataWithChecksum = if (data.checksum.isNullOrBlank()) {
+            val contentDigest = "${data.categories.size}-${data.tasks.size}-${data.occurrences.size}-${data.createdAt}"
+            data.copy(checksum = calculateSha256(contentDigest))
+        } else {
+            data
+        }
+        return fullBackupAdapter.toJson(dataWithChecksum)
     }
 
     fun exportFocentraBundle(bundle: FocentraExportBundle): String {
@@ -125,7 +145,7 @@ class BackupService {
     fun validateBackup(json: String): BackupValidationResult {
         val trimmed = json.trim()
         if (trimmed.isEmpty()) {
-            return BackupValidationResult.Invalid("The provided backup file or text is empty.")
+            return BackupValidationResult.Invalid("The provided backup file is empty.")
         }
 
         // Basic JSON sanity check
@@ -148,6 +168,8 @@ class BackupService {
                 tasksCount = 0,
                 categoriesCount = 0,
                 occurrencesCount = 0,
+                taskTemplatesCount = 0,
+                goalsCount = 0,
                 focentraSessionsCount = bundle.sessions.size,
                 appClassificationsCount = 0,
                 appCategoriesCount = 0,
@@ -160,12 +182,14 @@ class BackupService {
         val fullData = parseBackup(trimmed)
         if (fullData != null) {
             val preview = BackupPreviewInfo(
-                backupType = "Full Daynexa Backup",
+                backupType = "Unified Daynexa Backup",
                 appVersion = fullData.appVersion,
                 createdAt = fullData.createdAt,
                 tasksCount = fullData.tasks.size,
                 categoriesCount = fullData.categories.size,
                 occurrencesCount = fullData.occurrences.size,
+                taskTemplatesCount = fullData.taskTemplates?.size ?: 0,
+                goalsCount = fullData.goals?.size ?: 0,
                 focentraSessionsCount = fullData.focentraSessions?.size ?: 0,
                 appClassificationsCount = fullData.appClassifications?.size ?: 0,
                 appCategoriesCount = fullData.appCategories?.size ?: 0,
@@ -174,6 +198,6 @@ class BackupService {
             return BackupValidationResult.ValidFull(fullData, preview)
         }
 
-        return BackupValidationResult.Invalid("Unrecognized backup schema. Please ensure the file is a valid Daynexa or Focentra JSON export.")
+        return BackupValidationResult.Invalid("Unrecognized backup schema. Please ensure the file is a valid Daynexa backup (.daynexa or .json).")
     }
 }

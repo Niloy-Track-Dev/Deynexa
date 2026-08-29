@@ -50,25 +50,47 @@ fun SettingsScreen(
     
     var showResetDialog by remember { mutableStateOf(false) }
     var showConsentDialog by remember { mutableStateOf(false) }
-    var showImportInputDialog by remember { mutableStateOf(false) }
-    var importInputText by remember { mutableStateOf("") }
     var selectedImportMode by remember { mutableStateOf(ImportMode.MERGE) }
 
-    // File picker for import
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+    // File creation launcher for export
+    val createBackupLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri: Uri? ->
-        uri?.let {
+        uri?.let { exportUri ->
+            val json = uiState.generatedExportJson ?: return@let
             try {
-                context.contentResolver.openInputStream(it)?.use { inputStream ->
+                context.contentResolver.openOutputStream(exportUri)?.use { outputStream ->
+                    outputStream.write(json.toByteArray(Charsets.UTF_8))
+                }
+                Toast.makeText(context, "Backup file saved successfully!", Toast.LENGTH_SHORT).show()
+                viewModel.dismissExportDialog()
+            } catch (e: Exception) {
+                Toast.makeText(context, "Failed to write file: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // File picker launcher for import
+    val importBackupLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let { importUri ->
+            try {
+                context.contentResolver.openInputStream(importUri)?.use { inputStream ->
                     val reader = BufferedReader(InputStreamReader(inputStream))
                     val content = reader.readText()
                     viewModel.validateImportJson(content)
-                    showImportInputDialog = false
                 }
             } catch (e: Exception) {
                 Toast.makeText(context, "Error reading file: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
             }
+        }
+    }
+
+    LaunchedEffect(uiState.generatedExportJson) {
+        uiState.generatedExportJson?.let {
+            val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            createBackupLauncher.launch("Daynexa_Backup_$dateStr.daynexa")
         }
     }
 
@@ -363,8 +385,8 @@ fun SettingsScreen(
                 SettingsSection(title = "DATA & PORTABILITY") {
                     SettingsActionItem(
                         icon = Icons.Outlined.FileUpload,
-                        title = "Export Full Daynexa Backup",
-                        subtitle = "Routines, categories, logs, classifications & local focus sessions",
+                        title = "Export Backup",
+                        subtitle = "Unified backup including routines, logs, goals & imported Focentra sessions",
                         onClick = {
                             viewModel.generateFullBackup()
                         }
@@ -373,23 +395,11 @@ fun SettingsScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
                     SettingsActionItem(
-                        icon = Icons.Outlined.Science,
-                        title = "Export Focentra Study Focus Data",
-                        subtitle = "Standalone export of imported Focentra session history",
-                        onClick = {
-                            viewModel.generateFocentraExport()
-                        }
-                    )
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-
-                    SettingsActionItem(
                         icon = Icons.Outlined.FileDownload,
                         title = "Import Backup / Restore Data",
-                        subtitle = "Restore with validation & choose Replace or Merge mode",
+                        subtitle = "Select .daynexa or .json backup file with Merge or Replace mode",
                         onClick = {
-                            importInputText = ""
-                            showImportInputDialog = true
+                            importBackupLauncher.launch(arrayOf("application/json", "*/*"))
                         }
                     )
                 }
@@ -607,71 +617,7 @@ fun SettingsScreen(
         )
     }
 
-    // Import Input Dialog (Paste JSON or Pick File)
-    if (showImportInputDialog) {
-        AlertDialog(
-            onDismissRequest = { showImportInputDialog = false },
-            title = { Text("Import Backup / Restore", fontWeight = FontWeight.Bold) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = "Select a JSON backup file from your storage or paste the JSON text below:",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
 
-                    OutlinedButton(
-                        onClick = {
-                            filePickerLauncher.launch("application/json")
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Icon(Icons.Outlined.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Choose JSON File From Storage")
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                        Text(" OR PASTE ", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 8.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                    }
-
-                    OutlinedTextField(
-                        value = importInputText,
-                        onValueChange = { importInputText = it },
-                        placeholder = { Text("Paste valid backup JSON here...") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(130.dp),
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (importInputText.isNotBlank()) {
-                            viewModel.validateImportJson(importInputText.trim())
-                            showImportInputDialog = false
-                        }
-                    },
-                    enabled = importInputText.isNotBlank(),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Text("Validate & Review")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showImportInputDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
 
     // Validation & Restore Confirmation Dialog
     uiState.validationResult?.let { validation ->

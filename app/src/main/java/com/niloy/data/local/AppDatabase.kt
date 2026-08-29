@@ -15,9 +15,10 @@ import com.niloy.data.local.entity.*
         AppClassificationEntity::class,
         FocentraStudySessionEntity::class,
         AppCategoryEntity::class,
-        TaskTemplateEntity::class
+        TaskTemplateEntity::class,
+        GoalEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -30,6 +31,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun focentraStudySessionDao(): FocentraStudySessionDao
     abstract fun appCategoryDao(): AppCategoryDao
     abstract fun taskTemplateDao(): TaskTemplateDao
+    abstract fun goalDao(): GoalDao
 }
 
 
