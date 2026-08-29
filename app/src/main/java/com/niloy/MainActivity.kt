@@ -28,6 +28,17 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalDensity
+import kotlin.math.roundToInt
+import androidx.compose.ui.unit.IntOffset
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.haze
+import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.HazeStyle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -127,9 +138,47 @@ fun MainContent(
 
     val startDestination = if (isOnboardingCompleted) Screen.Today else Screen.Onboarding
 
-    Scaffold(
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        bottomBar = {
+    val bottomBarHeight = 90.dp
+    val bottomBarHeightPx = with(LocalDensity.current) { bottomBarHeight.roundToPx().toFloat() }
+    val bottomBarOffsetHeightPx = remember { mutableFloatStateOf(0f) }
+    val hazeState = remember { HazeState() }
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+                val newOffset = bottomBarOffsetHeightPx.floatValue - delta
+                bottomBarOffsetHeightPx.floatValue = newOffset.coerceIn(0f, bottomBarHeightPx)
+                return Offset.Zero
+            }
+        }
+    }
+
+    val isDark = isSystemInDarkTheme()
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(nestedScrollConnection)
+            .then(
+                if (isDark) {
+                    Modifier.background(MaterialTheme.colorScheme.background)
+                } else {
+                    Modifier.background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFFF2F7FF), // Soft light blue touch
+                                Color(0xFFF3FAF5), // Soft light green touch
+                                Color(0xFFF6F3FE)  // Soft light purple touch
+                            )
+                        )
+                    )
+                }
+            )
+    ) {
+        Scaffold(
+            modifier = Modifier.haze(state = hazeState),
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            containerColor = Color.Transparent,
+            bottomBar = {
             val currentRoute = currentDestination?.route
             val showBottomBar = isOnboardingCompleted &&
                     currentRoute != Screen.Onboarding::class.qualifiedName &&
@@ -141,27 +190,19 @@ fun MainContent(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.75f),
-                                    MaterialTheme.colorScheme.background
-                                )
-                            )
-                        )
+                        .offset { IntOffset(x = 0, y = bottomBarOffsetHeightPx.floatValue.roundToInt()) }
+                        .hazeChild(state = hazeState, style = HazeStyle(blurRadius = 24.dp, tint = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)))
                         .navigationBarsPadding()
-                        .offset(y = 0.6.dp)
                         .padding(start = 12.dp, top = 8.dp, end = 12.dp, bottom = 6.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(26.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 6.dp,
-                        shadowElevation = 8.dp,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
+                        tonalElevation = 0.dp,
+                        shadowElevation = 0.dp,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
                     ) {
                         NavigationBar(
                             containerColor = Color.Transparent,
@@ -356,11 +397,13 @@ fun MainContent(
             }
         }
     }
-    ) { _ ->
+) { innerPadding ->
         NavHost(
             navController = navController,
             startDestination = startDestination,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
             composable<Screen.Onboarding> {
                 OnboardingScreen(onComplete = {
@@ -447,5 +490,6 @@ fun MainContent(
                 )
             }
         }
+      }
     }
 }

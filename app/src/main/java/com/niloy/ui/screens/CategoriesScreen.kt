@@ -58,6 +58,7 @@ fun CategoriesScreen(
                 )
             )
         },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
@@ -68,8 +69,7 @@ fun CategoriesScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
-                    .navigationBarsPadding()
-                    .padding(bottom = 16.dp, end = 16.dp)
+                    .offset(y = 24.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Category")
             }

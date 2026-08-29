@@ -250,6 +250,7 @@ fun TodayScreen(
                 )
             )
         },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddTask,
@@ -258,8 +259,7 @@ fun TodayScreen(
                 shape = RoundedCornerShape(16.dp),
                 elevation = FloatingActionButtonDefaults.elevation(4.dp),
                 modifier = Modifier
-                    .navigationBarsPadding()
-                    .padding(bottom = 16.dp, end = 16.dp)
+                    .offset(y = 24.dp)
                     .testTag("add_task_fab")
             ) {
                 Icon(
