@@ -32,12 +32,23 @@ import com.niloy.ui.components.EmptyStateView
 import com.niloy.ui.components.IconHelper
 import com.niloy.ui.theme.*
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import com.niloy.LocalBottomBarVisible
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoriesScreen(
     viewModel: CategoriesViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isBottomBarVisible = LocalBottomBarVisible.current
+    val fabBottomPadding by animateDpAsState(
+        targetValue = if (isBottomBarVisible) 82.dp else 16.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "fabBottomPadding"
+    )
     var showAddEditDialog by remember { mutableStateOf(false) }
     var editingCategory by remember { mutableStateOf<Category?>(null) }
     var categoryToDelete by remember { mutableStateOf<Category?>(null) }
@@ -69,7 +80,8 @@ fun CategoriesScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
-                    .offset(y = 24.dp)
+                    .navigationBarsPadding()
+                    .padding(bottom = fabBottomPadding, end = 12.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Category")
             }
@@ -104,7 +116,7 @@ fun CategoriesScreen(
                     .padding(padding)
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 100.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item {

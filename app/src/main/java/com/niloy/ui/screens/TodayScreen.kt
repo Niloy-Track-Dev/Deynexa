@@ -36,6 +36,11 @@ import com.niloy.ui.components.TodayProgressCard
 import com.niloy.ui.util.TimeUtils
 import java.time.LocalDate
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import com.niloy.LocalBottomBarVisible
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TodayScreen(
@@ -44,6 +49,12 @@ fun TodayScreen(
     onEditTask: (Long) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isBottomBarVisible = LocalBottomBarVisible.current
+    val fabBottomPadding by animateDpAsState(
+        targetValue = if (isBottomBarVisible) 82.dp else 16.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "fabBottomPadding"
+    )
     val isToday = uiState.selectedDate == LocalDate.now()
     val context = LocalContext.current
 
@@ -259,7 +270,8 @@ fun TodayScreen(
                 shape = RoundedCornerShape(16.dp),
                 elevation = FloatingActionButtonDefaults.elevation(4.dp),
                 modifier = Modifier
-                    .offset(y = 24.dp)
+                    .navigationBarsPadding()
+                    .padding(bottom = fabBottomPadding, end = 12.dp)
                     .testTag("add_task_fab")
             ) {
                 Icon(
@@ -285,7 +297,7 @@ fun TodayScreen(
                     .padding(padding)
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 100.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Streak & Productivity Insight Header

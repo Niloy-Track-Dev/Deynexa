@@ -28,17 +28,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.platform.LocalDensity
-import kotlin.math.roundToInt
-import androidx.compose.ui.unit.IntOffset
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.haze
-import dev.chrisbanes.haze.hazeChild
-import dev.chrisbanes.haze.HazeStyle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -48,6 +37,16 @@ import androidx.navigation.toRoute
 import com.niloy.ui.navigation.Screen
 import com.niloy.ui.screens.*
 import com.niloy.ui.theme.DaynexaTheme
+
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+
+val LocalBottomBarVisible = staticCompositionLocalOf { true }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -138,19 +137,24 @@ fun MainContent(
 
     val startDestination = if (isOnboardingCompleted) Screen.Today else Screen.Onboarding
 
-    val bottomBarHeight = 90.dp
-    val bottomBarHeightPx = with(LocalDensity.current) { bottomBarHeight.roundToPx().toFloat() }
-    val bottomBarOffsetHeightPx = remember { mutableFloatStateOf(0f) }
-    val hazeState = remember { HazeState() }
+    var isBottomBarVisible by remember { mutableStateOf(true) }
+
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                 val delta = available.y
-                val newOffset = bottomBarOffsetHeightPx.floatValue - delta
-                bottomBarOffsetHeightPx.floatValue = newOffset.coerceIn(0f, bottomBarHeightPx)
+                if (delta < -8f) {
+                    if (isBottomBarVisible) isBottomBarVisible = false
+                } else if (delta > 8f) {
+                    if (!isBottomBarVisible) isBottomBarVisible = true
+                }
                 return Offset.Zero
             }
         }
+    }
+
+    LaunchedEffect(currentDestination?.route) {
+        isBottomBarVisible = true
     }
 
     val isDark = isSystemInDarkTheme()
@@ -175,7 +179,6 @@ fun MainContent(
             )
     ) {
         Scaffold(
-            modifier = Modifier.haze(state = hazeState),
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             containerColor = Color.Transparent,
             bottomBar = {
@@ -187,22 +190,27 @@ fun MainContent(
                     currentRoute?.contains("AppClassification") != true
 
             if (showBottomBar) {
+                val bottomBarOffsetY by animateDpAsState(
+                    targetValue = if (isBottomBarVisible) 0.dp else 120.dp,
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                    label = "bottomBarOffset"
+                )
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .offset { IntOffset(x = 0, y = bottomBarOffsetHeightPx.floatValue.roundToInt()) }
-                        .hazeChild(state = hazeState, style = HazeStyle(blurRadius = 24.dp, tint = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)))
+                        .offset(y = bottomBarOffsetY)
                         .navigationBarsPadding()
-                        .padding(start = 12.dp, top = 8.dp, end = 12.dp, bottom = 6.dp),
+                        .padding(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 6.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(26.dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
-                        tonalElevation = 0.dp,
-                        shadowElevation = 0.dp,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                        tonalElevation = 4.dp,
+                        shadowElevation = 8.dp,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
                     ) {
                         NavigationBar(
                             containerColor = Color.Transparent,
@@ -398,13 +406,12 @@ fun MainContent(
         }
     }
 ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = startDestination,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
+        CompositionLocalProvider(LocalBottomBarVisible provides isBottomBarVisible) {
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+                modifier = Modifier.fillMaxSize()
+            ) {
             composable<Screen.Onboarding> {
                 OnboardingScreen(onComplete = {
                     onOnboardingComplete()
@@ -490,6 +497,7 @@ fun MainContent(
                 )
             }
         }
-      }
     }
+}
+}
 }
