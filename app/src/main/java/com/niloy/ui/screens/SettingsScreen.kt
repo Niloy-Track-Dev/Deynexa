@@ -174,33 +174,75 @@ fun SettingsScreen(
             // Appearance Section
             item {
                 SettingsSection(title = "APPEARANCE") {
-                    SettingsRowItem(
-                        icon = Icons.Outlined.Palette,
-                        title = "App Theme",
-                        subtitle = "Select between Light, Dark, or System mode",
-                        trailing = {
-                            SettingsChipRow(
-                                options = listOf("Light" to "LIGHT", "Dark" to "DARK", "Auto" to "SYSTEM"),
-                                selectedOption = uiState.theme,
-                                onOptionSelected = { viewModel.updateTheme(it) }
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Palette,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
+                                modifier = Modifier.size(24.dp)
                             )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "App Theme",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Select between Light, Dark, or System mode",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
-                    )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SettingsChipRow(
+                            options = listOf("Light" to "LIGHT", "Dark" to "DARK", "Auto" to "SYSTEM"),
+                            selectedOption = uiState.theme,
+                            onOptionSelected = { viewModel.updateTheme(it) }
+                        )
+                    }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
-                    SettingsRowItem(
-                        icon = Icons.Outlined.Schedule,
-                        title = "Time Format",
-                        subtitle = "Choose your preferred clock system",
-                        trailing = {
-                            SettingsChipRow(
-                                options = listOf("12H" to "12H", "24H" to "24H"),
-                                selectedOption = uiState.timeFormat,
-                                onOptionSelected = { viewModel.updateTimeFormat(it) }
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Schedule,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
+                                modifier = Modifier.size(24.dp)
                             )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Time Format",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Choose your preferred clock system",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
-                    )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SettingsChipRow(
+                            options = listOf("12H" to "12H", "24H" to "24H"),
+                            selectedOption = uiState.timeFormat,
+                            onOptionSelected = { viewModel.updateTimeFormat(it) }
+                        )
+                    }
                 }
             }
 
@@ -227,16 +269,49 @@ fun SettingsScreen(
                 val focentraStatus = uiState.focentraStatus
 
                 SettingsSection(title = "INTEGRATIONS • FOCENTRA") {
-                    SettingsRowItem(
-                        icon = Icons.Outlined.Hub,
-                        title = "Focentra Study Focus",
-                        subtitle = when {
-                            focentraStatus == null -> "Checking installation..."
-                            !focentraStatus.isInstalled -> "Focentra isn't installed on device"
-                            focentraStatus.isConnected -> "Connected • ${focentraStatus.totalImportedSessions} sessions imported"
-                            else -> "Not Connected (Optional)"
-                        },
-                        trailing = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Hub,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Focentra Study Focus",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = when {
+                                        focentraStatus == null -> "Checking installation..."
+                                        !focentraStatus.isInstalled -> "Focentra isn't installed on device"
+                                        focentraStatus.isConnected -> "Connected • ${focentraStatus.totalImportedSessions} sessions imported"
+                                        else -> "Not Connected (Optional)"
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    lineHeight = 18.sp
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             if (focentraStatus?.isInstalled == true) {
                                 if (focentraStatus.isConnected) {
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -264,7 +339,7 @@ fun SettingsScreen(
                                 }
                             }
                         }
-                    )
+                    }
                 }
             }
 

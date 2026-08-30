@@ -39,6 +39,7 @@ data class TaskDetailUiState(
     val nextOccurrence: NextOccurrenceInfo? = null,
     val editMode: RecurrenceEditMode = RecurrenceEditMode.ENTIRE_SERIES,
     val showEditModeDialog: Boolean = false,
+    val is24Hour: Boolean = true,
     val isSaved: Boolean = false,
     val isTemplateSaved: Boolean = false
 )
@@ -60,6 +61,8 @@ class TaskDetailViewModel(
         viewModelScope.launch {
             val categories = repository.getCategories().first()
             val templates = repository.getTaskTemplates().first()
+            val timeFormatSetting = repository.getSetting("time_format") ?: "24H"
+            val is24Hour = timeFormatSetting != "12H"
             allExistingTasks = repository.getTasks().first()
             allOccurrences = repository.getAllOccurrences().first()
 
@@ -67,7 +70,8 @@ class TaskDetailViewModel(
                 it.copy(
                     categories = categories,
                     templates = templates,
-                    categoryId = categories.firstOrNull()?.id ?: 0
+                    categoryId = categories.firstOrNull()?.id ?: 0,
+                    is24Hour = is24Hour
                 )
             }
 
