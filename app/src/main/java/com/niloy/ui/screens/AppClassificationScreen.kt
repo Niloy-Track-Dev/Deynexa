@@ -444,9 +444,15 @@ private fun ManageAppCategoriesDialog(
                         onValueChange = { newCatName = it },
                         placeholder = { Text("Category name") },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true
                     )
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Category Type:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         FilterChip(
                             selected = isProd,
                             onClick = { isProd = true },
@@ -460,16 +466,20 @@ private fun ManageAppCategoriesDialog(
                             shape = RoundedCornerShape(8.dp)
                         )
                         Spacer(modifier = Modifier.weight(1f))
-                        IconButton(
+                        FilledTonalButton(
                             onClick = {
                                 if (newCatName.isNotBlank()) {
                                     onAddCategory(newCatName.trim(), isProd)
                                     newCatName = ""
                                 }
                             },
-                            enabled = newCatName.isNotBlank()
+                            enabled = newCatName.isNotBlank(),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = "Add")
+                            Icon(Icons.Default.Add, contentDescription = "Add Category", modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Add", style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }
