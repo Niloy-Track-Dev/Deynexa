@@ -209,7 +209,7 @@ fun TaskCard(
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // Time, Recurrence & Category row
+                // Time & Category row
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -235,34 +235,9 @@ fun TaskCard(
                             text = timeString,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = if (isRescheduled) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isRescheduled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (isRescheduled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
                         )
-                    }
-
-                    // Recurrence badge
-                    if (item.task.isRecurring) {
-                        Text(
-                            text = "•",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outlineVariant
-                        )
-                        val recurrenceLabel = formatRecurrenceShort(item.task)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                        ) {
-                            Icon(
-                                Icons.Outlined.EventRepeat,
-                                contentDescription = null,
-                                modifier = Modifier.size(11.dp),
-                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                            )
-                            Text(
-                                text = recurrenceLabel,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
-                            )
-                        }
                     }
 
                     if (category != null) {
@@ -277,9 +252,9 @@ fun TaskCard(
                             color = categoryColor.copy(alpha = 0.12f)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
                                 Box(
                                     modifier = Modifier
@@ -290,8 +265,11 @@ fun TaskCard(
                                 Text(
                                     text = category.name,
                                     style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = categoryColor
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = categoryColor,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
