@@ -132,7 +132,7 @@ fun TodayScreen(
                                     },
                                     h,
                                     m,
-                                    true
+                                    uiState.is24Hour
                                 ).show()
                             }
                     ) {
@@ -142,7 +142,7 @@ fun TodayScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("Start Time", style = MaterialTheme.typography.bodyMedium)
-                            Text(TimeUtils.formatMinutes(rescheduleStartTime, true), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            Text(TimeUtils.formatMinutes(rescheduleStartTime, uiState.is24Hour), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         }
                     }
 

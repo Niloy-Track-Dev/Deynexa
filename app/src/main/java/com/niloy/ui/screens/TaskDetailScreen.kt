@@ -443,7 +443,7 @@ fun TaskDetailScreen(
                                             },
                                             initialHour,
                                             initialMinute,
-                                            true
+                                            uiState.is24Hour
                                         ).show()
                                     }
                             ) {
@@ -455,7 +455,7 @@ fun TaskDetailScreen(
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = TimeUtils.formatMinutes(uiState.startTime.toLong(), true),
+                                        text = TimeUtils.formatMinutes(uiState.startTime.toLong(), uiState.is24Hour),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -479,7 +479,7 @@ fun TaskDetailScreen(
                                             },
                                             initialHour,
                                             initialMinute,
-                                            true
+                                            uiState.is24Hour
                                         ).show()
                                     }
                             ) {
@@ -491,7 +491,7 @@ fun TaskDetailScreen(
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = TimeUtils.formatMinutes(uiState.endTime.toLong(), true),
+                                        text = TimeUtils.formatMinutes(uiState.endTime.toLong(), uiState.is24Hour),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold
                                     )
