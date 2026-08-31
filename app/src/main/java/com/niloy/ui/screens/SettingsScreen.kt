@@ -174,75 +174,33 @@ fun SettingsScreen(
             // Appearance Section
             item {
                 SettingsSection(title = "APPEARANCE") {
-                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Palette,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
-                                modifier = Modifier.size(24.dp)
+                    SettingsRowItem(
+                        icon = Icons.Outlined.Palette,
+                        title = "App Theme",
+                        subtitle = "Select between Light, Dark, or System mode",
+                        trailing = {
+                            SettingsChipRow(
+                                options = listOf("Light" to "LIGHT", "Dark" to "DARK", "Auto" to "SYSTEM"),
+                                selectedOption = uiState.theme,
+                                onOptionSelected = { viewModel.updateTheme(it) }
                             )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "App Theme",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Select between Light, Dark, or System mode",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        SettingsChipRow(
-                            options = listOf("Light" to "LIGHT", "Dark" to "DARK", "Auto" to "SYSTEM"),
-                            selectedOption = uiState.theme,
-                            onOptionSelected = { viewModel.updateTheme(it) }
-                        )
-                    }
+                    )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
-                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Schedule,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
-                                modifier = Modifier.size(24.dp)
+                    SettingsRowItem(
+                        icon = Icons.Outlined.Schedule,
+                        title = "Time Format",
+                        subtitle = "Choose your preferred clock system",
+                        trailing = {
+                            SettingsChipRow(
+                                options = listOf("12H" to "12H", "24H" to "24H"),
+                                selectedOption = uiState.timeFormat,
+                                onOptionSelected = { viewModel.updateTimeFormat(it) }
                             )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Time Format",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Choose your preferred clock system",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        SettingsChipRow(
-                            options = listOf("12H" to "12H", "24H" to "24H"),
-                            selectedOption = uiState.timeFormat,
-                            onOptionSelected = { viewModel.updateTimeFormat(it) }
-                        )
-                    }
+                    )
                 }
             }
 
@@ -269,77 +227,55 @@ fun SettingsScreen(
                 val focentraStatus = uiState.focentraStatus
 
                 SettingsSection(title = "INTEGRATIONS • FOCENTRA") {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Hub,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Focentra Study Focus",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = when {
-                                        focentraStatus == null -> "Checking installation..."
-                                        !focentraStatus.isInstalled -> "Focentra isn't installed on device"
-                                        focentraStatus.isConnected -> "Connected • ${focentraStatus.totalImportedSessions} sessions imported"
-                                        else -> "Not Connected (Optional)"
-                                    },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    lineHeight = 18.sp
-                                )
-                            }
-                        }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                    SettingsRowItem(
+                        icon = Icons.Outlined.Hub,
+                        title = "Focentra Study Focus",
+                        subtitle = when {
+                            focentraStatus == null -> "Checking installation..."
+                            !focentraStatus.isInstalled -> "Focentra isn't installed on device"
+                            focentraStatus.isConnected -> "Connected • ${focentraStatus.totalImportedSessions} sessions imported"
+                            else -> "Not Connected (Optional)"
+                        },
+                        trailing = {
                             if (focentraStatus?.isInstalled == true) {
                                 if (focentraStatus.isConnected) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        TextButton(onClick = { viewModel.syncFocentra() }) {
-                                            Text("Sync")
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        TextButton(
+                                            onClick = { viewModel.syncFocentra() },
+                                            contentPadding = PaddingValues(horizontal = 8.dp)
+                                        ) {
+                                            Text("Sync", style = MaterialTheme.typography.labelMedium)
                                         }
                                         OutlinedButton(
                                             onClick = { viewModel.disconnectFocentra() },
-                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                                            contentPadding = PaddingValues(horizontal = 8.dp)
                                         ) {
-                                            Text("Disconnect")
+                                            Text("Disconnect", style = MaterialTheme.typography.labelMedium)
                                         }
                                     }
                                 } else {
-                                    Button(onClick = { showConsentDialog = true }) {
-                                        Text("Connect")
+                                    Button(
+                                        onClick = { showConsentDialog = true },
+                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Text("Connect", style = MaterialTheme.typography.labelLarge)
                                     }
                                 }
                             } else {
-                                TextButton(onClick = {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Niloy-Track-Dev"))
-                                    context.startActivity(intent)
-                                }) {
-                                    Text("Get App")
+                                TextButton(
+                                    onClick = {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Niloy-Track-Dev"))
+                                        context.startActivity(intent)
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 8.dp)
+                                ) {
+                                    Text("Get App", style = MaterialTheme.typography.labelMedium)
                                 }
                             }
                         }
-                    }
+                    )
                 }
             }
 
@@ -437,14 +373,34 @@ fun SettingsScreen(
                                 try {
                                     val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
                                     com.niloy.domain.service.TaskReminderScheduler.createNotificationChannel(context)
-                                    val notification = androidx.core.app.NotificationCompat.Builder(context, com.niloy.domain.service.TaskReminderScheduler.CHANNEL_ID)
+
+                                    val largeIconBitmap = try {
+                                        val drawable = androidx.core.content.ContextCompat.getDrawable(context, com.niloy.R.drawable.ic_launcher_foreground)
+                                        val bitmap = android.graphics.Bitmap.createBitmap(
+                                            drawable?.intrinsicWidth?.takeIf { it > 0 } ?: 128,
+                                            drawable?.intrinsicHeight?.takeIf { it > 0 } ?: 128,
+                                            android.graphics.Bitmap.Config.ARGB_8888
+                                        )
+                                        val canvas = android.graphics.Canvas(bitmap)
+                                        drawable?.setBounds(0, 0, canvas.width, canvas.height)
+                                        drawable?.draw(canvas)
+                                        bitmap
+                                    } catch (e: Exception) {
+                                        null
+                                    }
+
+                                    val notificationBuilder = androidx.core.app.NotificationCompat.Builder(context, com.niloy.domain.service.TaskReminderScheduler.CHANNEL_ID)
                                         .setSmallIcon(com.niloy.R.drawable.ic_notification)
                                         .setContentTitle("Daynexa Smart Reminder")
                                         .setContentText("Your scheduled routine reminder test is working perfectly!")
                                         .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
                                         .setAutoCancel(true)
-                                        .build()
-                                    notificationManager.notify(99999, notification)
+
+                                    if (largeIconBitmap != null) {
+                                        notificationBuilder.setLargeIcon(largeIconBitmap)
+                                    }
+
+                                    notificationManager.notify(99999, notificationBuilder.build())
                                     Toast.makeText(context, "Test notification triggered!", Toast.LENGTH_SHORT).show()
                                 } catch (e: Exception) {
                                     Toast.makeText(context, "Notification check: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
@@ -880,8 +836,8 @@ private fun SettingsChipRow(
     onOptionSelected: (String) -> Unit
 ) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.padding(vertical = 4.dp)
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         options.forEach { (label, value) ->
             val isSelected = selectedOption == value
@@ -889,14 +845,13 @@ private fun SettingsChipRow(
                 onClick = { onOptionSelected(value) },
                 shape = RoundedCornerShape(12.dp),
                 color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
-                modifier = Modifier
+                border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
             ) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                 )
             }
         }
