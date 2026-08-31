@@ -65,7 +65,22 @@ class TaskReminderReceiver : BroadcastReceiver() {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         TaskReminderScheduler.createNotificationChannel(context)
 
-        val notification = NotificationCompat.Builder(context, TaskReminderScheduler.CHANNEL_ID)
+        val largeIconBitmap = try {
+            val drawable = androidx.core.content.ContextCompat.getDrawable(context, com.niloy.R.drawable.ic_launcher_foreground)
+            val bitmap = android.graphics.Bitmap.createBitmap(
+                drawable?.intrinsicWidth?.takeIf { it > 0 } ?: 128,
+                drawable?.intrinsicHeight?.takeIf { it > 0 } ?: 128,
+                android.graphics.Bitmap.Config.ARGB_8888
+            )
+            val canvas = android.graphics.Canvas(bitmap)
+            drawable?.setBounds(0, 0, canvas.width, canvas.height)
+            drawable?.draw(canvas)
+            bitmap
+        } catch (e: Exception) {
+            null
+        }
+
+        val notificationBuilder = NotificationCompat.Builder(context, TaskReminderScheduler.CHANNEL_ID)
             .setSmallIcon(com.niloy.R.drawable.ic_notification)
             .setContentTitle("$taskName$finalCategoryText")
             .setContentText(contentMessage)
@@ -74,7 +89,12 @@ class TaskReminderReceiver : BroadcastReceiver() {
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
-            .build()
+
+        if (largeIconBitmap != null) {
+            notificationBuilder.setLargeIcon(largeIconBitmap)
+        }
+
+        val notification = notificationBuilder.build()
 
         notificationManager.notify((taskId % 100000).toInt(), notification)
 

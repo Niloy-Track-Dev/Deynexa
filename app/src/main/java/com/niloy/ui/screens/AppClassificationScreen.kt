@@ -437,7 +437,7 @@ private fun ManageAppCategoriesDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
                 // Add New Section
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Add New Category", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     OutlinedTextField(
                         value = newCatName,
@@ -465,22 +465,21 @@ private fun ManageAppCategoriesDialog(
                             label = { Text("Distracting") },
                             shape = RoundedCornerShape(8.dp)
                         )
-                        Spacer(modifier = Modifier.weight(1f))
-                        FilledTonalButton(
-                            onClick = {
-                                if (newCatName.isNotBlank()) {
-                                    onAddCategory(newCatName.trim(), isProd)
-                                    newCatName = ""
-                                }
-                            },
-                            enabled = newCatName.isNotBlank(),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = "Add Category", modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Add", style = MaterialTheme.typography.labelMedium)
-                        }
+                    }
+                    Button(
+                        onClick = {
+                            if (newCatName.isNotBlank()) {
+                                onAddCategory(newCatName.trim(), isProd)
+                                newCatName = ""
+                            }
+                        },
+                        enabled = newCatName.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Add Category")
                     }
                 }
 
