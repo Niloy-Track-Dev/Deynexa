@@ -17,13 +17,14 @@ android {
     applicationId = "com.niloy.daynexa"
     minSdk = 26
     targetSdk = 36
-    versionCode = 11
-    versionName = "0.9.0"
+    versionCode = 12
+    versionName = "1.0.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
   signingConfigs {
+    val defaultKeystore = file("${rootDir}/daynexa-keystore.jks")
     val releaseKeystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
     val releaseStoreFile = file(releaseKeystorePath)
     val hasReleaseKeystore = releaseStoreFile.exists() && !System.getenv("STORE_PASSWORD").isNullOrEmpty()
@@ -34,13 +35,25 @@ android {
         storePassword = System.getenv("STORE_PASSWORD")
         keyAlias = System.getenv("KEY_ALIAS") ?: "upload"
         keyPassword = System.getenv("KEY_PASSWORD") ?: System.getenv("STORE_PASSWORD")
+      } else if (defaultKeystore.exists()) {
+        storeFile = defaultKeystore
+        storePassword = "daynexa123"
+        keyAlias = "daynexa-key"
+        keyPassword = "daynexa123"
       }
     }
     create("debugConfig") {
-      storeFile = file("${rootDir}/debug.keystore")
-      storePassword = "android"
-      keyAlias = "androiddebugkey"
-      keyPassword = "android"
+      if (defaultKeystore.exists()) {
+        storeFile = defaultKeystore
+        storePassword = "daynexa123"
+        keyAlias = "daynexa-key"
+        keyPassword = "daynexa123"
+      } else {
+        storeFile = file("${rootDir}/debug.keystore")
+        storePassword = "android"
+        keyAlias = "androiddebugkey"
+        keyPassword = "android"
+      }
     }
   }
 

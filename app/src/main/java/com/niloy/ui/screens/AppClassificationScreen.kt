@@ -132,8 +132,8 @@ fun AppClassificationScreen(
             app = app,
             availableCategories = uiState.appCategories,
             onDismiss = { viewModel.selectAppToEdit(null) },
-            onSave = { pkg, name, categories, rating ->
-                viewModel.saveAppClassification(pkg, name, categories, rating)
+            onSave = { pkg, name, categories, rating, isTracked, severity ->
+                viewModel.saveAppClassification(pkg, name, categories, rating, isTracked, severity)
             },
             onAddCategory = { name, isProd -> viewModel.saveAppCategory(name, isProd) }
         )
@@ -214,17 +214,49 @@ private fun InstalledAppRowItem(
                 }
             }
 
-            if (app.qualityRating != AppQualityRating.UNRATED) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
-                ) {
-                    Text(
-                        text = app.qualityRating.label,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (!app.isUsageTracked) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Text(
+                            text = "Untracked",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                if (app.severity != com.niloy.domain.model.AppSeverity.NORMAL) {
+                    val sevColor = if (app.severity == com.niloy.domain.model.AppSeverity.FATAL) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = sevColor.copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            text = app.severity.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = sevColor,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                if (app.qualityRating != AppQualityRating.UNRATED) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                    ) {
+                        Text(
+                            text = app.qualityRating.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
                 }
             }
         }
@@ -237,11 +269,13 @@ private fun EditAppClassificationDialog(
     app: InstalledAppInfo,
     availableCategories: List<com.niloy.domain.model.AppCategory>,
     onDismiss: () -> Unit,
-    onSave: (String, String, List<String>, AppQualityRating) -> Unit,
+    onSave: (String, String, List<String>, AppQualityRating, Boolean, com.niloy.domain.model.AppSeverity) -> Unit,
     onAddCategory: (String, Boolean) -> Unit
 ) {
     var selectedCategories by remember { mutableStateOf(app.categories.toSet()) }
     var selectedRating by remember { mutableStateOf(app.qualityRating) }
+    var isUsageTracked by remember { mutableStateOf(app.isUsageTracked) }
+    var selectedSeverity by remember { mutableStateOf(app.severity) }
     var showQuickAddCategory by remember { mutableStateOf(false) }
     var newQuickCatName by remember { mutableStateOf("") }
     var isNewCatProd by remember { mutableStateOf(true) }
@@ -284,6 +318,56 @@ private fun EditAppClassificationDialog(
                             selected = selectedRating == rating,
                             onClick = { selectedRating = rating },
                             label = { Text(rating.label, style = MaterialTheme.typography.labelSmall) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                // Usage Tracking Control
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Count Usage History",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = if (isUsageTracked) "App usage is included in total screen time." else "App usage will be ignored in history logs.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = isUsageTracked,
+                        onCheckedChange = { isUsageTracked = it }
+                    )
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                // App Severity Level
+                Text(
+                    text = "App Severity / Risk Level",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    com.niloy.domain.model.AppSeverity.values().forEach { severity ->
+                        FilterChip(
+                            selected = selectedSeverity == severity,
+                            onClick = { selectedSeverity = severity },
+                            label = { Text(severity.label, style = MaterialTheme.typography.labelSmall) },
                             shape = RoundedCornerShape(8.dp)
                         )
                     }
@@ -405,7 +489,9 @@ private fun EditAppClassificationDialog(
                         app.packageName,
                         app.appName,
                         selectedCategories.toList(),
-                        selectedRating
+                        selectedRating,
+                        isUsageTracked,
+                        selectedSeverity
                     )
                 },
                 shape = RoundedCornerShape(10.dp)
@@ -430,6 +516,31 @@ private fun ManageAppCategoriesDialog(
 ) {
     var newCatName by remember { mutableStateOf("") }
     var isProd by remember { mutableStateOf(true) }
+    var categoryToDelete by remember { mutableStateOf<com.niloy.domain.model.AppCategory?>(null) }
+
+    categoryToDelete?.let { cat ->
+        AlertDialog(
+            onDismissRequest = { categoryToDelete = null },
+            title = { Text("Delete App Category", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete category \"${cat.name}\"?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteCategory(cat)
+                        categoryToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { categoryToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -514,7 +625,7 @@ private fun ManageAppCategoriesDialog(
                                         color = if (cat.isProductive) StateCompleted else MaterialTheme.colorScheme.error
                                     )
                                 }
-                                IconButton(onClick = { onDeleteCategory(cat) }) {
+                                IconButton(onClick = { categoryToDelete = cat }) {
                                     Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
                                 }
                             }

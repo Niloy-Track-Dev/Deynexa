@@ -58,12 +58,38 @@ fun TodayScreen(
     val isToday = uiState.selectedDate == LocalDate.now()
     val context = LocalContext.current
 
-    // Reschedule Dialog State
+    // Delete Confirmation & Reschedule Dialog State
+    var taskToDelete by remember { mutableStateOf<com.niloy.domain.model.Task?>(null) }
     var reschedulingItem by remember { mutableStateOf<TaskWithOccurrence?>(null) }
     var rescheduleStartTime by remember { mutableStateOf(480L) }
     var rescheduleEndTime by remember { mutableStateOf(540L) }
     var rescheduleDate by remember { mutableStateOf(LocalDate.now().toString()) }
     var rescheduleNotes by remember { mutableStateOf("") }
+
+    // Delete Task Confirmation Dialog
+    taskToDelete?.let { task ->
+        AlertDialog(
+            onDismissRequest = { taskToDelete = null },
+            title = { Text("Delete Routine", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete \"${task.name}\"? This action cannot be undone.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteTask(task)
+                        taskToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { taskToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     // Reschedule Dialog
     reschedulingItem?.let { item ->
@@ -268,22 +294,28 @@ fun TodayScreen(
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAddTask,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = RoundedCornerShape(16.dp),
-                elevation = FloatingActionButtonDefaults.elevation(4.dp),
-                modifier = Modifier
-                    .navigationBarsPadding()
-                    .padding(bottom = fabBottomPadding, end = 12.dp)
-                    .testTag("add_task_fab")
+            AnimatedVisibility(
+                visible = isBottomBarVisible,
+                enter = scaleIn() + fadeIn(),
+                exit = scaleOut() + fadeOut()
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Create Task",
-                    modifier = Modifier.size(24.dp)
-                )
+                FloatingActionButton(
+                    onClick = onAddTask,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = FloatingActionButtonDefaults.elevation(4.dp),
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .padding(bottom = fabBottomPadding, end = 12.dp)
+                        .testTag("add_task_fab")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Create Task",
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
         }
     ) { padding ->
@@ -364,11 +396,18 @@ fun TodayScreen(
                                 item = item,
                                 category = category,
                                 is24Hour = uiState.is24Hour,
-                                onToggle = {
-                                    viewModel.toggleTaskCompletion(
+                                onComplete = {
+                                    viewModel.setTaskState(
                                         item.task.id,
                                         item.occurrence.date,
-                                        item.occurrence.state
+                                        TaskState.COMPLETED
+                                    )
+                                },
+                                onUncomplete = {
+                                    viewModel.setTaskState(
+                                        item.task.id,
+                                        item.occurrence.date,
+                                        TaskState.PENDING
                                     )
                                 },
                                 onSkip = {
@@ -389,7 +428,7 @@ fun TodayScreen(
                                     rescheduleNotes = item.occurrence.notes ?: ""
                                 },
                                 onDelete = {
-                                    viewModel.deleteTask(item.task)
+                                    taskToDelete = item.task
                                 }
                             )
                         }
@@ -416,11 +455,18 @@ fun TodayScreen(
                                 item = item,
                                 category = category,
                                 is24Hour = uiState.is24Hour,
-                                onToggle = {
-                                    viewModel.toggleTaskCompletion(
+                                onComplete = {
+                                    viewModel.setTaskState(
                                         item.task.id,
                                         item.occurrence.date,
-                                        item.occurrence.state
+                                        TaskState.COMPLETED
+                                    )
+                                },
+                                onUncomplete = {
+                                    viewModel.setTaskState(
+                                        item.task.id,
+                                        item.occurrence.date,
+                                        TaskState.PENDING
                                     )
                                 },
                                 onSkip = {
@@ -441,7 +487,7 @@ fun TodayScreen(
                                     rescheduleNotes = item.occurrence.notes ?: ""
                                 },
                                 onDelete = {
-                                    viewModel.deleteTask(item.task)
+                                    taskToDelete = item.task
                                 }
                             )
                         }

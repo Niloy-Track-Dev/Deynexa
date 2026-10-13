@@ -22,6 +22,18 @@ enum class ProductivityType(val label: String) {
     NEUTRAL("Neutral")
 }
 
+enum class AppSeverity(val label: String) {
+    NORMAL("Normal"),
+    HIGH("High / Severe"),
+    FATAL("Critical / Fatal");
+
+    companion object {
+        fun fromName(name: String): AppSeverity {
+            return values().find { it.name.equals(name, ignoreCase = true) } ?: NORMAL
+        }
+    }
+}
+
 object AppCategories {
     const val AI = "Ai"
     const val SYSTEM_APP = "System App"
@@ -53,6 +65,8 @@ data class AppUsageInfo(
     val categories: List<String>,
     val qualityRating: AppQualityRating,
     val productivityType: ProductivityType,
+    val isUsageTracked: Boolean = true,
+    val severity: AppSeverity = AppSeverity.NORMAL,
     val percentageOfTotal: Float = 0f,
     val lastTimeUsed: Long = 0L
 )
@@ -62,7 +76,9 @@ data class InstalledAppInfo(
     val appName: String,
     val categories: List<String>,
     val qualityRating: AppQualityRating,
-    val productivityType: ProductivityType
+    val productivityType: ProductivityType,
+    val isUsageTracked: Boolean = true,
+    val severity: AppSeverity = AppSeverity.NORMAL
 )
 
 data class DailyUsagePoint(

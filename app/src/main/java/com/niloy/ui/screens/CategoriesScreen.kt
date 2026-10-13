@@ -1,5 +1,6 @@
 package com.niloy.ui.screens
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -71,19 +72,25 @@ fun CategoriesScreen(
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    editingCategory = null
-                    showAddEditDialog = true
-                },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .navigationBarsPadding()
-                    .padding(bottom = fabBottomPadding, end = 12.dp)
+            AnimatedVisibility(
+                visible = isBottomBarVisible,
+                enter = scaleIn() + fadeIn(),
+                exit = scaleOut() + fadeOut()
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Category")
+                FloatingActionButton(
+                    onClick = {
+                        editingCategory = null
+                        showAddEditDialog = true
+                    },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .padding(bottom = fabBottomPadding, end = 12.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Category")
+                }
             }
         }
     ) { padding ->

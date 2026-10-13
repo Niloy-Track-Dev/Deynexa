@@ -101,7 +101,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            DaynexaTheme(darkTheme = isDark) {
+            DaynexaTheme(darkTheme = isDark, colorPreset = settingsState.colorPreset) {
                 if (settingsState.isLoading) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
