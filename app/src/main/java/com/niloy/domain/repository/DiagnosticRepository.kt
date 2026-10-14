@@ -14,7 +14,9 @@ interface DiagnosticRepository {
         packageName: String,
         appName: String,
         categories: List<String>,
-        qualityRating: AppQualityRating
+        qualityRating: AppQualityRating,
+        isUsageTracked: Boolean = true,
+        severity: com.niloy.domain.model.AppSeverity = com.niloy.domain.model.AppSeverity.NORMAL
     )
     suspend fun clearDiagnosticData()
     suspend fun getInstalledApps(): List<InstalledAppInfo>

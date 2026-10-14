@@ -16,6 +16,8 @@ data class AppClassificationBackup(
     val categories: String,
     val qualityRating: String,
     val customProductivityType: String = "NEUTRAL",
+    val isUsageTracked: Boolean = true,
+    val severity: String = "NORMAL",
     val updatedAt: Long = System.currentTimeMillis()
 )
 

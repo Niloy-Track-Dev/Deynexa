@@ -186,6 +186,17 @@ class CalendarViewModel(
         }
     }
 
+    fun setTaskState(taskId: Long, date: String, newState: TaskState) {
+        viewModelScope.launch {
+            val existing = repository.getAllOccurrences().first().find { it.taskId == taskId && it.date == date }
+            val updated = (existing ?: TaskOccurrence(taskId = taskId, date = date)).copy(
+                state = newState,
+                updatedAt = System.currentTimeMillis()
+            )
+            repository.saveOccurrence(updated)
+        }
+    }
+
     fun toggleSkipTask(taskId: Long, date: String, currentState: TaskState) {
         viewModelScope.launch {
             val newState = if (currentState == TaskState.SKIPPED) TaskState.PENDING else TaskState.SKIPPED

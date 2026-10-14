@@ -109,7 +109,9 @@ class DiagnosticRepositoryImpl(
         packageName: String,
         appName: String,
         categories: List<String>,
-        qualityRating: AppQualityRating
+        qualityRating: AppQualityRating,
+        isUsageTracked: Boolean,
+        severity: AppSeverity
     ) {
         withContext(Dispatchers.IO) {
             val categoriesString = if (categories.isEmpty()) AppCategories.UNCLASSIFIED else categories.joinToString(",")
@@ -120,6 +122,8 @@ class DiagnosticRepositoryImpl(
                 categories = categoriesString,
                 qualityRating = qualityRating.name,
                 customProductivityType = prodType.name,
+                isUsageTracked = isUsageTracked,
+                severity = severity.name,
                 updatedAt = System.currentTimeMillis()
             )
             classificationDao.insertOrUpdate(entity)
@@ -171,6 +175,8 @@ class DiagnosticRepositoryImpl(
                 }
 
                 val prodType = determineProductivityType(rating, categories)
+                val isTracked = saved?.isUsageTracked ?: true
+                val severity = if (saved != null) AppSeverity.fromName(saved.severity) else AppSeverity.NORMAL
 
                 result.add(
                     InstalledAppInfo(
@@ -178,7 +184,9 @@ class DiagnosticRepositoryImpl(
                         appName = appName,
                         categories = categories,
                         qualityRating = rating,
-                        productivityType = prodType
+                        productivityType = prodType,
+                        isUsageTracked = isTracked,
+                        severity = severity
                     )
                 )
             }
@@ -264,6 +272,8 @@ class DiagnosticRepositoryImpl(
             }
 
             val prodType = determineProductivityType(rating, categories)
+            val isTracked = saved?.isUsageTracked ?: true
+            val severity = if (saved != null) AppSeverity.fromName(saved.severity) else AppSeverity.NORMAL
 
             appUsageList.add(
                 AppUsageInfo(
@@ -273,6 +283,8 @@ class DiagnosticRepositoryImpl(
                     categories = categories,
                     qualityRating = rating,
                     productivityType = prodType,
+                    isUsageTracked = isTracked,
+                    severity = severity,
                     lastTimeUsed = packageLastUsedMap[pkgName] ?: 0L
                 )
             )
@@ -308,22 +320,24 @@ class DiagnosticRepositoryImpl(
                 continue 
             }
 
-            totalMillis += app.totalTimeInForegroundMillis
-            when (app.productivityType) {
-                ProductivityType.PRODUCTIVE -> {
-                    productiveMillis += app.totalTimeInForegroundMillis
-                    productiveCount++
+            if (app.isUsageTracked) {
+                totalMillis += app.totalTimeInForegroundMillis
+                when (app.productivityType) {
+                    ProductivityType.PRODUCTIVE -> {
+                        productiveMillis += app.totalTimeInForegroundMillis
+                        productiveCount++
+                    }
+                    ProductivityType.NON_PRODUCTIVE -> {
+                        nonProductiveMillis += app.totalTimeInForegroundMillis
+                        nonProductiveCount++
+                    }
+                    ProductivityType.NEUTRAL -> neutralMillis += app.totalTimeInForegroundMillis
                 }
-                ProductivityType.NON_PRODUCTIVE -> {
-                    nonProductiveMillis += app.totalTimeInForegroundMillis
-                    nonProductiveCount++
-                }
-                ProductivityType.NEUTRAL -> neutralMillis += app.totalTimeInForegroundMillis
-            }
 
-            for (cat in app.categories) {
-                categoryDurationMap[cat] = categoryDurationMap.getOrDefault(cat, 0L) + app.totalTimeInForegroundMillis
-                categoryCountMap[cat] = categoryCountMap.getOrDefault(cat, 0) + 1
+                for (cat in app.categories) {
+                    categoryDurationMap[cat] = categoryDurationMap.getOrDefault(cat, 0L) + app.totalTimeInForegroundMillis
+                    categoryCountMap[cat] = categoryCountMap.getOrDefault(cat, 0) + 1
+                }
             }
         }
 
@@ -437,6 +451,8 @@ class DiagnosticRepositoryImpl(
                 if (pkgName == "com.focentra") continue // Already added verified sessions
 
                 val saved = classificationDao.getClassification(pkgName)
+                if (saved != null && !saved.isUsageTracked) continue // Skip untracked apps in trend
+
                 val categories = if (saved != null && saved.categories.isNotBlank()) {
                     saved.categories.split(",").map { it.trim() }
                 } else {

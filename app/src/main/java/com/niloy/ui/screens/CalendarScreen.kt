@@ -49,6 +49,33 @@ fun CalendarScreen(
     val monthTitleFormatter = remember { DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()) }
     val isCurrentMonth = uiState.currentMonth == YearMonth.now()
 
+    var taskToDelete by remember { mutableStateOf<com.niloy.domain.model.Task?>(null) }
+
+    // Delete Task Confirmation Dialog
+    taskToDelete?.let { task ->
+        AlertDialog(
+            onDismissRequest = { taskToDelete = null },
+            title = { Text("Delete Routine", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete \"${task.name}\"? This action cannot be undone.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteTask(task)
+                        taskToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { taskToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -178,11 +205,18 @@ fun CalendarScreen(
                         item = item,
                         category = category,
                         is24Hour = uiState.is24Hour,
-                        onToggle = {
-                            viewModel.toggleTaskCompletion(
+                        onComplete = {
+                            viewModel.setTaskState(
                                 item.task.id,
                                 item.occurrence.date,
-                                item.occurrence.state
+                                TaskState.COMPLETED
+                            )
+                        },
+                        onUncomplete = {
+                            viewModel.setTaskState(
+                                item.task.id,
+                                item.occurrence.date,
+                                TaskState.PENDING
                             )
                         },
                         onSkip = {
@@ -196,7 +230,7 @@ fun CalendarScreen(
                             onEditTask(item.task.id)
                         },
                         onDelete = {
-                            viewModel.deleteTask(item.task)
+                            taskToDelete = item.task
                         }
                     )
                 }

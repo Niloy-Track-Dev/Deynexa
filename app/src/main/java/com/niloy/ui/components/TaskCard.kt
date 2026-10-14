@@ -52,7 +52,9 @@ fun TaskCard(
     item: TaskWithOccurrence,
     category: Category? = null,
     is24Hour: Boolean = true,
-    onToggle: () -> Unit,
+    onToggle: (() -> Unit)? = null,
+    onComplete: (() -> Unit)? = null,
+    onUncomplete: (() -> Unit)? = null,
     onSkip: () -> Unit,
     onEdit: () -> Unit,
     onReschedule: (() -> Unit)? = null,
@@ -60,6 +62,26 @@ fun TaskCard(
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    var tapCount by remember { mutableIntStateOf(0) }
+    var lastTapTime by remember { mutableLongStateOf(0L) }
+
+    val handleTap = {
+        val now = System.currentTimeMillis()
+        if (now - lastTapTime < 800L) {
+            tapCount++
+        } else {
+            tapCount = 1
+        }
+        lastTapTime = now
+
+        if (tapCount == 2) {
+            if (onComplete != null) onComplete() else onToggle?.invoke()
+        } else if (tapCount == 4) {
+            if (onUncomplete != null) onUncomplete() else onToggle?.invoke()
+            tapCount = 0
+        }
+    }
+
     val isCompleted = item.occurrence.state == TaskState.COMPLETED
     val isSkipped = item.occurrence.state == TaskState.SKIPPED
     val isRescheduled = item.occurrence.rescheduledStartTime != null || item.occurrence.rescheduledDate != null || item.occurrence.isException
@@ -85,7 +107,7 @@ fun TaskCard(
         modifier = modifier
             .fillMaxWidth()
             .alpha(cardAlpha)
-            .clickable { onToggle() }
+            .clickable { handleTap() }
             .testTag("task_item_${item.task.id}"),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
@@ -108,7 +130,7 @@ fun TaskCard(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .clickable { onToggle() },
+                    .clickable { handleTap() },
                 contentAlignment = Alignment.Center
             ) {
                 Surface(
@@ -200,9 +222,9 @@ fun TaskCard(
                     }
                     Text(
                         text = displayText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                        maxLines = 1,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
                         overflow = TextOverflow.Ellipsis
                     )
                 }

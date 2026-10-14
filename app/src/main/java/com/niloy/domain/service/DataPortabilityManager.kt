@@ -37,6 +37,8 @@ class DataPortabilityManager(
                 categories = it.categories,
                 qualityRating = it.qualityRating,
                 customProductivityType = it.customProductivityType,
+                isUsageTracked = it.isUsageTracked,
+                severity = it.severity,
                 updatedAt = it.updatedAt
             )
         }
@@ -157,6 +159,8 @@ class DataPortabilityManager(
                                     categories = it.categories,
                                     qualityRating = it.qualityRating,
                                     customProductivityType = it.customProductivityType,
+                                    isUsageTracked = it.isUsageTracked,
+                                    severity = it.severity,
                                     updatedAt = it.updatedAt
                                 )
                             })
@@ -281,6 +285,8 @@ class DataPortabilityManager(
                                 categories = incomingClass.categories,
                                 qualityRating = incomingClass.qualityRating,
                                 customProductivityType = incomingClass.customProductivityType,
+                                isUsageTracked = incomingClass.isUsageTracked,
+                                severity = incomingClass.severity,
                                 updatedAt = incomingClass.updatedAt
                             )
                         )

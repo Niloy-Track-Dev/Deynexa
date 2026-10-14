@@ -14,6 +14,7 @@ import java.time.DayOfWeek
 data class SettingsUiState(
     val isOnboardingCompleted: Boolean = false,
     val theme: String = "SYSTEM",
+    val colorPreset: String = "COBALT",
     val timeFormat: String = "24H",
     val weekStart: String = "MONDAY",
     val weekendDays: Set<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY),
@@ -46,6 +47,7 @@ class SettingsViewModel(
             try {
                 val onboarding = repository.getSetting("onboarding_completed")?.toBoolean() ?: false
                 val theme = repository.getSetting("theme") ?: "SYSTEM"
+                val colorPreset = repository.getSetting("color_preset") ?: "COBALT"
                 val timeFormat = repository.getSetting("time_format") ?: "24H"
                 val weekStart = repository.getSetting("week_start") ?: "MONDAY"
                 val weekendStr = repository.getSetting("weekend_days") ?: "SATURDAY,SUNDAY"
@@ -61,6 +63,7 @@ class SettingsViewModel(
                 _uiState.update { it.copy(
                     isOnboardingCompleted = onboarding,
                     theme = theme,
+                    colorPreset = colorPreset,
                     timeFormat = timeFormat,
                     weekStart = weekStart,
                     weekendDays = weekendDays,
@@ -118,6 +121,13 @@ class SettingsViewModel(
         viewModelScope.launch {
             repository.saveSetting("theme", theme)
             _uiState.update { it.copy(theme = theme) }
+        }
+    }
+
+    fun updateColorPreset(preset: String) {
+        viewModelScope.launch {
+            repository.saveSetting("color_preset", preset)
+            _uiState.update { it.copy(colorPreset = preset) }
         }
     }
 

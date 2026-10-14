@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -123,7 +124,7 @@ fun SettingsScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
-            contentPadding = PaddingValues(top = 16.dp, bottom = 40.dp)
+            contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp)
         ) {
             // 100% Offline & Private Card
             item {
@@ -184,6 +185,62 @@ fun SettingsScreen(
                                 selectedOption = uiState.theme,
                                 onOptionSelected = { viewModel.updateTheme(it) }
                             )
+                        }
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                    SettingsRowItem(
+                        icon = Icons.Outlined.ColorLens,
+                        title = "Color Preset",
+                        subtitle = "Choose from 5 custom accent color presets",
+                        trailing = {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.horizontalScroll(rememberScrollState())
+                            ) {
+                                listOf(
+                                    "Cobalt" to "COBALT",
+                                    "Emerald" to "EMERALD",
+                                    "Amethyst" to "AMETHYST",
+                                    "Amber" to "AMBER",
+                                    "Rose" to "ROSE"
+                                ).forEach { (label, value) ->
+                                    val isSelected = uiState.colorPreset == value
+                                    val presetColor = when (value) {
+                                        "COBALT" -> androidx.compose.ui.graphics.Color(0xFF3B82F6)
+                                        "EMERALD" -> androidx.compose.ui.graphics.Color(0xFF10B981)
+                                        "AMETHYST" -> androidx.compose.ui.graphics.Color(0xFF8B5CF6)
+                                        "AMBER" -> androidx.compose.ui.graphics.Color(0xFFF59E0B)
+                                        "ROSE" -> androidx.compose.ui.graphics.Color(0xFFF43F5E)
+                                        else -> androidx.compose.ui.graphics.Color(0xFF3B82F6)
+                                    }
+                                    Surface(
+                                        onClick = { viewModel.updateColorPreset(value) },
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = if (isSelected) presetColor else androidx.compose.ui.graphics.Color.Transparent,
+                                        border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(8.dp)
+                                                    .background(presetColor, androidx.compose.foundation.shape.CircleShape)
+                                            )
+                                            Text(
+                                                text = label,
+                                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                                                color = if (isSelected) androidx.compose.ui.graphics.Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     )
 
@@ -537,7 +594,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Build Better Days • v0.6.0",
+                        text = "Build Better Days • v1.0.0",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

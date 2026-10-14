@@ -10,5 +10,7 @@ data class AppClassificationEntity(
     val categories: String, // Comma separated list of category names e.g. "Education, Productivity"
     val qualityRating: String, // VERY_GOOD, GOOD, NEUTRAL, NOT_GOOD, BAD, VERY_BAD, UNRATED
     val customProductivityType: String = "NEUTRAL", // PRODUCTIVE, NON_PRODUCTIVE, NEUTRAL
+    val isUsageTracked: Boolean = true,
+    val severity: String = "NORMAL", // NORMAL, HIGH, FATAL
     val updatedAt: Long = System.currentTimeMillis()
 )

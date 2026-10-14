@@ -74,10 +74,12 @@ class AppClassificationViewModel(
         packageName: String,
         appName: String,
         categories: List<String>,
-        qualityRating: AppQualityRating
+        qualityRating: AppQualityRating,
+        isUsageTracked: Boolean = true,
+        severity: com.niloy.domain.model.AppSeverity = com.niloy.domain.model.AppSeverity.NORMAL
     ) {
         viewModelScope.launch {
-            diagnosticRepository.saveClassification(packageName, appName, categories, qualityRating)
+            diagnosticRepository.saveClassification(packageName, appName, categories, qualityRating, isUsageTracked, severity)
             loadInstalledApps()
             _uiState.value = _uiState.value.copy(selectedAppToEdit = null)
         }
