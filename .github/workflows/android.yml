@@ -109,14 +109,14 @@ jobs:
             exit 1
           fi
           echo "Found APK at: $APK_PATH"
-          cp "$APK_PATH" Daynexa-v1.0.0-release.apk
-          echo "apk_path=Daynexa-v1.0.0-release.apk" >> "$GITHUB_OUTPUT"
+          cp "$APK_PATH" Daynexa-v2.0.0-release.apk
+          echo "apk_path=Daynexa-v2.0.0-release.apk" >> "$GITHUB_OUTPUT"
 
       - name: Upload APK Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Daynexa-Release-APK
-          path: Daynexa-v1.0.0-release.apk
+          path: Daynexa-v2.0.0-release.apk
           if-no-files-found: error
           retention-days: 30
 
