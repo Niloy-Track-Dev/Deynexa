@@ -178,7 +178,7 @@ class DaynexaApplication : Application() {
             "daynexa.db"
         )
             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
-            .fallbackToDestructiveMigration()
+            .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
 
         repository = TaskRepositoryImpl(
@@ -212,7 +212,7 @@ class DaynexaApplication : Application() {
     }
 
     private fun initDemoData() {
-        kotlinx.coroutines.MainScope().launch {
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO).launch {
             try {
                 val categories = repository.getCategories().first()
                 if (categories.isEmpty()) {

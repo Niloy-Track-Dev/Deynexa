@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,7 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -287,7 +288,7 @@ private fun AppDiagnosticsContent(
                             title = "Productivity Ratio",
                             value = "${summary.productivityRate.toInt()}%",
                             subtitle = if (summary.productivityRate >= 50) "Optimal" else "Needs Improvement",
-                            icon = Icons.Outlined.TrendingUp,
+                            icon = Icons.AutoMirrored.Outlined.TrendingUp,
                             iconColor = if (summary.productivityRate >= 50) StateCompleted else StateSkipped,
                             modifier = Modifier.weight(1f)
                         )
@@ -476,7 +477,7 @@ private fun CustomDateRangeCard(
                 Text("From: $startDate", maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
 
-            Icon(Icons.Outlined.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp))
+            Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp))
 
             OutlinedButton(
                 onClick = onSelectEndDate,

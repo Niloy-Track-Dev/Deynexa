@@ -420,7 +420,7 @@ fun TaskDetailScreen(
                     }
 
                     if (!uiState.isAllDay) {
-                        Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -538,7 +538,7 @@ fun TaskDetailScreen(
                     }
 
                     if (uiState.isRecurring) {
-                        Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
                         // Recurrence Type Selection Chips
                         Text(
@@ -688,7 +688,7 @@ fun TaskDetailScreen(
                             }
                         }
 
-                        Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
                         // Recurrence End Condition
                         Text(
@@ -823,7 +823,7 @@ fun TaskDetailScreen(
                     }
 
                     if (uiState.reminderEnabled) {
-                        Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                         Text(
                             text = "Notification Offset",
                             style = MaterialTheme.typography.labelMedium,

@@ -20,7 +20,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.EventRepeat
-import androidx.compose.material.icons.outlined.Redo
+import androidx.compose.material.icons.automirrored.outlined.Redo
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material.icons.outlined.Update
@@ -339,7 +339,7 @@ fun TaskCard(
                         text = { Text(if (isSkipped) "Unskip" else "Skip Today") },
                         leadingIcon = {
                             Icon(
-                                if (isSkipped) Icons.Outlined.Redo else Icons.Outlined.SkipNext,
+                                if (isSkipped) Icons.AutoMirrored.Outlined.Redo else Icons.Outlined.SkipNext,
                                 contentDescription = null
                             )
                         },

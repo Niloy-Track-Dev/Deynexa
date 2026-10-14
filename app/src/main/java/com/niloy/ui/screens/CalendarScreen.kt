@@ -151,7 +151,7 @@ fun CalendarScreen(
                             }
                         }
 
-                        Divider(
+                        HorizontalDivider(
                             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
                             thickness = 1.dp
                         )
