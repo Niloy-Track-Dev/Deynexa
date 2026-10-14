@@ -78,7 +78,7 @@ class MainActivity : ComponentActivity() {
             }
 
             val context = androidx.compose.ui.platform.LocalContext.current
-            val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+            val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
             var permissionsGranted by remember {
                 mutableStateOf(
                     checkNotificationPermission(context) &&
