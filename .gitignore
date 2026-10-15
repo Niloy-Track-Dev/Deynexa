@@ -1,3 +1,9 @@
+# Node & Web build outputs
+node_modules/
+dist/
+dist-ssr/
+*.local
+
 # Built application files
 *.apk
 *.aab
