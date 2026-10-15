@@ -194,7 +194,8 @@ class DaynexaApplication : Application() {
             applicationContext,
             database.appClassificationDao(),
             database.focentraStudySessionDao(),
-            database.appCategoryDao()
+            database.appCategoryDao(),
+            database.settingDao()
         )
 
         focentraIntegrationManager = FocentraIntegrationManager(

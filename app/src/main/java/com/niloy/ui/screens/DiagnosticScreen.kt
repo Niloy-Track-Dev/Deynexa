@@ -72,6 +72,7 @@ fun DiagnosticScreen(
 
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
+    var showTargetSelectionDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -89,6 +90,9 @@ fun DiagnosticScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showTargetSelectionDialog = true }) {
+                        Icon(Icons.Outlined.FilterAlt, contentDescription = "Targeted Apps")
+                    }
                     IconButton(onClick = onNavigateToClassifications) {
                         Icon(Icons.Outlined.Category, contentDescription = "Classifications")
                     }
@@ -177,6 +181,72 @@ fun DiagnosticScreen(
         ) {
             DatePicker(state = datePickerState)
         }
+    }
+
+    // Target Selection Dialog
+    if (showTargetSelectionDialog) {
+        val summaryApps = uiState.summary?.topApps ?: emptyList()
+        var tempSelected by remember { mutableStateOf(uiState.targetedPackages) }
+
+        AlertDialog(
+            onDismissRequest = { showTargetSelectionDialog = false },
+            title = { Text("Select Targeted Apps for In-Detail Diagnostic", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.verticalScroll(rememberScrollState())
+                ) {
+                    Text("Select specific applications to track separately in detailed diagnostics and Statistics screen:")
+                    summaryApps.forEach { app ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    tempSelected = if (tempSelected.contains(app.packageName)) {
+                                        tempSelected - app.packageName
+                                    } else {
+                                        tempSelected + app.packageName
+                                    }
+                                }
+                                .padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                AppIconImage(packageName = app.packageName, modifier = Modifier.size(32.dp))
+                                Text(app.appName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                            }
+                            Checkbox(
+                                checked = tempSelected.contains(app.packageName),
+                                onCheckedChange = { isChecked ->
+                                    tempSelected = if (isChecked) tempSelected + app.packageName else tempSelected - app.packageName
+                                }
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.setTargetedPackages(tempSelected)
+                        showTargetSelectionDialog = false
+                    },
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Save Targeted Selection")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTargetSelectionDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     // End Date Picker Dialog

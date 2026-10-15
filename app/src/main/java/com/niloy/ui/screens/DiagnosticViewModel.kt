@@ -19,7 +19,8 @@ data class DiagnosticUiState(
     val isLoading: Boolean = false,
     val selectedAppDetail: AppUsageInfo? = null,
     val selectedCategoryFilter: String? = null,
-    val appCategories: List<AppCategory> = emptyList()
+    val appCategories: List<AppCategory> = emptyList(),
+    val targetedPackages: Set<String> = emptySet()
 )
 
 class DiagnosticViewModel(
@@ -31,7 +32,18 @@ class DiagnosticViewModel(
 
     init {
         observeCategories()
+        loadTargetedPackages()
         checkPermissionAndLoadData()
+    }
+
+    private fun loadTargetedPackages() {
+        viewModelScope.launch {
+            val savedStr = diagnosticRepository.getSetting("targeted_diagnostic_apps") ?: ""
+            if (savedStr.isNotBlank()) {
+                val set = savedStr.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+                _uiState.update { it.copy(targetedPackages = set) }
+            }
+        }
     }
 
     private fun observeCategories() {
@@ -39,6 +51,13 @@ class DiagnosticViewModel(
             diagnosticRepository.getAppCategories().collect { cats ->
                 _uiState.update { it.copy(appCategories = cats) }
             }
+        }
+    }
+
+    fun setTargetedPackages(packages: Set<String>) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(targetedPackages = packages) }
+            diagnosticRepository.saveSetting("targeted_diagnostic_apps", packages.joinToString(","))
         }
     }
 

@@ -51,6 +51,7 @@ fun SettingsScreen(
     
     var showResetDialog by remember { mutableStateOf(false) }
     var showConsentDialog by remember { mutableStateOf(false) }
+    var showTimePickerDialog by remember { mutableStateOf(false) }
     var selectedImportMode by remember { mutableStateOf(ImportMode.MERGE) }
 
     // File creation launcher for export
@@ -402,13 +403,15 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 listOf(
                                     0 to "At start",
                                     5 to "5m before",
                                     10 to "10m before",
-                                    15 to "15m before"
+                                    15 to "15m before",
+                                    30 to "30m before"
                                 ).forEach { (mins, label) ->
                                     FilterChip(
                                         selected = uiState.defaultReminderOffset == mins,
@@ -416,6 +419,16 @@ fun SettingsScreen(
                                         label = { Text(label, fontSize = 12.sp) },
                                         shape = RoundedCornerShape(8.dp)
                                     )
+                                }
+
+                                OutlinedButton(
+                                    onClick = { showTimePickerDialog = true },
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                ) {
+                                    Icon(Icons.Outlined.AccessTime, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Custom", fontSize = 12.sp)
                                 }
                             }
                         }
@@ -594,7 +607,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Build Better Days • v1.0.0",
+                        text = "Build Better Days • v2.0.0",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -858,6 +871,48 @@ fun SettingsScreen(
         }
     }
 
+    // Custom Time Picker Dialog for Reminder Offset
+    if (showTimePickerDialog) {
+        val is24Hour = uiState.timeFormat == "24H"
+        val timePickerState = rememberTimePickerState(
+            initialHour = uiState.defaultReminderOffset / 60,
+            initialMinute = uiState.defaultReminderOffset % 60,
+            is24Hour = is24Hour
+        )
+
+        AlertDialog(
+            onDismissRequest = { showTimePickerDialog = false },
+            title = { Text("Set Custom Reminder Timing", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Select how many hours & minutes before routine start time to receive reminders:")
+                    TimePicker(state = timePickerState)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val totalMins = (timePickerState.hour * 60) + timePickerState.minute
+                        viewModel.updateDefaultReminderOffset(totalMins)
+                        showTimePickerDialog = false
+                    },
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Set Timing")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePickerDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     // Reset Confirmation Dialog
     if (showResetDialog) {
         AlertDialog(
@@ -950,40 +1005,48 @@ private fun SettingsRowItem(
     subtitle: String,
     trailing: @Composable () -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Row(
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.weight(1f).padding(end = 12.dp)
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
-                modifier = Modifier.size(24.dp)
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier.weight(1f).padding(end = 8.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
+                    modifier = Modifier.size(22.dp)
                 )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 18.sp
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        softWrap = true
+                    )
+                    if (subtitle.isNotBlank()) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
             }
+            trailing()
         }
-        trailing()
     }
 }
 

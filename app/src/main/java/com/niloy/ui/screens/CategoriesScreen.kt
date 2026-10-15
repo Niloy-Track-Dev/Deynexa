@@ -4,7 +4,9 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -315,7 +317,14 @@ private fun CategoryDialog(
         CategoryPurple.toArgb(),
         CategoryCyan.toArgb(),
         CategoryIndigo.toArgb(),
-        CategoryTeal.toArgb()
+        CategoryTeal.toArgb(),
+        Color(0xFFFF5722).toArgb(), // Deep Orange
+        Color(0xFFE91E63).toArgb(), // Pink
+        Color(0xFF9C27B0).toArgb(), // Purple Deep
+        Color(0xFF3F51B5).toArgb(), // Indigo Dark
+        Color(0xFF00BCD4).toArgb(), // Cyan Bright
+        Color(0xFF4CAF50).toArgb(), // Green Light
+        Color(0xFFFFC107).toArgb()  // Amber Bright
     )
 
     AlertDialog(
@@ -352,14 +361,17 @@ private fun CategoryDialog(
                 )
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     colorsList.forEach { colorInt ->
                         val isSelected = selectedColor == colorInt
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
+                                .size(38.dp)
                                 .clip(CircleShape)
                                 .background(Color(colorInt))
                                 .clickable { selectedColor = colorInt },

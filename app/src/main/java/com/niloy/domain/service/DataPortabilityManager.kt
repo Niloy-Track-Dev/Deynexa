@@ -125,34 +125,40 @@ class DataPortabilityManager(
                     database.focentraStudySessionDao().deleteAllSessions()
 
                     if (data.categories.isNotEmpty()) {
-                        database.categoryDao().insertAll(data.categories.map { it.toEntity() })
+                        data.categories.chunked(500).forEach { batch ->
+                            database.categoryDao().insertAll(batch.map { it.toEntity() })
+                        }
                     }
                     if (data.tasks.isNotEmpty()) {
-                        database.taskDao().insertAll(data.tasks.map { it.toEntity() })
+                        data.tasks.chunked(500).forEach { batch ->
+                            database.taskDao().insertAll(batch.map { it.toEntity() })
+                        }
                     }
                     if (data.occurrences.isNotEmpty()) {
-                        database.taskOccurrenceDao().insertAll(data.occurrences.map { it.toEntity() })
+                        data.occurrences.chunked(500).forEach { batch ->
+                            database.taskOccurrenceDao().insertAll(batch.map { it.toEntity() })
+                        }
                     }
                     data.taskTemplates?.let { list ->
-                        if (list.isNotEmpty()) {
-                            database.taskTemplateDao().insertAll(list.map { it.toEntity() })
+                        list.chunked(500).forEach { batch ->
+                            database.taskTemplateDao().insertAll(batch.map { it.toEntity() })
                         }
                     }
                     data.goals?.let { list ->
-                        if (list.isNotEmpty()) {
-                            database.goalDao().insertAll(list.map { it.toEntity() })
+                        list.chunked(500).forEach { batch ->
+                            database.goalDao().insertAll(batch.map { it.toEntity() })
                         }
                     }
                     data.appCategories?.let { list ->
-                        if (list.isNotEmpty()) {
-                            database.appCategoryDao().insertAll(list.map {
+                        list.chunked(500).forEach { batch ->
+                            database.appCategoryDao().insertAll(batch.map {
                                 AppCategoryEntity(id = it.id, name = it.name, isProductive = it.isProductive, createdAt = it.createdAt)
                             })
                         }
                     }
                     data.appClassifications?.let { list ->
-                        if (list.isNotEmpty()) {
-                            database.appClassificationDao().insertAll(list.map {
+                        list.chunked(500).forEach { batch ->
+                            database.appClassificationDao().insertAll(batch.map {
                                 AppClassificationEntity(
                                     packageName = it.packageName,
                                     appName = it.appName,
@@ -167,8 +173,8 @@ class DataPortabilityManager(
                         }
                     }
                     data.focentraSessions?.let { list ->
-                        if (list.isNotEmpty()) {
-                            database.focentraStudySessionDao().insertSessions(list.map {
+                        list.chunked(500).forEach { batch ->
+                            database.focentraStudySessionDao().insertSessions(batch.map {
                                 FocentraStudySessionEntity(
                                     sessionId = it.sessionId,
                                     subject = it.subject,
