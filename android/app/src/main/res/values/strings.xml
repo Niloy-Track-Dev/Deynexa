@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Daynexa</string>
+    <string name="title_activity_main">Daynexa</string>
+    <string name="package_name">com.niloy.daynexa</string>
+    <string name="custom_url_scheme">com.niloy.daynexa</string>
+</resources>

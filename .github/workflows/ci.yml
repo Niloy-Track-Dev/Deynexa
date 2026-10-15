@@ -1,4 +1,4 @@
-name: Web CI/CD
+name: Android APK & Web CI/CD
 
 on:
   push:
@@ -17,14 +17,16 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    name: Build & Package Daynexa Web
+  build-apk:
+    name: Build, Sign & Release APK
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js 22
         uses: actions/setup-node@v4
@@ -32,21 +34,91 @@ jobs:
           node-version: 22
           cache: 'npm'
 
-      - name: Install Dependencies
+      - name: Install npm Dependencies
         run: npm ci
 
-      - name: Build Production Web App
+      - name: Build Web Application
         run: npm run build
 
-      - name: Package Distribution Archive
-        run: |
-          tar -czf daynexa-web-dist.tar.gz -C dist .
+      - name: Sync Capacitor Android Project
+        run: npx cap sync android
 
-      - name: Upload Build Artifact
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+          cache-disabled: true
+
+      - name: Prepare Signing Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/keystore"
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Decoding release keystore from GitHub Secrets..."
+            echo "$KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/keystore/my-upload-key.jks"
+            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/keystore/my-upload-key.jks" >> $GITHUB_ENV
+            echo "STORE_PASSWORD=$STORE_PASSWORD" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
+            echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
+          else
+            echo "Generating automated fallback release keystore..."
+            keytool -genkey -v -keystore "$GITHUB_WORKSPACE/keystore/my-upload-key.jks" \
+              -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass android -keypass android \
+              -dname "CN=Daynexa, OU=Daynexa, O=Niloy, L=Daynexa, S=Daynexa, C=US"
+            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/keystore/my-upload-key.jks" >> $GITHUB_ENV
+            echo "STORE_PASSWORD=android" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=android" >> $GITHUB_ENV
+            echo "KEY_ALIAS=upload" >> $GITHUB_ENV
+          fi
+
+      - name: Grant Execute Permission for Gradle Wrapper
+        run: chmod +x ./android/gradlew
+
+      - name: Build Release APK
+        working-directory: ./android
+        env:
+          KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
+          STORE_PASSWORD: ${{ env.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ env.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ env.KEY_ALIAS }}
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Locate & Prepare Release APK Artifact
+        id: prepare-apk
+        run: |
+          APK_PATH=$(find android/app/build/outputs/apk/release -type f -name "*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ] || [ ! -f "$APK_PATH" ]; then
+            APK_PATH=$(find android/app/build/outputs/apk -type f -name "*.apk" | head -n 1)
+          fi
+          if [ -z "$APK_PATH" ] || [ ! -f "$APK_PATH" ]; then
+            echo "::error::No APK found in build outputs"
+            exit 1
+          fi
+          echo "Found APK at: $APK_PATH"
+          cp "$APK_PATH" Daynexa-v3.0.0-release.apk
+          echo "apk_path=Daynexa-v3.0.0-release.apk" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: daynexa-web-dist
-          path: dist/
+          name: Daynexa-Release-APK
+          path: Daynexa-v3.0.0-release.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -56,20 +128,25 @@ jobs:
         with:
           name: "v3.0.0"
           tag_name: "v3.0.0"
-          files: daynexa-web-dist.tar.gz
+          files: Daynexa-v3.0.0-release.apk
           draft: false
           prerelease: false
           body: |
-            ### Daynexa v3.0.0 — Web Edition Release
+            ### Daynexa v3.0.0 Release (Android APK)
 
-            Welcome to **Daynexa v3.0.0**, the privacy-first, 100% offline daily routine, habit management, and productivity intelligence web application built with React 19, TypeScript, Vite, and Tailwind CSS.
+            Welcome to **Daynexa v3.0.0** — the privacy-first, 100% offline daily routine, habit management, and productivity intelligence application.
 
             #### What's Included:
+            - **Signed Production APK (`Daynexa-v3.0.0-release.apk`)**: Ready to install on Android 8.0+ (API 26+).
             - **Smart Daily Planner (`Today`)**: Deterministic recurrence engine, occurrence rescheduling, accountability skip reasons, and progress gauge.
             - **Interactive Calendar Matrix**: Month-at-a-glance with 4-level color intensity completion indicators.
             - **Productivity Score 2.0**: 0–100 score, 7-day completion chart, 14-week (98-day) consistency heatmap, and weekly review debriefs.
             - **App Usage & Productivity Diagnostics**: Screen time breakdown, app quality ratings, risk severity, and custom tagging.
             - **Focentra Study Focus Integration**: Built-in focus session timer with automated session logging.
             - **Unified JSON Portability**: Full backup export & import with Merge vs Replace mode.
+
+            #### Installation Instructions:
+            1. Download **`Daynexa-v3.0.0-release.apk`** below.
+            2. Open the file on your Android device and confirm installation.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

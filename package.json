@@ -9,6 +9,9 @@
     "preview": "vite preview --host 0.0.0.0 --port 3000"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
     "canvas-confetti": "^1.9.4",
     "lucide-react": "^1.16.0",
     "react": "^19.0.0",

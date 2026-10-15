@@ -14,6 +14,9 @@ dist-ssr/
 .gradle/
 build/
 app/build/
+android/.gradle/
+android/build/
+android/app/build/
 .build-outputs/
 
 # Local configuration and environment variables
