@@ -53,11 +53,10 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Accept Android SDK Licenses & Install Platform 35
-        run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+        with:
+          api-level: 35
+          build-tools: 35.0.0
+          packages: platforms;android-35 build-tools;35.0.0 platform-tools
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -84,6 +83,7 @@ jobs:
             echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
           else
             echo "Generating automated fallback release keystore..."
+            rm -f "$GITHUB_WORKSPACE/android/keystore/my-upload-key.jks"
             keytool -genkeypair -v -keystore "$GITHUB_WORKSPACE/android/keystore/my-upload-key.jks" \
               -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass android -keypass android \
@@ -127,7 +127,7 @@ jobs:
 
           if [ -n "$RELEASE_APK" ] && [ -f "$RELEASE_APK" ]; then
             echo "Found Release APK: $RELEASE_APK"
-            cp "$RELEASE_APK" Daynexa-v3.0.0-release.apk
+            cp "$RELEASE_APK" Daynexa-release.apk
             echo "has_release=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_release=false" >> "$GITHUB_OUTPUT"
@@ -135,13 +135,13 @@ jobs:
 
           if [ -n "$DEBUG_APK" ] && [ -f "$DEBUG_APK" ]; then
             echo "Found Debug APK: $DEBUG_APK"
-            cp "$DEBUG_APK" Daynexa-v3.0.0-debug.apk
+            cp "$DEBUG_APK" Daynexa-debug.apk
             echo "has_debug=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_debug=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if [ ! -f "Daynexa-v3.0.0-release.apk" ] && [ ! -f "Daynexa-v3.0.0-debug.apk" ]; then
+          if [ ! -f "Daynexa-release.apk" ] && [ ! -f "Daynexa-debug.apk" ]; then
             echo "::error::Neither Release nor Debug APK was found!"
             exit 1
           fi
@@ -150,8 +150,8 @@ jobs:
         if: steps.prepare-apks.outputs.has_release == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: Daynexa-v3.0.0-release-apk
-          path: Daynexa-v3.0.0-release.apk
+          name: Daynexa-release-apk
+          path: Daynexa-release.apk
           if-no-files-found: warn
           retention-days: 30
 
@@ -159,8 +159,8 @@ jobs:
         if: steps.prepare-apks.outputs.has_debug == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: Daynexa-v3.0.0-debug-apk
-          path: Daynexa-v3.0.0-debug.apk
+          name: Daynexa-debug-apk
+          path: Daynexa-debug.apk
           if-no-files-found: warn
           retention-days: 30
 
@@ -169,20 +169,21 @@ jobs:
         continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v3.0.0' }}
-          name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'Daynexa v3.0.0 (Android APK)' }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'nightly' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'Daynexa Nightly Build (Latest)' }}
           files: |
-            Daynexa-v3.0.0-release.apk
-            Daynexa-v3.0.0-debug.apk
+            Daynexa-release.apk
+            Daynexa-debug.apk
           draft: false
-          prerelease: false
-          make_latest: true
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          make_latest: ${{ startsWith(github.ref, 'refs/tags/') }}
+          fail_on_unmatched_files: false
           body: |
-            ## 📱 Daynexa v3.0.0 (Android APK)
+            ## 📱 Daynexa Android APK Build
 
             ### 🚀 Direct APK Downloads:
-            - **[Daynexa-v3.0.0-release.apk](https://github.com/${{ github.repository }}/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v3.0.0' }}/Daynexa-v3.0.0-release.apk)** (Production Signed APK)
-            - **[Daynexa-v3.0.0-debug.apk](https://github.com/${{ github.repository }}/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v3.0.0' }}/Daynexa-v3.0.0-debug.apk)** (Test / Debug APK)
+            - **[Daynexa-release.apk](https://github.com/${{ github.repository }}/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'nightly' }}/Daynexa-release.apk)** (Production Signed APK)
+            - **[Daynexa-debug.apk](https://github.com/${{ github.repository }}/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'nightly' }}/Daynexa-debug.apk)** (Test / Debug APK)
 
             > ⚠️ **Note about `.tar.gz` and `.zip` files:**
             > Under **Assets** below, GitHub automatically includes `Source code (tar.gz)` and `Source code (zip)`. Those are source code archives, **NOT** application files!
