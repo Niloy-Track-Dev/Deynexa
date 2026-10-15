@@ -124,27 +124,28 @@ jobs:
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          name: "v1.0.0"
-          tag_name: "v1.0.0"
-          files: Daynexa-v1.0.0-release.apk
+          name: "v2.0.0"
+          tag_name: "v2.0.0"
+          files: Daynexa-v2.0.0-release.apk
           draft: false
           prerelease: false
           body: |
-            ### Daynexa v1.0.0 Release
+            ### Daynexa v2.0.0 Major Release
 
-            Welcome to release v1.0.0 of **Daynexa** — the privacy-first, 100% offline daily routine and habit management Android application built with Jetpack Compose.
+            Welcome to release v2.0.0 of **Daynexa** — the privacy-first, 100% offline daily routine and habit management Android application built with Jetpack Compose.
 
-            #### What's New & Major Highlights in v0.8.0
-            - **UI/UX Aesthetics & Design System Overhaul**: Complete visual upgrade with Material 3 dynamic color scheme tokens, elevated surface cards, clean typography, and responsive layouts across all screens.
-            - **Accessibility & Touch Target Standards**: Standardized interactive touch targets to 48dp+ (check toggles, menu options, calendar grid cells, and navigation chevrons).
-            - **System Theme & Dark Mode Resolution**: Fixed system dark mode mapping to automatically adapt to system-wide dark/light preferences seamlessly.
-            - **App Usage & Diagnostic Dashboard**: Track screen time, foreground app durations, app quality ratings (*Must Have*, *Nice to Have*, *Distraction*, *Waste of Time*), and multi-category classifications.
-            - **Browser & Website Diagnostics**: Zero-decryption local DNS domain capture via `VpnService` with custom domain rules engine and website quality ratings.
-            - **Smart Routine Reminders**: `AlarmManager` offline notifications with customizable timing offsets (*At start*, *5m*, *10m*, *15m*, *30m*) and `BootCompletedReceiver` auto-restoration.
-            - **Data Portability & Backup Engine**: Export and import complete database state via JSON with flexible *Merge* and *Overwrite* modes.
+            #### Major Highlights & What's New in v2.0.0
+            - **Settings Screen Layout & Design Fixes**: Improved layout and responsive text handling (e.g. fixed "Focentra Study Focus" card wrapping).
+            - **Task Double-Tap Gesture & Shadow Removal**: Optimized task uncomplete threshold to 2 taps and removed unwanted card click shadows/ripples.
+            - **Stats Screen & Productivity Score Overhaul**: Fixed period switching (Today / Weekly / Monthly) date ranges with user week start day preference and enhanced productivity score calculations.
+            - **Category Enhancements**: Added horizontal color selector with expanded palette (15 colors) and 12 new Material icons.
+            - **Category Double-Tap Deletion**: Double-tap any category in App Classification to quickly trigger deletion.
+            - **Custom Time Picker for Reminders**: Added 12H/24H Material3 TimePicker dialog for custom default reminder timing.
+            - **Targeted App Diagnostic System**: Select specific apps for detailed foreground & usage diagnostic tracking. Integrated targeted app usage cards into Statistics view.
+            - **Chunked Data Import & Export Engine**: High-performance batch Room database operations handling large data exports/imports seamlessly with real-time status feedback.
 
             #### Installation Instructions
-            1. Download **`Daynexa-v0.8.0-release.apk`** below.
+            1. Download **`Daynexa-v2.0.0-release.apk`** below.
             2. Open the APK on your Android device (Android 8.0+ / API 26+) and confirm installation.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
