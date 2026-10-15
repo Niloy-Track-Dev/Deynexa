@@ -258,55 +258,66 @@ fun StatisticsScreen(
                     }
                 }
 
-                // App Usage & Device Diagnostic Section Card
+                // Live Targeted Diagnostic Apps Usage Card (Task 9 & 10)
                 item {
                     Surface(
                         shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        Column(
+                            modifier = Modifier.padding(18.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                                contentAlignment = Alignment.Center
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Insights,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(24.dp)
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Insights,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    Text(
+                                        text = "Targeted Apps Usage Diagnostic",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                TextButton(onClick = onNavigateToDiagnostic) {
+                                    Text("Manage", style = MaterialTheme.typography.labelMedium)
+                                }
                             }
 
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "App Usage & Productivity Diagnostic",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "Track daily focus time, app quality ratings, non-productive usage, and custom app categories.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Button(
-                                    onClick = onNavigateToDiagnostic,
-                                    shape = RoundedCornerShape(10.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                                ) {
-                                    Text("Open Diagnostic Dashboard", style = MaterialTheme.typography.labelMedium)
-                                }
+                            Text(
+                                text = "In-depth screen time tracking for selected focus & distraction apps:",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            // Quick CTA button
+                            Button(
+                                onClick = onNavigateToDiagnostic,
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Open Full Diagnostic Dashboard", style = MaterialTheme.typography.labelMedium)
                             }
                         }
                     }
@@ -484,8 +495,14 @@ fun StatisticsScreen(
                     }
                 }
 
-                // Categories Breakdown
-                if (uiState.categoryStats.isNotEmpty()) {
+                // Categories Breakdown based on selectedPeriodTab
+                val activeCategoryStats = when (selectedPeriodTab) {
+                    0 -> uiState.categoryStatsToday
+                    1 -> uiState.categoryStatsWeek
+                    else -> uiState.categoryStatsMonth
+                }
+
+                if (activeCategoryStats.isNotEmpty()) {
                     item {
                         Surface(
                             shape = RoundedCornerShape(20.dp),
@@ -504,7 +521,7 @@ fun StatisticsScreen(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
 
-                                uiState.categoryStats.forEach { catStat ->
+                                activeCategoryStats.forEach { catStat ->
                                     CategoryProgressRow(stat = catStat)
                                 }
                             }

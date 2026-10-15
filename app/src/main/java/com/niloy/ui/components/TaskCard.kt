@@ -11,6 +11,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -67,7 +68,7 @@ fun TaskCard(
 
     val handleTap = {
         val now = System.currentTimeMillis()
-        if (now - lastTapTime < 800L) {
+        if (now - lastTapTime < 500L) {
             tapCount++
         } else {
             tapCount = 1
@@ -75,9 +76,11 @@ fun TaskCard(
         lastTapTime = now
 
         if (tapCount == 2) {
-            if (onComplete != null) onComplete() else onToggle?.invoke()
-        } else if (tapCount == 4) {
-            if (onUncomplete != null) onUncomplete() else onToggle?.invoke()
+            if (item.occurrence.state == TaskState.COMPLETED) {
+                if (onUncomplete != null) onUncomplete() else onToggle?.invoke()
+            } else {
+                if (onComplete != null) onComplete() else onToggle?.invoke()
+            }
             tapCount = 0
         }
     }
@@ -103,11 +106,16 @@ fun TaskCard(
     val isDark = isSystemInDarkTheme()
     val categoryColor = category?.color?.let { Color(it) } ?: MaterialTheme.colorScheme.primary
 
+    val interactionSource = remember { MutableInteractionSource() }
+
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .alpha(cardAlpha)
-            .clickable { handleTap() }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) { handleTap() }
             .testTag("task_item_${item.task.id}"),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
@@ -130,7 +138,10 @@ fun TaskCard(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .clickable { handleTap() },
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { handleTap() },
                 contentAlignment = Alignment.Center
             ) {
                 Surface(

@@ -24,7 +24,8 @@ class DiagnosticRepositoryImpl(
     private val context: Context,
     private val classificationDao: AppClassificationDao,
     private val focentraDao: com.niloy.data.local.dao.FocentraStudySessionDao,
-    private val appCategoryDao: com.niloy.data.local.dao.AppCategoryDao
+    private val appCategoryDao: com.niloy.data.local.dao.AppCategoryDao,
+    private val settingDao: com.niloy.data.local.dao.SettingDao
 ) : DiagnosticRepository {
 
     init {
@@ -136,6 +137,14 @@ class DiagnosticRepositoryImpl(
         }
     }
 
+    override suspend fun getSetting(key: String): String? {
+        return settingDao.getByKey(key)?.value
+    }
+
+    override suspend fun saveSetting(key: String, value: String) {
+        settingDao.insert(com.niloy.data.local.entity.SettingEntity(key, value))
+    }
+
     override suspend fun getInstalledApps(): List<InstalledAppInfo> = withContext(Dispatchers.IO) {
         val pm = context.packageManager
         val installedPackages = try {
@@ -147,7 +156,6 @@ class DiagnosticRepositoryImpl(
         val classificationsMap = try {
             val list = mutableMapOf<String, AppClassificationEntity>()
             classificationDao.getAllClassifications()
-            // We read one-shot by querying DB directly
             list
         } catch (e: Exception) {
             emptyMap<String, AppClassificationEntity>()
@@ -155,7 +163,6 @@ class DiagnosticRepositoryImpl(
 
         val result = mutableListOf<InstalledAppInfo>()
         for (app in installedPackages) {
-            // Filter out system apps without launch intent if desired, or show launcher apps
             val launchIntent = pm.getLaunchIntentForPackage(app.packageName)
             if (launchIntent != null || (app.flags and ApplicationInfo.FLAG_SYSTEM) == 0) {
                 val appName = pm.getApplicationLabel(app).toString()

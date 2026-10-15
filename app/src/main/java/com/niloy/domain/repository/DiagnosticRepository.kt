@@ -25,4 +25,8 @@ interface DiagnosticRepository {
     fun getAppCategories(): Flow<List<com.niloy.domain.model.AppCategory>>
     suspend fun saveAppCategory(category: com.niloy.domain.model.AppCategory)
     suspend fun deleteAppCategory(category: com.niloy.domain.model.AppCategory)
+
+    // Settings
+    suspend fun getSetting(key: String): String?
+    suspend fun saveSetting(key: String, value: String)
 }
