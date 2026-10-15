@@ -126,20 +126,17 @@ fun CalendarScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Weekday labels (Mon -> Sun)
+                        // Weekday labels according to weekStart setting
+                        val weekdays = remember(uiState.weekStart) {
+                            val start = uiState.weekStart
+                            (0..6).map { start.plus(it.toLong()) }
+                        }
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceAround
                         ) {
-                            listOf(
-                                DayOfWeek.MONDAY,
-                                DayOfWeek.TUESDAY,
-                                DayOfWeek.WEDNESDAY,
-                                DayOfWeek.THURSDAY,
-                                DayOfWeek.FRIDAY,
-                                DayOfWeek.SATURDAY,
-                                DayOfWeek.SUNDAY
-                            ).forEach { dayOfWeek ->
+                            weekdays.forEach { dayOfWeek ->
                                 Text(
                                     text = dayOfWeek.getDisplayName(TextStyle.NARROW, Locale.getDefault()),
                                     style = MaterialTheme.typography.labelSmall,
@@ -160,6 +157,7 @@ fun CalendarScreen(
                         MonthCalendarGrid(
                             currentMonth = uiState.currentMonth,
                             selectedDate = uiState.selectedDate,
+                            weekStart = uiState.weekStart,
                             productivityMap = uiState.monthProductivity,
                             onSelectDate = { viewModel.selectDate(it) }
                         )
@@ -243,6 +241,7 @@ fun CalendarScreen(
 private fun MonthCalendarGrid(
     currentMonth: YearMonth,
     selectedDate: LocalDate,
+    weekStart: DayOfWeek,
     productivityMap: Map<LocalDate, DayProductivity>,
     onSelectDate: (LocalDate) -> Unit
 ) {
@@ -250,8 +249,7 @@ private fun MonthCalendarGrid(
     val daysInMonth = currentMonth.lengthOfMonth()
     val today = LocalDate.now()
 
-    // 1 (Monday) to 7 (Sunday)
-    val startDayOffset = firstDayOfMonth.dayOfWeek.value - 1
+    val startDayOffset = (firstDayOfMonth.dayOfWeek.value - weekStart.value + 7) % 7
 
     val totalCells = ((startDayOffset + daysInMonth + 6) / 7) * 7
 

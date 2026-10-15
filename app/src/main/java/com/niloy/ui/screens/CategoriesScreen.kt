@@ -324,7 +324,16 @@ private fun CategoryDialog(
         Color(0xFF3F51B5).toArgb(), // Indigo Dark
         Color(0xFF00BCD4).toArgb(), // Cyan Bright
         Color(0xFF4CAF50).toArgb(), // Green Light
-        Color(0xFFFFC107).toArgb()  // Amber Bright
+        Color(0xFFFFC107).toArgb(), // Amber Bright
+        Color(0xFF607D8B).toArgb(), // Blue Grey
+        Color(0xFF795548).toArgb(), // Brown
+        Color(0xFF8BC34A).toArgb(), // Lime Green
+        Color(0xFFFF9800).toArgb(), // Orange
+        Color(0xFF009688).toArgb(), // Dark Teal
+        Color(0xFF673AB7).toArgb(), // Deep Purple
+        Color(0xFFEC407A).toArgb(), // Light Pink
+        Color(0xFF26A69A).toArgb(), // Mint Teal
+        Color(0xFFAB47BC).toArgb()  // Orchid Purple
     )
 
     AlertDialog(
@@ -363,27 +372,30 @@ private fun CategoryDialog(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        .horizontalScroll(rememberScrollState())
+                        .padding(vertical = 4.dp, horizontal = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     colorsList.forEach { colorInt ->
                         val isSelected = selectedColor == colorInt
-                        Box(
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(colorInt),
+                            border = if (isSelected) BorderStroke(2.5.dp, MaterialTheme.colorScheme.onSurface) else null,
                             modifier = Modifier
                                 .size(38.dp)
-                                .clip(CircleShape)
-                                .background(Color(colorInt))
-                                .clickable { selectedColor = colorInt },
-                            contentAlignment = Alignment.Center
+                                .clickable { selectedColor = colorInt }
                         ) {
-                            if (isSelected) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = "Selected",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                            Box(contentAlignment = Alignment.Center) {
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Selected",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -400,7 +412,7 @@ private fun CategoryDialog(
                     columns = GridCells.Fixed(5),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(130.dp),
+                        .height(180.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {

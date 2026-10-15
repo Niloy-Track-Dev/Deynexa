@@ -35,7 +35,22 @@ object IconHelper {
         "tools" to Icons.Default.Build,
         "lightbulb" to Icons.Default.Lightbulb,
         "notifications" to Icons.Default.Notifications,
-        "extension" to Icons.Default.Extension
+        "extension" to Icons.Default.Extension,
+        "water" to Icons.Default.WaterDrop,
+        "nature" to Icons.Default.Park,
+        "timer" to Icons.Default.Timer,
+        "flag" to Icons.Default.Flag,
+        "sports" to Icons.Default.SportsBasketball,
+        "movie" to Icons.Default.Movie,
+        "cleaning" to Icons.Default.CleaningServices,
+        "calendar" to Icons.Default.CalendarToday,
+        "analytics" to Icons.Default.Analytics,
+        "cloud" to Icons.Default.Cloud,
+        "family" to Icons.Default.FamilyRestroom,
+        "pets" to Icons.Default.Pets,
+        "medical" to Icons.Default.LocalHospital,
+        "savings" to Icons.Default.Savings,
+        "rocket" to Icons.Default.RocketLaunch
     )
 
     fun getIcon(name: String): ImageVector {

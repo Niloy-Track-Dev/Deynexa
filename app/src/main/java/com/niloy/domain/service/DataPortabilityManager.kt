@@ -234,92 +234,125 @@ class DataPortabilityManager(
                         }
                     }
 
-                    // 3. Occurrences
+                    // 3. Occurrences (Batch Optimized for Large Datasets)
+                    val existingOccurrences = database.taskOccurrenceDao().getAllOccurrencesOnce()
+                    val existingOccMap = existingOccurrences.associateBy { "${it.taskId}_${it.date}" }
+                    val occsToInsert = mutableListOf<TaskOccurrenceEntity>()
+                    val occsToUpdate = mutableListOf<TaskOccurrenceEntity>()
+
                     data.occurrences.forEach { incomingOcc ->
                         val mappedTaskId = taskIdRemap[incomingOcc.taskId] ?: incomingOcc.taskId
-                        val existingOcc = database.taskOccurrenceDao().getByTaskIdAndDate(mappedTaskId, incomingOcc.date)
-                        if (existingOcc != null) {
-                            if (incomingOcc.updatedAt >= existingOcc.updatedAt) {
-                                database.taskOccurrenceDao().update(
-                                    incomingOcc.toEntity().copy(id = existingOcc.id, taskId = mappedTaskId)
-                                )
+                        val key = "${mappedTaskId}_${incomingOcc.date}"
+                        val existing = existingOccMap[key]
+                        if (existing != null) {
+                            if (incomingOcc.updatedAt >= existing.updatedAt) {
+                                occsToUpdate.add(incomingOcc.toEntity().copy(id = existing.id, taskId = mappedTaskId))
                             }
                         } else {
-                            database.taskOccurrenceDao().insert(
-                                incomingOcc.toEntity().copy(id = 0, taskId = mappedTaskId)
-                            )
+                            occsToInsert.add(incomingOcc.toEntity().copy(id = 0, taskId = mappedTaskId))
+                        }
+                    }
+
+                    if (occsToInsert.isNotEmpty()) {
+                        occsToInsert.chunked(500).forEach { batch ->
+                            database.taskOccurrenceDao().insertAll(batch)
+                        }
+                    }
+                    if (occsToUpdate.isNotEmpty()) {
+                        occsToUpdate.chunked(500).forEach { batch ->
+                            database.taskOccurrenceDao().insertAll(batch)
                         }
                     }
 
                     // 4. Task Templates
-                    data.taskTemplates?.forEach { incomingTmpl ->
-                        val remappedCatId = categoryIdRemap[incomingTmpl.categoryId] ?: incomingTmpl.categoryId
-                        database.taskTemplateDao().insert(
-                            incomingTmpl.toEntity().copy(id = 0, categoryId = remappedCatId)
-                        )
+                    data.taskTemplates?.let { list ->
+                        if (list.isNotEmpty()) {
+                            val templatesToInsert = list.map { incomingTmpl ->
+                                val remappedCatId = categoryIdRemap[incomingTmpl.categoryId] ?: incomingTmpl.categoryId
+                                incomingTmpl.toEntity().copy(id = 0, categoryId = remappedCatId)
+                            }
+                            templatesToInsert.chunked(500).forEach { batch ->
+                                database.taskTemplateDao().insertAll(batch)
+                            }
+                        }
                     }
 
                     // 5. Goals
-                    data.goals?.forEach { incomingGoal ->
-                        val remappedCatId = incomingGoal.categoryId?.let { categoryIdRemap[it] ?: it }
-                        database.goalDao().insert(
-                            incomingGoal.toEntity().copy(id = 0, categoryId = remappedCatId)
-                        )
+                    data.goals?.let { list ->
+                        if (list.isNotEmpty()) {
+                            val goalsToInsert = list.map { incomingGoal ->
+                                val remappedCatId = incomingGoal.categoryId?.let { categoryIdRemap[it] ?: it }
+                                incomingGoal.toEntity().copy(id = 0, categoryId = remappedCatId)
+                            }
+                            goalsToInsert.chunked(500).forEach { batch ->
+                                database.goalDao().insertAll(batch)
+                            }
+                        }
                     }
 
                     // 6. App Categories
-                    data.appCategories?.forEach { incomingAppCat ->
-                        val existing = database.appCategoryDao().getByName(incomingAppCat.name)
-                        if (existing == null) {
-                            database.appCategoryDao().insert(
-                                AppCategoryEntity(
-                                    id = 0,
-                                    name = incomingAppCat.name,
-                                    isProductive = incomingAppCat.isProductive,
-                                    createdAt = incomingAppCat.createdAt
-                                )
-                            )
+                    data.appCategories?.let { list ->
+                        if (list.isNotEmpty()) {
+                            val existingAppCats = database.appCategoryDao().getAllCategoriesOneShot().associateBy { it.name.lowercase().trim() }
+                            val newAppCats = list.filter { !existingAppCats.containsKey(it.name.lowercase().trim()) }.map {
+                                AppCategoryEntity(id = 0, name = it.name, isProductive = it.isProductive, createdAt = it.createdAt)
+                            }
+                            if (newAppCats.isNotEmpty()) {
+                                newAppCats.chunked(500).forEach { batch ->
+                                    database.appCategoryDao().insertAll(batch)
+                                }
+                            }
                         }
                     }
 
                     // 7. App Classifications
-                    data.appClassifications?.forEach { incomingClass ->
-                        database.appClassificationDao().insertOrUpdate(
-                            AppClassificationEntity(
-                                packageName = incomingClass.packageName,
-                                appName = incomingClass.appName,
-                                categories = incomingClass.categories,
-                                qualityRating = incomingClass.qualityRating,
-                                customProductivityType = incomingClass.customProductivityType,
-                                isUsageTracked = incomingClass.isUsageTracked,
-                                severity = incomingClass.severity,
-                                updatedAt = incomingClass.updatedAt
-                            )
-                        )
+                    data.appClassifications?.let { list ->
+                        if (list.isNotEmpty()) {
+                            val entities = list.map { incomingClass ->
+                                AppClassificationEntity(
+                                    packageName = incomingClass.packageName,
+                                    appName = incomingClass.appName,
+                                    categories = incomingClass.categories,
+                                    qualityRating = incomingClass.qualityRating,
+                                    customProductivityType = incomingClass.customProductivityType,
+                                    isUsageTracked = incomingClass.isUsageTracked,
+                                    severity = incomingClass.severity,
+                                    updatedAt = incomingClass.updatedAt
+                                )
+                            }
+                            entities.chunked(500).forEach { batch ->
+                                database.appClassificationDao().insertAll(batch)
+                            }
+                        }
                     }
 
                     // 8. Focentra Sessions (Deduplicated by sessionId)
-                    data.focentraSessions?.forEach { incomingSession ->
-                        database.focentraStudySessionDao().insertSession(
-                            FocentraStudySessionEntity(
-                                sessionId = incomingSession.sessionId,
-                                subject = incomingSession.subject,
-                                topic = incomingSession.topic,
-                                startTime = incomingSession.startTime,
-                                endTime = incomingSession.endTime,
-                                duration = incomingSession.duration,
-                                completionStatus = incomingSession.completionStatus,
-                                focusScore = incomingSession.focusScore,
-                                schemaVersion = incomingSession.schemaVersion,
-                                importedAt = incomingSession.importedAt
-                            )
-                        )
+                    data.focentraSessions?.let { list ->
+                        if (list.isNotEmpty()) {
+                            val entities = list.map { incomingSession ->
+                                FocentraStudySessionEntity(
+                                    sessionId = incomingSession.sessionId,
+                                    subject = incomingSession.subject,
+                                    topic = incomingSession.topic,
+                                    startTime = incomingSession.startTime,
+                                    endTime = incomingSession.endTime,
+                                    duration = incomingSession.duration,
+                                    completionStatus = incomingSession.completionStatus,
+                                    focusScore = incomingSession.focusScore,
+                                    schemaVersion = incomingSession.schemaVersion,
+                                    importedAt = incomingSession.importedAt
+                                )
+                            }
+                            entities.chunked(500).forEach { batch ->
+                                database.focentraStudySessionDao().insertSessions(batch)
+                            }
+                        }
                     }
 
                     // 9. Settings
+                    val existingSettings = database.settingDao().getAllSettingsOnce().associateBy { it.key }
                     data.settings.forEach { (k, v) ->
-                        val existing = database.settingDao().getByKey(k)
-                        if (existing == null) {
+                        if (!existingSettings.containsKey(k)) {
                             database.settingDao().insert(SettingEntity(k, v))
                         }
                     }

@@ -141,14 +141,12 @@ class StatisticsViewModel(
             DayOfWeek.MONDAY
         }
 
-        // This Week Stats starting from weekStartPref
+        // This Week Stats starting from weekStartPref (full 7-day week)
         var startOfWeek = today
         while (startOfWeek.dayOfWeek != weekStartPref) {
             startOfWeek = startOfWeek.minusDays(1)
         }
-        val thisWeekDays = generateSequence(startOfWeek) { it.plusDays(1) }
-            .takeWhile { !it.isAfter(today) }
-            .toList()
+        val thisWeekDays = (0..6).map { startOfWeek.plusDays(it.toLong()) }
         var weekTotal = 0
         var weekCompleted = 0
         var weekPending = 0
@@ -162,11 +160,10 @@ class StatisticsViewModel(
         }
         val weekRate = if (weekTotal == 0) 0f else weekCompleted.toFloat() / weekTotal
 
-        // This Month Stats
+        // This Month Stats (full month days)
         val startOfMonth = today.withDayOfMonth(1)
-        val thisMonthDays = generateSequence(startOfMonth) { it.plusDays(1) }
-            .takeWhile { !it.isAfter(today) }
-            .toList()
+        val lengthOfMonth = today.lengthOfMonth()
+        val thisMonthDays = (0 until lengthOfMonth).map { startOfMonth.plusDays(it.toLong()) }
         var monthTotal = 0
         var monthCompleted = 0
         var monthPending = 0
@@ -213,10 +210,20 @@ class StatisticsViewModel(
         // Best Day of Week
         val bestDayName = insights.bestCompletionWeekday.ifBlank { "Every Day" }
 
-        // Productivity score: weighted combination of recent 7-day completion rate, current streak bonus, and total task load
-        val baseScore = (last7DaysPoints.map { it.completionRate }.average().toFloat() * 70f)
-        val streakBonus = (insights.currentStreak * 2f).coerceAtMost(20f)
-        val consistencyBonus = if (todayRate > 0.5f) 10f else 0f
+        // Productivity score calculation:
+        // Consider active days (days with totalCount > 0) in the last 7 days so rest days aren't penalized
+        val activePoints = last7DaysPoints.filter { it.totalCount > 0 }
+        val avgCompletionRate = if (activePoints.isNotEmpty()) {
+            activePoints.map { it.completionRate }.average().toFloat()
+        } else {
+            if (allOccurrences.any { it.state == TaskState.COMPLETED }) 0.8f else 0.5f
+        }
+
+        val baseScore = avgCompletionRate * 60f
+        val streakBonus = (insights.currentStreak * 4f).coerceAtMost(20f)
+        val activeDaysCount = activePoints.count { it.completedCount > 0 }
+        val consistencyBonus = (activeDaysCount.toFloat() / maxOf(activePoints.size, 1)) * 20f
+
         val productivityScore = (baseScore + streakBonus + consistencyBonus).toInt().coerceIn(0, 100)
         val productivityRating = when {
             productivityScore >= 80 -> "High"
@@ -225,14 +232,16 @@ class StatisticsViewModel(
         }
 
         // Category Stats for Today, Week, Month
-        val categoryStatsToday = categories.map { cat ->
+        val categoryStatsToday = categories.mapNotNull { cat ->
             val dTasks = todayTasks.filter { it.task.categoryId == cat.id }
             val comp = dTasks.count { it.occurrence.state == TaskState.COMPLETED }
             val rate = if (dTasks.isEmpty()) 0f else comp.toFloat() / dTasks.size
-            CategoryStat(category = cat, totalCount = dTasks.size, completedCount = comp, completionRate = rate)
+            if (dTasks.isNotEmpty()) {
+                CategoryStat(category = cat, totalCount = dTasks.size, completedCount = comp, completionRate = rate)
+            } else null
         }
 
-        val categoryStatsWeek = categories.map { cat ->
+        val categoryStatsWeek = categories.mapNotNull { cat ->
             var total = 0
             var comp = 0
             thisWeekDays.forEach { d ->
@@ -241,10 +250,12 @@ class StatisticsViewModel(
                 comp += dTasks.count { it.occurrence.state == TaskState.COMPLETED }
             }
             val rate = if (total == 0) 0f else comp.toFloat() / total
-            CategoryStat(category = cat, totalCount = total, completedCount = comp, completionRate = rate)
+            if (total > 0) {
+                CategoryStat(category = cat, totalCount = total, completedCount = comp, completionRate = rate)
+            } else null
         }
 
-        val categoryStatsMonth = categories.map { cat ->
+        val categoryStatsMonth = categories.mapNotNull { cat ->
             var total = 0
             var comp = 0
             thisMonthDays.forEach { d ->
@@ -253,7 +264,9 @@ class StatisticsViewModel(
                 comp += dTasks.count { it.occurrence.state == TaskState.COMPLETED }
             }
             val rate = if (total == 0) 0f else comp.toFloat() / total
-            CategoryStat(category = cat, totalCount = total, completedCount = comp, completionRate = rate)
+            if (total > 0) {
+                CategoryStat(category = cat, totalCount = total, completedCount = comp, completionRate = rate)
+            } else null
         }
 
         val allTimeCompleted = allOccurrences.count { it.state == TaskState.COMPLETED }
