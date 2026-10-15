@@ -18,13 +18,16 @@ android {
     }
     signingConfigs {
         release {
-            def keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
+            def keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/keystore/my-upload-key.jks"
             def keystoreFile = file(keystorePath)
+            if (!keystoreFile.exists()) {
+                keystoreFile = file("${rootDir}/../keystore/my-upload-key.jks")
+            }
             if (keystoreFile.exists()) {
                 storeFile keystoreFile
-                storePassword System.getenv("STORE_PASSWORD") ?: "android"
-                keyAlias System.getenv("KEY_ALIAS") ?: "upload"
-                keyPassword System.getenv("KEY_PASSWORD") ?: "android"
+                storePassword (System.getenv("STORE_PASSWORD") ?: "android")
+                keyAlias (System.getenv("KEY_ALIAS") ?: "upload")
+                keyPassword (System.getenv("KEY_PASSWORD") ?: "android")
             }
         }
     }
@@ -32,7 +35,15 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            def releaseSign = signingConfigs.findByName("release")
+            if (releaseSign != null && releaseSign.storeFile != null && releaseSign.storeFile.exists()) {
+                signingConfig releaseSign
+            } else {
+                signingConfig signingConfigs.getByName("debug")
+            }
+        }
+        debug {
+            signingConfig signingConfigs.getByName("debug")
         }
     }
 }
