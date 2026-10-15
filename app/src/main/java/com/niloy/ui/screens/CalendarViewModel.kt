@@ -39,6 +39,7 @@ data class CalendarUiState(
     val monthProductivity: Map<LocalDate, DayProductivity> = emptyMap(),
     val stats: CalendarStats = CalendarStats(),
     val is24Hour: Boolean = true,
+    val weekStart: DayOfWeek = DayOfWeek.MONDAY,
     val isLoading: Boolean = true
 )
 
@@ -61,12 +62,16 @@ class CalendarViewModel(
     val currentMonth = _currentMonth.asStateFlow()
 
     private val _is24Hour = MutableStateFlow(true)
+    private val _weekStart = MutableStateFlow(DayOfWeek.MONDAY)
     private val _weekendDays = MutableStateFlow(setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY))
 
     init {
         viewModelScope.launch {
             val format = repository.getSetting("time_format") ?: "24H"
             _is24Hour.value = format == "24H"
+
+            val weekStartStr = repository.getSetting("week_start") ?: "MONDAY"
+            _weekStart.value = try { DayOfWeek.valueOf(weekStartStr) } catch (e: Exception) { DayOfWeek.MONDAY }
 
             val weekendStr = repository.getSetting("weekend_days") ?: "SATURDAY,SUNDAY"
             if (weekendStr.isNotBlank()) {
@@ -93,8 +98,9 @@ class CalendarViewModel(
         _currentMonth,
         _selectedDate,
         _is24Hour,
+        _weekStart,
         repoDataFlow
-    ) { month, selectedDate, is24H, repoData ->
+    ) { month, selectedDate, is24H, weekStart, repoData ->
         val tasksForSelectedDate = schedulingService.getTasksForDate(
             tasks = repoData.tasks,
             occurrences = repoData.occurrences,
@@ -145,6 +151,7 @@ class CalendarViewModel(
                 completionRate = rate
             ),
             is24Hour = is24H,
+            weekStart = weekStart,
             isLoading = false
         )
     }.stateIn(

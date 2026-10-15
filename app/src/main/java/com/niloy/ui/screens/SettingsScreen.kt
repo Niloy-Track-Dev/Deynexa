@@ -294,31 +294,32 @@ fun SettingsScreen(
                             focentraStatus.isConnected -> "Connected • ${focentraStatus.totalImportedSessions} sessions imported"
                             else -> "Not Connected (Optional)"
                         },
+                        titleMaxLines = 1,
                         trailing = {
                             if (focentraStatus?.isInstalled == true) {
                                 if (focentraStatus.isConnected) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                                         TextButton(
                                             onClick = { viewModel.syncFocentra() },
-                                            contentPadding = PaddingValues(horizontal = 8.dp)
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
                                         ) {
-                                            Text("Sync", style = MaterialTheme.typography.labelMedium)
+                                            Text("Sync", style = MaterialTheme.typography.labelSmall)
                                         }
                                         OutlinedButton(
                                             onClick = { viewModel.disconnectFocentra() },
                                             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                                            contentPadding = PaddingValues(horizontal = 8.dp)
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
                                         ) {
-                                            Text("Disconnect", style = MaterialTheme.typography.labelMedium)
+                                            Text("Disconnect", style = MaterialTheme.typography.labelSmall)
                                         }
                                     }
                                 } else {
                                     Button(
                                         onClick = { showConsentDialog = true },
-                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                                        shape = RoundedCornerShape(12.dp)
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                        shape = RoundedCornerShape(10.dp)
                                     ) {
-                                        Text("Connect", style = MaterialTheme.typography.labelLarge)
+                                        Text("Connect", style = MaterialTheme.typography.labelMedium)
                                     }
                                 }
                             } else {
@@ -329,7 +330,7 @@ fun SettingsScreen(
                                     },
                                     contentPadding = PaddingValues(horizontal = 8.dp)
                                 ) {
-                                    Text("Get App", style = MaterialTheme.typography.labelMedium)
+                                    Text("Get App", style = MaterialTheme.typography.labelSmall)
                                 }
                             }
                         }
@@ -384,14 +385,25 @@ fun SettingsScreen(
                                             fontWeight = FontWeight.Medium,
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
+                                        val offset = uiState.defaultReminderOffset
+                                        val subtitle = when (offset) {
+                                            0 -> "At start time"
+                                            5 -> "5 minutes before routine"
+                                            10 -> "10 minutes before routine"
+                                            15 -> "15 minutes before routine"
+                                            30 -> "30 minutes before routine"
+                                            else -> {
+                                                val h = offset / 60
+                                                val m = offset % 60
+                                                when {
+                                                    h > 0 && m > 0 -> "$h hrs $m mins before routine"
+                                                    h > 0 -> "$h hrs before routine"
+                                                    else -> "$m mins before routine"
+                                                }
+                                            }
+                                        }
                                         Text(
-                                            text = when (uiState.defaultReminderOffset) {
-                                                5 -> "5 minutes before routine"
-                                                10 -> "10 minutes before routine"
-                                                15 -> "15 minutes before routine"
-                                                30 -> "30 minutes before routine"
-                                                else -> "At start time"
-                                            },
+                                            text = subtitle,
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -421,15 +433,27 @@ fun SettingsScreen(
                                     )
                                 }
 
-                                OutlinedButton(
+                                val isCustom = uiState.defaultReminderOffset !in listOf(0, 5, 10, 15, 30)
+                                val customText = if (isCustom) {
+                                    val h = uiState.defaultReminderOffset / 60
+                                    val m = uiState.defaultReminderOffset % 60
+                                    if (h > 0 && m > 0) "${h}h ${m}m" else if (h > 0) "${h}h" else "${m}m"
+                                } else "Custom"
+
+                                FilterChip(
+                                    selected = isCustom,
                                     onClick = { showTimePickerDialog = true },
-                                    shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                                ) {
-                                    Icon(Icons.Outlined.AccessTime, contentDescription = null, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Custom", fontSize = 12.sp)
-                                }
+                                    label = {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Icon(Icons.Outlined.AccessTime, contentDescription = null, modifier = Modifier.size(14.dp))
+                                            Text(if (isCustom) "Custom ($customText)" else "Custom", fontSize = 12.sp)
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(8.dp)
+                                )
                             }
                         }
 
@@ -607,7 +631,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Build Better Days • v2.0.0",
+                        text = "Build Better Days • v3.0.0",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1003,6 +1027,7 @@ private fun SettingsRowItem(
     icon: ImageVector,
     title: String,
     subtitle: String,
+    titleMaxLines: Int = Int.MAX_VALUE,
     trailing: @Composable () -> Unit
 ) {
     Column(
@@ -1033,7 +1058,9 @@ private fun SettingsRowItem(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
-                        softWrap = true
+                        softWrap = true,
+                        maxLines = titleMaxLines,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                     if (subtitle.isNotBlank()) {
                         Text(

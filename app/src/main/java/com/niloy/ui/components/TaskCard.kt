@@ -10,9 +10,10 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -63,25 +64,12 @@ fun TaskCard(
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
-    var tapCount by remember { mutableIntStateOf(0) }
-    var lastTapTime by remember { mutableLongStateOf(0L) }
 
-    val handleTap = {
-        val now = System.currentTimeMillis()
-        if (now - lastTapTime < 500L) {
-            tapCount++
+    val toggleTaskState = {
+        if (item.occurrence.state == TaskState.COMPLETED) {
+            if (onUncomplete != null) onUncomplete() else onToggle?.invoke()
         } else {
-            tapCount = 1
-        }
-        lastTapTime = now
-
-        if (tapCount == 2) {
-            if (item.occurrence.state == TaskState.COMPLETED) {
-                if (onUncomplete != null) onUncomplete() else onToggle?.invoke()
-            } else {
-                if (onComplete != null) onComplete() else onToggle?.invoke()
-            }
-            tapCount = 0
+            if (onComplete != null) onComplete() else onToggle?.invoke()
         }
     }
 
@@ -112,10 +100,13 @@ fun TaskCard(
         modifier = modifier
             .fillMaxWidth()
             .alpha(cardAlpha)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null
-            ) { handleTap() }
+            .pointerInput(item.occurrence.state) {
+                detectTapGestures(
+                    onDoubleTap = {
+                        toggleTaskState()
+                    }
+                )
+            }
             .testTag("task_item_${item.task.id}"),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
@@ -125,7 +116,8 @@ fun TaskCard(
             else if (isSkipped) StateSkipped.copy(alpha = 0.15f)
             else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
         ),
-        tonalElevation = if (isCompleted || isSkipped) 0.dp else 1.dp
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
     ) {
         Row(
             modifier = Modifier
@@ -138,10 +130,13 @@ fun TaskCard(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { handleTap() },
+                    .pointerInput(item.occurrence.state) {
+                        detectTapGestures(
+                            onDoubleTap = {
+                                toggleTaskState()
+                            }
+                        )
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Surface(

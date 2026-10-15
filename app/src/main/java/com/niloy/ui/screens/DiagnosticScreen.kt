@@ -387,6 +387,102 @@ private fun AppDiagnosticsContent(
                 }
             }
 
+            // Targeted Apps In-Detail Diagnostic Section
+            if (uiState.targetedPackages.isNotEmpty()) {
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.FilterAlt,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        text = "Targeted Apps In-Detail Diagnostics",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                TextButton(onClick = { viewModel.checkPermissionAndLoadData() }) {
+                                    Text("Edit Selection", style = MaterialTheme.typography.labelMedium)
+                                }
+                            }
+
+                            uiState.targetedPackages.forEach { pkg ->
+                                val targetedAppInfo = summary.topApps.find { it.packageName == pkg }
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = MaterialTheme.colorScheme.surface,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            targetedAppInfo?.let { viewModel.selectAppDetail(it) }
+                                        }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        AppIconImage(packageName = pkg, modifier = Modifier.size(42.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = targetedAppInfo?.appName ?: pkg,
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            val ratingText = targetedAppInfo?.qualityRating?.label ?: "Unrated"
+                                            Text(
+                                                text = "$ratingText • ${targetedAppInfo?.categories?.joinToString(", ") ?: "App"}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        Column(horizontalAlignment = Alignment.End) {
+                                            val timeStr = targetedAppInfo?.let { formatDurationMillis(it.totalTimeInForegroundMillis) } ?: "0m"
+                                            Text(
+                                                text = timeStr,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                            val pct = targetedAppInfo?.percentageOfTotal?.toInt() ?: 0
+                                            Text(
+                                                text = "$pct% screen time",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // Most Used App Highlight
             summary.mostUsedApp?.let { topApp ->
                 item {
