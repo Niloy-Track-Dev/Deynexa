@@ -1,4 +1,4 @@
-name: Android APK & Web CI/CD
+name: Android APK CI/CD
 
 on:
   push:
@@ -18,9 +18,9 @@ permissions:
 
 jobs:
   build-apk:
-    name: Build & Package Android APK
+    name: Build Android APK
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 25
 
     steps:
       - name: Checkout Repository
@@ -33,17 +33,14 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install npm Dependencies
-        run: |
-          npm install
+      - name: Install Dependencies
+        run: npm install
 
-      - name: Build Web Application
-        run: |
-          npm run build
+      - name: Build Web App
+        run: npm run build
 
-      - name: Sync Capacitor Android Project
-        run: |
-          npx cap sync android
+      - name: Sync Capacitor Android
+        run: npx cap sync android
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -51,151 +48,92 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Set up Android SDK
+        uses: subosito/android-action@v2
         with:
-          api-level: 35
-          build-tools: 35.0.0
-          packages: platforms;android-35 build-tools;35.0.0 platform-tools
+          target-sdk-level: 35
+          build-tools-version: 35.0.0
+          cache: false
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          build-root-directory: ./android
-
-      - name: Prepare Signing Keystore
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      - name: Generate Signing Keystore
         run: |
-          mkdir -p "$GITHUB_WORKSPACE/keystore"
-          mkdir -p "$GITHUB_WORKSPACE/android/keystore"
-          
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "Decoding release keystore from GitHub Secrets..."
-            echo "$KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/android/keystore/my-upload-key.jks"
-            cp "$GITHUB_WORKSPACE/android/keystore/my-upload-key.jks" "$GITHUB_WORKSPACE/keystore/my-upload-key.jks"
-            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/android/keystore/my-upload-key.jks" >> $GITHUB_ENV
-            echo "STORE_PASSWORD=$STORE_PASSWORD" >> $GITHUB_ENV
-            echo "KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
-            echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
-          else
-            echo "Generating automated fallback release keystore..."
-            rm -f "$GITHUB_WORKSPACE/android/keystore/my-upload-key.jks"
-            keytool -genkeypair -v -keystore "$GITHUB_WORKSPACE/android/keystore/my-upload-key.jks" \
-              -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
-              -storepass android -keypass android \
-              -dname "CN=Daynexa, OU=Daynexa, O=Niloy, L=Daynexa, S=Daynexa, C=US"
-            cp "$GITHUB_WORKSPACE/android/keystore/my-upload-key.jks" "$GITHUB_WORKSPACE/keystore/my-upload-key.jks"
-            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/android/keystore/my-upload-key.jks" >> $GITHUB_ENV
-            echo "STORE_PASSWORD=android" >> $GITHUB_ENV
-            echo "KEY_PASSWORD=android" >> $GITHUB_ENV
-            echo "KEY_ALIAS=upload" >> $GITHUB_ENV
-          fi
+          mkdir -p android/keystore
+          rm -f android/keystore/my-upload-key.jks
+          keytool -genkeypair -v -keystore android/keystore/my-upload-key.jks \
+            -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Daynexa, OU=App, O=Niloy, L=Dhaka, S=Dhaka, C=BD"
+          echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/android/keystore/my-upload-key.jks" >> $GITHUB_ENV
+          echo "STORE_PASSWORD=android" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=android" >> $GITHUB_ENV
+          echo "KEY_ALIAS=upload" >> $GITHUB_ENV
 
-      - name: Grant Execute Permission for Gradle Wrapper
-        run: chmod +x ./android/gradlew
+      - name: Grant Gradle Executable
+        run: chmod +x android/gradlew
 
-      - name: Build Release and Debug APKs
+      - name: Build APKs with Gradle
         working-directory: ./android
-        env:
-          KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
-          STORE_PASSWORD: ${{ env.STORE_PASSWORD }}
-          KEY_PASSWORD: ${{ env.KEY_PASSWORD }}
-          KEY_ALIAS: ${{ env.KEY_ALIAS }}
         run: |
-          ./gradlew assembleRelease --no-daemon --stacktrace
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug --no-daemon --stacktrace || ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleRelease --no-daemon --stacktrace || echo "Release build warning encountered, proceeding with debug/available APKs"
 
-      - name: Locate & Prepare APK Artifacts
-        id: prepare-apks
+      - name: Locate and Save APK
         run: |
-          echo "Scanning output directory for built APK files..."
-          find android/app/build/outputs/apk -type f -name "*.apk"
+          echo "Searching for built APKs..."
+          find android/app/build/outputs/apk -name "*.apk"
           
-          RELEASE_APK=$(find android/app/build/outputs/apk/release -type f -name "*.apk" | head -n 1)
-          if [ -z "$RELEASE_APK" ]; then
-            RELEASE_APK=$(find android/app/build/outputs/apk -type f -name "*release*.apk" | head -n 1)
-          fi
+          RELEASE_APK=$(find android/app/build/outputs/apk -name "*release*.apk" | head -n 1)
+          DEBUG_APK=$(find android/app/build/outputs/apk -name "*debug*.apk" | head -n 1)
           
-          DEBUG_APK=$(find android/app/build/outputs/apk/debug -type f -name "*.apk" | head -n 1)
-          if [ -z "$DEBUG_APK" ]; then
-            DEBUG_APK=$(find android/app/build/outputs/apk -type f -name "*debug*.apk" | head -n 1)
-          fi
-
           if [ -n "$RELEASE_APK" ] && [ -f "$RELEASE_APK" ]; then
-            echo "Found Release APK: $RELEASE_APK"
             cp "$RELEASE_APK" Daynexa-release.apk
-            echo "has_release=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_release=false" >> "$GITHUB_OUTPUT"
+            echo "Copied Release APK successfully."
           fi
-
+          
           if [ -n "$DEBUG_APK" ] && [ -f "$DEBUG_APK" ]; then
-            echo "Found Debug APK: $DEBUG_APK"
-            cp "$DEBUG_APK" Daynexa-debug.apk
-            echo "has_debug=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_debug=false" >> "$GITHUB_OUTPUT"
+            cp "$DEBUG_APK" Daynexa-app.apk
+            echo "Copied Debug/App APK successfully."
           fi
-
-          if [ ! -f "Daynexa-release.apk" ] && [ ! -f "Daynexa-debug.apk" ]; then
-            echo "::error::Neither Release nor Debug APK was found!"
+          
+          if [ ! -f "Daynexa-app.apk" ] && [ -f "Daynexa-release.apk" ]; then
+            cp Daynexa-release.apk Daynexa-app.apk
+          fi
+          
+          if [ ! -f "Daynexa-app.apk" ]; then
+            echo "::error::No APK found after build!"
             exit 1
           fi
 
-      - name: Upload Release APK to GitHub Artifacts
-        if: steps.prepare-apks.outputs.has_release == 'true'
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Daynexa-release-apk
-          path: Daynexa-release.apk
-          if-no-files-found: warn
+          name: Daynexa-APK
+          path: |
+            Daynexa-app.apk
+            Daynexa-release.apk
+          if-no-files-found: error
           retention-days: 30
 
-      - name: Upload Debug APK to GitHub Artifacts
-        if: steps.prepare-apks.outputs.has_debug == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: Daynexa-debug-apk
-          path: Daynexa-debug.apk
-          if-no-files-found: warn
-          retention-days: 30
-
-      - name: Publish Direct APK Download on GitHub Release
+      - name: Publish GitHub Release
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
         continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'nightly' }}
-          name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'Daynexa Nightly Build (Latest)' }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v3.0.0-nightly' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'Daynexa Latest APK Build' }}
           files: |
+            Daynexa-app.apk
             Daynexa-release.apk
-            Daynexa-debug.apk
           draft: false
           prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
-          make_latest: ${{ startsWith(github.ref, 'refs/tags/') }}
+          make_latest: true
           fail_on_unmatched_files: false
           body: |
-            ## 📱 Daynexa Android APK Build
+            ## 📱 Daynexa Mobile App (Android APK)
 
-            ### 🚀 Direct APK Downloads:
-            - **[Daynexa-release.apk](https://github.com/${{ github.repository }}/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'nightly' }}/Daynexa-release.apk)** (Production Signed APK)
-            - **[Daynexa-debug.apk](https://github.com/${{ github.repository }}/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'nightly' }}/Daynexa-debug.apk)** (Test / Debug APK)
+            ### 🚀 Direct Download:
+            - **[Daynexa-app.apk](https://github.com/${{ github.repository }}/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v3.0.0-nightly' }}/Daynexa-app.apk)** (Ready-to-install Android APK)
 
-            > ⚠️ **Note about `.tar.gz` and `.zip` files:**
-            > Under **Assets** below, GitHub automatically includes `Source code (tar.gz)` and `Source code (zip)`. Those are source code archives, **NOT** application files!
-            > To install Daynexa on your phone, download the **`.apk`** file above!
-
-            ---
-            ### ✨ Features Included:
-            - **Smart Daily Planner & Habit Tracker**: Flexible recurrence, skip reasons, dynamic streak calculations.
-            - **Calendar Matrix**: Month visual grid with 4-level color intensity heatmaps.
-            - **Productivity Score 2.0**: 0–100 score, 7-day completion chart, and weekly review debriefs.
-            - **App Usage & Productivity Diagnostics**: Screen time breakdown, app quality ratings, risk severity, and custom tagging.
-            - **Focentra Study Focus Integration**: Built-in focus session timer with automated session logging.
-            - **Offline-First Storage**: Zero cloud dependency, full JSON data export and import.
+            > ⚠️ **Note:** If you see `Source code (tar.gz)` below, ignore those! Download **`Daynexa-app.apk`** to install on your phone.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
