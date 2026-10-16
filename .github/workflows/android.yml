@@ -34,8 +34,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Accept Android SDK Licenses
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -69,14 +70,14 @@ jobs:
             echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
           else
             echo "Generating automated fallback release keystore..."
-            keytool -genkey -v -keystore "$GITHUB_WORKSPACE/my-upload-key.jks" \
-              -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
-              -storepass android -keypass android \
-              -dname "CN=Daynexa, OU=Daynexa, O=Niloy, L=Daynexa, S=Daynexa, C=US"
-            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/my-upload-key.jks" >> $GITHUB_ENV
-            echo "STORE_PASSWORD=android" >> $GITHUB_ENV
-            echo "KEY_PASSWORD=android" >> $GITHUB_ENV
-            echo "KEY_ALIAS=upload" >> $GITHUB_ENV
+            keytool -genkey -v -keystore "$GITHUB_WORKSPACE/daynexa-keystore.jks" \
+              -alias daynexa-key -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass daynexa123 -keypass daynexa123 \
+              -dname "CN=Daynexa, OU=App, O=Niloy, L=Dhaka, S=Dhaka, C=BD"
+            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/daynexa-keystore.jks" >> $GITHUB_ENV
+            echo "STORE_PASSWORD=daynexa123" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=daynexa123" >> $GITHUB_ENV
+            echo "KEY_ALIAS=daynexa-key" >> $GITHUB_ENV
           fi
 
       - name: Run Unit Tests
