@@ -15,7 +15,7 @@ data class SettingsUiState(
     val isOnboardingCompleted: Boolean = false,
     val theme: String = "SYSTEM",
     val timeFormat: String = "24H",
-    val weekStart: String = "MONDAY",
+    val weekStart: String = "SUNDAY",
     val weekendDays: Set<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY),
     val dayBoundary: String = "12:00 AM (Midnight)",
     val notificationsEnabled: Boolean = true,
@@ -47,7 +47,7 @@ class SettingsViewModel(
                 val onboarding = repository.getSetting("onboarding_completed")?.toBoolean() ?: false
                 val theme = repository.getSetting("theme") ?: "SYSTEM"
                 val timeFormat = repository.getSetting("time_format") ?: "24H"
-                val weekStart = repository.getSetting("week_start") ?: "MONDAY"
+                val weekStart = repository.getSetting("week_start") ?: "SUNDAY"
                 val weekendStr = repository.getSetting("weekend_days") ?: "SATURDAY,SUNDAY"
                 val weekendDays = if (weekendStr.isNotBlank()) {
                     weekendStr.split(",").mapNotNull {

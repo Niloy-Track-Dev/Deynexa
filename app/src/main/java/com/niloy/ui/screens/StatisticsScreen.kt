@@ -603,27 +603,10 @@ private fun SelectedAppDiagnosticItem(appDiag: com.niloy.ui.screens.SelectedAppD
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = when (appDiag.productivityType) {
-                    ProductivityType.PRODUCTIVE -> StateCompleted.copy(alpha = 0.15f)
-                    ProductivityType.NON_PRODUCTIVE -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
-                    else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                },
+            AppIconImage(
+                packageName = appDiag.packageName,
                 modifier = Modifier.size(40.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = appDiag.appName.take(1).uppercase(),
-                        fontWeight = FontWeight.Bold,
-                        color = when (appDiag.productivityType) {
-                            ProductivityType.PRODUCTIVE -> StateCompleted
-                            ProductivityType.NON_PRODUCTIVE -> MaterialTheme.colorScheme.error
-                            else -> MaterialTheme.colorScheme.primary
-                        }
-                    )
-                }
-            }
+            )
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(

@@ -142,17 +142,106 @@ class BackupService {
         }
     }
 
+    fun exportTasksToCsv(tasks: List<Task>): String {
+        val sb = StringBuilder()
+        sb.append("id,name,description,categoryId,priority,recurrenceType\n")
+        tasks.forEach { t ->
+            val safeName = t.name.replace("\"", "\"\"")
+            val safeDesc = t.description.replace("\"", "\"\"")
+            sb.append("${t.id},\"$safeName\",\"$safeDesc\",${t.categoryId},${t.priority.name},${t.recurrenceType.name}\n")
+        }
+        return sb.toString()
+    }
+
+    fun parseTasksCsv(csv: String): BackupData? {
+        val lines = csv.lines().filter { it.isNotBlank() }
+        if (lines.size < 2) return null
+        val header = lines[0].lowercase()
+        if (!header.contains("name") && !header.contains("title")) return null
+
+        val tasks = mutableListOf<Task>()
+        for (i in 1 until lines.size) {
+            val line = lines[i]
+            val tokens = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)".toRegex())
+            if (tokens.isNotEmpty()) {
+                val nameIndex = if (header.startsWith("id,")) 1 else 0
+                val name = tokens.getOrNull(nameIndex)?.trim()?.removeSurrounding("\"")?.replace("\"\"", "\"") ?: continue
+                if (name.isBlank()) continue
+                val desc = tokens.getOrNull(nameIndex + 1)?.trim()?.removeSurrounding("\"")?.replace("\"\"", "\"") ?: ""
+                val catId = tokens.getOrNull(nameIndex + 2)?.trim()?.toLongOrNull() ?: 1L
+
+                tasks.add(
+                    Task(
+                        id = 0,
+                        name = name,
+                        description = desc,
+                        categoryId = catId
+                    )
+                )
+            }
+        }
+        if (tasks.isEmpty()) return null
+        return BackupData(
+            backupVersion = 4,
+            appVersion = "1.2.0",
+            createdAt = System.currentTimeMillis(),
+            backupType = "CSV Routine Import",
+            tasks = tasks
+        )
+    }
+
     fun validateBackup(json: String): BackupValidationResult {
         val trimmed = json.trim()
         if (trimmed.isEmpty()) {
             return BackupValidationResult.Invalid("The provided backup file is empty.")
         }
 
+        // Try CSV parsing if header matches
+        if (trimmed.startsWith("id,title") || trimmed.startsWith("title,description")) {
+            val csvBackup = parseTasksCsv(trimmed)
+            if (csvBackup != null) {
+                val preview = BackupPreviewInfo(
+                    backupType = "CSV Routine Backup",
+                    appVersion = csvBackup.appVersion,
+                    createdAt = csvBackup.createdAt,
+                    tasksCount = csvBackup.tasks.size,
+                    categoriesCount = 0,
+                    occurrencesCount = 0,
+                    taskTemplatesCount = 0,
+                    goalsCount = 0,
+                    focentraSessionsCount = 0,
+                    appClassificationsCount = 0,
+                    appCategoriesCount = 0,
+                    settingsCount = 0
+                )
+                return BackupValidationResult.ValidFull(csvBackup, preview)
+            }
+        }
+
         // Basic JSON sanity check
         val jsonObject = try {
             JSONObject(trimmed)
         } catch (e: Exception) {
-            return BackupValidationResult.Invalid("Invalid JSON syntax: ${e.localizedMessage}")
+            // Also check if CSV was supplied without matching exact initial header
+            val csvBackup = parseTasksCsv(trimmed)
+            if (csvBackup != null) {
+                val preview = BackupPreviewInfo(
+                    backupType = "CSV Routine Backup",
+                    appVersion = csvBackup.appVersion,
+                    createdAt = csvBackup.createdAt,
+                    tasksCount = csvBackup.tasks.size,
+                    categoriesCount = 0,
+                    occurrencesCount = 0,
+                    taskTemplatesCount = 0,
+                    goalsCount = 0,
+                    focentraSessionsCount = 0,
+                    appClassificationsCount = 0,
+                    appCategoriesCount = 0,
+                    settingsCount = 0
+                )
+                return BackupValidationResult.ValidFull(csvBackup, preview)
+            }
+            return BackupValidationResult.Invalid("Invalid file syntax: ${e.localizedMessage}")
         }
 
         // Check if it's a dedicated Focentra Export Bundle

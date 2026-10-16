@@ -268,31 +268,6 @@ fun TaskCard(
                         )
                     }
 
-                    // Recurrence badge
-                    if (item.task.isRecurring) {
-                        Text(
-                            text = "•",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outlineVariant
-                        )
-                        val recurrenceLabel = formatRecurrenceShort(item.task)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                        ) {
-                            Icon(
-                                Icons.Outlined.EventRepeat,
-                                contentDescription = null,
-                                modifier = Modifier.size(11.dp),
-                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                            )
-                            Text(
-                                text = recurrenceLabel,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
-                            )
-                        }
-                    }
 
                     if (category != null) {
                         Text(

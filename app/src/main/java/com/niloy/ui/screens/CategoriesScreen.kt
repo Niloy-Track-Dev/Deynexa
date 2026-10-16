@@ -200,11 +200,21 @@ private fun CategoryItemCard(
     var showMenu by remember { mutableStateOf(false) }
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
 
+    var lastClickTime by remember { mutableStateOf(0L) }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .clickable { onEdit() },
+            .clickable {
+                val now = System.currentTimeMillis()
+                if (now - lastClickTime < 500) {
+                    onDelete()
+                } else {
+                    onEdit()
+                }
+                lastClickTime = now
+            },
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),

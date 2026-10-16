@@ -1,12 +1,15 @@
 package com.niloy.domain.model
 
 enum class AppQualityRating(val label: String, val score: Int) {
-    VERY_GOOD("Very Good", 2),
-    GOOD("Good", 1),
+    VERY_GOOD("Very Good", 3),
+    GOOD("Good", 2),
+    LESS_GOOD("Less Good", 1),
+    MODERATE("Moderate", 0),
     NEUTRAL("Neutral", 0),
-    NOT_GOOD("Not Good", -1),
-    BAD("Bad", -2),
-    VERY_BAD("Very Bad", -3),
+    LESS_BAD("Less Bad", -1),
+    NOT_GOOD("Not Good", -2),
+    BAD("Bad", -3),
+    VERY_BAD("Very Bad", -4),
     UNRATED("Unrated", 0);
 
     companion object {

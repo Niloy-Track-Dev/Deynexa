@@ -179,10 +179,10 @@ fun SettingsScreen(
                     SettingsRowItem(
                         icon = Icons.Outlined.Palette,
                         title = "App Theme",
-                        subtitle = "Select between Light, Dark, or System mode",
+                        subtitle = "Select between Light or Dark mode",
                         trailing = {
                             SettingsChipRow(
-                                options = listOf("Light" to "LIGHT", "Dark" to "DARK", "Auto" to "SYSTEM"),
+                                options = listOf("Light" to "LIGHT", "Dark" to "DARK"),
                                 selectedOption = uiState.theme,
                                 onOptionSelected = { viewModel.updateTheme(it) }
                             )
@@ -229,16 +229,17 @@ fun SettingsScreen(
                 val focentraStatus = uiState.focentraStatus
 
                 SettingsSection(title = "INTEGRATIONS • FOCENTRA") {
-                    Column(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
-                            modifier = Modifier.fillMaxWidth()
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.weight(1f)
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Hub,
@@ -246,7 +247,7 @@ fun SettingsScreen(
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(24.dp)
                             )
-                            Column(modifier = Modifier.weight(1f)) {
+                            Column {
                                 Text(
                                     text = "Focentra Study Focus",
                                     style = MaterialTheme.typography.titleMedium,
@@ -257,31 +258,30 @@ fun SettingsScreen(
                                 Text(
                                     text = when {
                                         focentraStatus == null -> "Checking installation..."
-                                        !focentraStatus.isInstalled -> "Focentra isn't installed on device"
-                                        focentraStatus.isConnected -> "Connected • ${focentraStatus.totalImportedSessions} sessions imported"
+                                        !focentraStatus.isInstalled -> "Focentra isn't installed"
+                                        focentraStatus.isConnected -> "Connected (${focentraStatus.totalImportedSessions} sessions)"
                                         else -> "Not Connected (Optional)"
                                     },
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    lineHeight = 16.sp
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        Box(modifier = Modifier.padding(start = 8.dp)) {
                             if (focentraStatus?.isInstalled == true) {
                                 if (focentraStatus.isConnected) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        TextButton(onClick = { viewModel.syncFocentra() }) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        TextButton(
+                                            onClick = { viewModel.syncFocentra() },
+                                            contentPadding = PaddingValues(horizontal = 8.dp)
+                                        ) {
                                             Text("Sync")
                                         }
                                         OutlinedButton(
                                             onClick = { viewModel.disconnectFocentra() },
-                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                                            contentPadding = PaddingValues(horizontal = 8.dp)
                                         ) {
                                             Text("Disconnect")
                                         }
@@ -558,7 +558,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Build Better Days • v1.1.0",
+                        text = "Build Better Days • v1.2.0",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
