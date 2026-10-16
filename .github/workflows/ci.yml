@@ -32,9 +32,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci || npm install
 
       - name: Build Web App
         run: npm run build
@@ -47,26 +48,42 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle'
 
       - name: Set up Android SDK
-        uses: subosito/android-action@v2
-        with:
-          target-sdk-level: 35
-          build-tools-version: 35.0.0
-          cache: false
+        uses: android-actions/setup-android@v3
 
-      - name: Generate Signing Keystore
+      - name: Setup Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASSWORD_SECRET: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD_SECRET: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS_SECRET: ${{ secrets.KEY_ALIAS }}
         run: |
           mkdir -p android/keystore
-          rm -f android/keystore/my-upload-key.jks
-          keytool -genkeypair -v -keystore android/keystore/my-upload-key.jks \
-            -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass android -keypass android \
-            -dname "CN=Daynexa, OU=App, O=Niloy, L=Dhaka, S=Dhaka, C=BD"
-          echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/android/keystore/my-upload-key.jks" >> $GITHUB_ENV
-          echo "STORE_PASSWORD=android" >> $GITHUB_ENV
-          echo "KEY_PASSWORD=android" >> $GITHUB_ENV
-          echo "KEY_ALIAS=upload" >> $GITHUB_ENV
+          KEYSTORE_FILE="$GITHUB_WORKSPACE/android/keystore/daynexa-keystore.jks"
+
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Using base64 keystore from GitHub secrets..."
+            echo "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_FILE"
+            STORE_PASS="${STORE_PASSWORD_SECRET:-daynexa123}"
+            KEY_PASS="${KEY_PASSWORD_SECRET:-daynexa123}"
+            ALIAS="${KEY_ALIAS_SECRET:-daynexa-key}"
+          else
+            echo "Generating fallback signing keystore..."
+            keytool -genkeypair -v -keystore "$KEYSTORE_FILE" \
+              -alias daynexa-key -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass daynexa123 -keypass daynexa123 \
+              -dname "CN=Daynexa, OU=App, O=Niloy, L=Dhaka, S=Dhaka, C=BD"
+            STORE_PASS="daynexa123"
+            KEY_PASS="daynexa123"
+            ALIAS="daynexa-key"
+          fi
+
+          echo "KEYSTORE_PATH=$KEYSTORE_FILE" >> $GITHUB_ENV
+          echo "STORE_PASSWORD=$STORE_PASS" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=$KEY_PASS" >> $GITHUB_ENV
+          echo "KEY_ALIAS=$ALIAS" >> $GITHUB_ENV
 
       - name: Grant Gradle Executable
         run: chmod +x android/gradlew
@@ -74,8 +91,7 @@ jobs:
       - name: Build APKs with Gradle
         working-directory: ./android
         run: |
-          ./gradlew assembleDebug --no-daemon --stacktrace || ./gradlew assembleDebug --no-daemon
-          ./gradlew assembleRelease --no-daemon --stacktrace || echo "Release build warning encountered, proceeding with debug/available APKs"
+          ./gradlew assembleDebug assembleRelease --no-daemon --stacktrace
 
       - name: Locate and Save APK
         run: |
@@ -133,7 +149,8 @@ jobs:
 
             ### 🚀 Direct Download:
             - **[Daynexa-app.apk](https://github.com/${{ github.repository }}/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v3.0.0-nightly' }}/Daynexa-app.apk)** (Ready-to-install Android APK)
+            - **[Daynexa-release.apk](https://github.com/${{ github.repository }}/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v3.0.0-nightly' }}/Daynexa-release.apk)** (Release Signed APK)
 
-            > ⚠️ **Note:** If you see `Source code (tar.gz)` below, ignore those! Download **`Daynexa-app.apk`** to install on your phone.
+            > ⚠️ **Note:** Download **`Daynexa-app.apk`** or **`Daynexa-release.apk`** to install on your phone.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
