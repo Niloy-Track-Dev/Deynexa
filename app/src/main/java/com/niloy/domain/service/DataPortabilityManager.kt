@@ -61,7 +61,7 @@ class DataPortabilityManager(
 
         BackupData(
             backupVersion = 4,
-            appVersion = "1.0.0",
+            appVersion = "1.1.0",
             createdAt = System.currentTimeMillis(),
             backupType = "FULL_BACKUP",
             source = "Daynexa",

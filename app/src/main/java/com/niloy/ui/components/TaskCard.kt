@@ -86,27 +86,17 @@ fun TaskCard(
     val categoryColor = category?.color?.let { Color(it) } ?: MaterialTheme.colorScheme.primary
     val context = LocalContext.current
 
-    // Uncomplete click counter (requires 2 clicks to uncomplete)
-    var uncompleteClicks by remember(isCompleted) { mutableIntStateOf(0) }
-
-    LaunchedEffect(uncompleteClicks) {
-        if (uncompleteClicks > 0) {
-            delay(2000)
-            uncompleteClicks = 0
-        }
-    }
+    // Double-click gesture handler for Complete / Uncomplete toggle
+    var lastTaskClickTime by remember { mutableLongStateOf(0L) }
 
     val handleTaskClick = {
-        if (isCompleted) {
-            uncompleteClicks++
-            if (uncompleteClicks >= 2) {
-                uncompleteClicks = 0
-                onToggle()
-            } else {
-                Toast.makeText(context, "Tap again to uncomplete task", Toast.LENGTH_SHORT).show()
-            }
-        } else {
+        val now = System.currentTimeMillis()
+        if (now - lastTaskClickTime < 500) {
+            // Double click detected! Toggle Complete <-> Uncomplete
             onToggle()
+            lastTaskClickTime = 0L
+        } else {
+            lastTaskClickTime = now
         }
     }
 
