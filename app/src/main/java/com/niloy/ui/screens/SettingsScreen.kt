@@ -50,6 +50,8 @@ fun SettingsScreen(
 
     var showResetDialog by remember { mutableStateOf(false) }
     var showConsentDialog by remember { mutableStateOf(false) }
+    var showCustomReminderDialog by remember { mutableStateOf(false) }
+    var customMinutesInput by remember { mutableStateOf("${if (uiState.defaultReminderOffset !in listOf(0, 5, 10, 15, 30)) uiState.defaultReminderOffset else 20}") }
     var selectedImportMode by remember { mutableStateOf(ImportMode.MERGE) }
 
     // File creation launcher for export
@@ -227,16 +229,50 @@ fun SettingsScreen(
                 val focentraStatus = uiState.focentraStatus
 
                 SettingsSection(title = "INTEGRATIONS • FOCENTRA") {
-                    SettingsRowItem(
-                        icon = Icons.Outlined.Hub,
-                        title = "Focentra Study Focus",
-                        subtitle = when {
-                            focentraStatus == null -> "Checking installation..."
-                            !focentraStatus.isInstalled -> "Focentra isn't installed on device"
-                            focentraStatus.isConnected -> "Connected • ${focentraStatus.totalImportedSessions} sessions imported"
-                            else -> "Not Connected (Optional)"
-                        },
-                        trailing = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Hub,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Focentra Study Focus",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    text = when {
+                                        focentraStatus == null -> "Checking installation..."
+                                        !focentraStatus.isInstalled -> "Focentra isn't installed on device"
+                                        focentraStatus.isConnected -> "Connected • ${focentraStatus.totalImportedSessions} sessions imported"
+                                        else -> "Not Connected (Optional)"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    lineHeight = 16.sp
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             if (focentraStatus?.isInstalled == true) {
                                 if (focentraStatus.isConnected) {
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -251,7 +287,10 @@ fun SettingsScreen(
                                         }
                                     }
                                 } else {
-                                    Button(onClick = { showConsentDialog = true }) {
+                                    Button(
+                                        onClick = { showConsentDialog = true },
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
                                         Text("Connect")
                                     }
                                 }
@@ -264,7 +303,7 @@ fun SettingsScreen(
                                 }
                             }
                         }
-                    )
+                    }
                 }
             }
 
@@ -317,11 +356,8 @@ fun SettingsScreen(
                                         )
                                         Text(
                                             text = when (uiState.defaultReminderOffset) {
-                                                5 -> "5 minutes before routine"
-                                                10 -> "10 minutes before routine"
-                                                15 -> "15 minutes before routine"
-                                                30 -> "30 minutes before routine"
-                                                else -> "At start time"
+                                                0 -> "At start time"
+                                                else -> "${uiState.defaultReminderOffset} minutes before routine"
                                             },
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -329,6 +365,9 @@ fun SettingsScreen(
                                     }
                                 }
                             }
+
+                            val presetOffsets = listOf(0, 5, 10, 15, 30)
+                            val isCustomSelected = uiState.defaultReminderOffset !in presetOffsets
 
                             Row(
                                 modifier = Modifier
@@ -340,7 +379,8 @@ fun SettingsScreen(
                                     0 to "At start",
                                     5 to "5m before",
                                     10 to "10m before",
-                                    15 to "15m before"
+                                    15 to "15m before",
+                                    30 to "30m before"
                                 ).forEach { (mins, label) ->
                                     FilterChip(
                                         selected = uiState.defaultReminderOffset == mins,
@@ -349,6 +389,18 @@ fun SettingsScreen(
                                         shape = RoundedCornerShape(8.dp)
                                     )
                                 }
+
+                                FilterChip(
+                                    selected = isCustomSelected,
+                                    onClick = { showCustomReminderDialog = true },
+                                    label = {
+                                        Text(
+                                            text = if (isCustomSelected) "${uiState.defaultReminderOffset}m (Custom)" else "Custom...",
+                                            fontSize = 12.sp
+                                        )
+                                    },
+                                    shape = RoundedCornerShape(8.dp)
+                                )
                             }
                         }
 
@@ -513,6 +565,85 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    // Custom Reminder Timing Dialog
+    if (showCustomReminderDialog) {
+        AlertDialog(
+            onDismissRequest = { showCustomReminderDialog = false },
+            title = { Text("Custom Reminder Timing", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Set how many minutes before the routine start time you wish to receive an alert:",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    OutlinedTextField(
+                        value = customMinutesInput,
+                        onValueChange = { input ->
+                            if (input.isEmpty() || input.all { it.isDigit() }) {
+                                customMinutesInput = input
+                            }
+                        },
+                        label = { Text("Minutes Before Routine") },
+                        placeholder = { Text("e.g. 20, 45, 60") },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    val mins = customMinutesInput.toIntOrNull() ?: 0
+                    if (mins > 0) {
+                        val sampleTimeStr = if (uiState.timeFormat == "12H") "09:00 AM" else "09:00"
+                        val reminderSample = if (uiState.timeFormat == "12H") {
+                            val targetMins = 9 * 60 - mins
+                            val h = ((targetMins / 60) + 24) % 12
+                            val displayH = if (h == 0) 12 else h
+                            val m = (targetMins % 60 + 60) % 60
+                            String.format(Locale.getDefault(), "%02d:%02d AM", displayH, m)
+                        } else {
+                            val targetMins = 9 * 60 - mins
+                            val h = ((targetMins / 60) + 24) % 24
+                            val m = (targetMins % 60 + 60) % 60
+                            String.format(Locale.getDefault(), "%02d:%02d", h, m)
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "Preview (${uiState.timeFormat} format):\nRoutine at $sampleTimeStr → Alert at $reminderSample",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(10.dp)
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val mins = customMinutesInput.toIntOrNull() ?: 0
+                        viewModel.updateDefaultReminderOffset(mins)
+                        showCustomReminderDialog = false
+                    },
+                    enabled = customMinutesInput.toIntOrNull()?.let { it >= 0 } == true
+                ) {
+                    Text("Save Offset")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCustomReminderDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     // Focentra Consent Dialog
@@ -866,34 +997,37 @@ private fun SettingsRowItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.weight(1f).padding(end = 12.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.weight(1f).padding(end = 8.dp)
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
-                modifier = Modifier.size(24.dp)
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp)
             )
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1
                 )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 18.sp
-                )
+                if (subtitle.isNotEmpty()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 16.sp
+                    )
+                }
             }
         }
         trailing()
