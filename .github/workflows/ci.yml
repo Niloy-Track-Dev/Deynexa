@@ -51,10 +51,7 @@ jobs:
           cache: 'gradle'
 
       - name: Set up Android SDK
-        uses: subosito/android-action@v2
-        with:
-          target-sdk-level: 35
-          build-tools-version: 35.0.0
+        uses: android-actions/setup-android@v3
 
       - name: Setup Keystore
         env:
