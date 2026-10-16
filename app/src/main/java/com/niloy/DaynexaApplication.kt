@@ -1,0 +1,238 @@
+package com.niloy
+
+import android.app.Application
+import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import com.niloy.data.local.AppDatabase
+import com.niloy.data.repository.DiagnosticRepositoryImpl
+import com.niloy.data.repository.TaskRepositoryImpl
+import com.niloy.domain.repository.DiagnosticRepository
+import com.niloy.domain.repository.TaskRepository
+import com.niloy.domain.service.BackupService
+import com.niloy.domain.service.FocentraIntegrationManager
+import com.niloy.domain.service.SchedulingService
+import com.niloy.domain.service.TaskReminderScheduler
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+
+class DaynexaApplication : Application() {
+    lateinit var database: AppDatabase
+    lateinit var repository: TaskRepository
+    lateinit var diagnosticRepository: DiagnosticRepository
+    lateinit var focentraIntegrationManager: FocentraIntegrationManager
+    lateinit var schedulingService: SchedulingService
+    lateinit var backupService: BackupService
+    lateinit var dataPortabilityManager: com.niloy.domain.service.DataPortabilityManager
+    lateinit var reminderScheduler: TaskReminderScheduler
+
+    private val MIGRATION_1_2 = object : Migration(1, 2) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `app_classifications` (
+                    `packageName` TEXT NOT NULL,
+                    `appName` TEXT NOT NULL,
+                    `categories` TEXT NOT NULL,
+                    `qualityRating` TEXT NOT NULL,
+                    `customProductivityType` TEXT NOT NULL DEFAULT 'NEUTRAL',
+                    `updatedAt` INTEGER NOT NULL,
+                    PRIMARY KEY(`packageName`)
+                )
+            """.trimIndent())
+        }
+    }
+
+    private val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `reminderEnabled` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `reminderOffsetMinutes` INTEGER")
+        }
+    }
+
+    private val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // These tables are being removed in version 6, so we don't need to create them anymore if someone starts from scratch,
+            // but we keep the migration logic if needed for sequential migration.
+            // However, the user wants to delete the system completely.
+        }
+    }
+
+    private val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `focentra_study_sessions` (
+                    `sessionId` TEXT NOT NULL,
+                    `subject` TEXT NOT NULL,
+                    `topic` TEXT NOT NULL,
+                    `startTime` INTEGER NOT NULL,
+                    `endTime` INTEGER NOT NULL,
+                    `duration` INTEGER NOT NULL,
+                    `completionStatus` TEXT NOT NULL,
+                    `focusScore` INTEGER NOT NULL,
+                    `schemaVersion` INTEGER NOT NULL DEFAULT 1,
+                    `importedAt` INTEGER NOT NULL,
+                    PRIMARY KEY(`sessionId`)
+                )
+            """.trimIndent())
+        }
+    }
+
+    private val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DROP TABLE IF EXISTS `website_classifications`")
+            db.execSQL("DROP TABLE IF EXISTS `website_events`")
+            db.execSQL("DROP TABLE IF EXISTS `domain_rules`")
+            db.execSQL("ALTER TABLE `categories` ADD COLUMN `isProductive` INTEGER NOT NULL DEFAULT 1")
+        }
+    }
+
+    private val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `app_categories` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `name` TEXT NOT NULL,
+                    `isProductive` INTEGER NOT NULL DEFAULT 1,
+                    `createdAt` INTEGER NOT NULL
+                )
+            """.trimIndent())
+        }
+    }
+
+    private val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `recurrenceType` TEXT NOT NULL DEFAULT 'DAILY'")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `recurrenceInterval` INTEGER NOT NULL DEFAULT 1")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `recurrenceDayOfMonth` INTEGER")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `recurrenceMonthOfYear` INTEGER")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `recurrenceEndType` TEXT NOT NULL DEFAULT 'NEVER'")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `recurrenceEndDate` TEXT")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `recurrenceCount` INTEGER")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `seriesId` INTEGER")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `startDate` TEXT NOT NULL DEFAULT ''")
+
+            db.execSQL("ALTER TABLE `task_occurrences` ADD COLUMN `rescheduledStartTime` INTEGER")
+            db.execSQL("ALTER TABLE `task_occurrences` ADD COLUMN `rescheduledEndTime` INTEGER")
+            db.execSQL("ALTER TABLE `task_occurrences` ADD COLUMN `rescheduledDate` TEXT")
+            db.execSQL("ALTER TABLE `task_occurrences` ADD COLUMN `isException` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `task_occurrences` ADD COLUMN `notes` TEXT")
+
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `task_templates` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `name` TEXT NOT NULL,
+                    `description` TEXT NOT NULL DEFAULT '',
+                    `categoryId` INTEGER NOT NULL,
+                    `defaultDurationMinutes` INTEGER NOT NULL DEFAULT 45,
+                    `startTime` INTEGER,
+                    `endTime` INTEGER,
+                    `isAllDay` INTEGER NOT NULL DEFAULT 0,
+                    `recurrenceType` TEXT NOT NULL DEFAULT 'DAILY',
+                    `recurringDays` TEXT NOT NULL DEFAULT '',
+                    `recurrenceInterval` INTEGER NOT NULL DEFAULT 1,
+                    `reminderEnabled` INTEGER NOT NULL DEFAULT 0,
+                    `reminderOffsetMinutes` INTEGER NOT NULL DEFAULT 0,
+                    `createdAt` INTEGER NOT NULL
+                )
+            """.trimIndent())
+        }
+    }
+
+    private val MIGRATION_8_9 = object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `priority` TEXT NOT NULL DEFAULT 'MEDIUM'")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `deadlineDate` TEXT")
+            db.execSQL("ALTER TABLE `tasks` ADD COLUMN `deadlineTime` INTEGER")
+            db.execSQL("ALTER TABLE `task_templates` ADD COLUMN `priority` TEXT NOT NULL DEFAULT 'MEDIUM'")
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `goals` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `title` TEXT NOT NULL,
+                    `targetType` TEXT NOT NULL,
+                    `targetPeriod` TEXT NOT NULL,
+                    `targetValue` INTEGER NOT NULL,
+                    `unit` TEXT NOT NULL DEFAULT 'tasks',
+                    `categoryId` INTEGER,
+                    `currentStreak` INTEGER NOT NULL DEFAULT 0,
+                    `longestStreak` INTEGER NOT NULL DEFAULT 0,
+                    `lastCompletedPeriod` TEXT,
+                    `isActive` INTEGER NOT NULL DEFAULT 1,
+                    `createdAt` INTEGER NOT NULL
+                )
+            """.trimIndent())
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        database = Room.databaseBuilder(
+            applicationContext,
+            AppDatabase::class.java,
+            "daynexa.db"
+        )
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+            .fallbackToDestructiveMigration()
+            .build()
+
+        repository = TaskRepositoryImpl(
+            database.categoryDao(),
+            database.taskDao(),
+            database.taskOccurrenceDao(),
+            database.settingDao(),
+            database.taskTemplateDao(),
+            database.goalDao()
+        )
+
+        diagnosticRepository = DiagnosticRepositoryImpl(
+            applicationContext,
+            database.appClassificationDao(),
+            database.focentraStudySessionDao(),
+            database.appCategoryDao()
+        )
+
+        focentraIntegrationManager = FocentraIntegrationManager(
+            applicationContext,
+            database.focentraStudySessionDao(),
+            database.settingDao()
+        )
+
+        schedulingService = SchedulingService()
+        backupService = BackupService()
+        dataPortabilityManager = com.niloy.domain.service.DataPortabilityManager(database, backupService)
+        reminderScheduler = TaskReminderScheduler(applicationContext)
+
+        initDemoData()
+    }
+
+    private fun initDemoData() {
+        kotlinx.coroutines.MainScope().launch {
+            try {
+                val categories = repository.getCategories().first()
+                if (categories.isEmpty()) {
+                    val healthId = repository.saveCategory(com.niloy.domain.model.Category(name = "Health", icon = "favorite", color = 0xFFE91E63.toInt()))
+                    val workId = repository.saveCategory(com.niloy.domain.model.Category(name = "Work", icon = "work", color = 0xFF2196F3.toInt()))
+                    val personalId = repository.saveCategory(com.niloy.domain.model.Category(name = "Personal", icon = "person", color = 0xFF4CAF50.toInt()))
+
+                    repository.saveTask(com.niloy.domain.model.Task(
+                        name = "Wake Up",
+                        categoryId = personalId,
+                        startTime = 420, // 07:00
+                        endTime = 420,
+                        isRecurring = true,
+                        recurringDays = java.time.DayOfWeek.values().toSet()
+                    ))
+                    repository.saveTask(com.niloy.domain.model.Task(
+                        name = "Exercise",
+                        categoryId = healthId,
+                        startTime = 420, // 07:00
+                        endTime = 465, // 07:45
+                        isRecurring = true,
+                        recurringDays = setOf(java.time.DayOfWeek.MONDAY, java.time.DayOfWeek.TUESDAY, java.time.DayOfWeek.WEDNESDAY, java.time.DayOfWeek.THURSDAY, java.time.DayOfWeek.FRIDAY, java.time.DayOfWeek.SATURDAY)
+                    ))
+                }
+            } catch (e: Exception) {
+                // Ignore seed errors on launch
+            }
+        }
+    }
+}
