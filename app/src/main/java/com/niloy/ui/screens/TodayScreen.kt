@@ -58,12 +58,39 @@ fun TodayScreen(
     val isToday = uiState.selectedDate == LocalDate.now()
     val context = LocalContext.current
 
-    // Reschedule Dialog State
+    // Task Delete & Reschedule Dialog States
+    var taskToDelete by remember { mutableStateOf<com.niloy.domain.model.Task?>(null) }
     var reschedulingItem by remember { mutableStateOf<TaskWithOccurrence?>(null) }
     var rescheduleStartTime by remember { mutableStateOf(480L) }
     var rescheduleEndTime by remember { mutableStateOf(540L) }
     var rescheduleDate by remember { mutableStateOf(LocalDate.now().toString()) }
     var rescheduleNotes by remember { mutableStateOf("") }
+
+    // Delete Task Confirmation Dialog
+    taskToDelete?.let { task ->
+        AlertDialog(
+            onDismissRequest = { taskToDelete = null },
+            title = { Text("Delete Routine?", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete \"${task.name}\"? This action cannot be undone.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteTask(task)
+                        taskToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { taskToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     // Reschedule Dialog
     reschedulingItem?.let { item ->
@@ -186,9 +213,14 @@ fun TodayScreen(
         topBar = {
             TopAppBar(
                 title = {
+                    val headerSubtitle = when {
+                        isToday -> TimeUtils.getDayGreeting()
+                        uiState.selectedDate.isBefore(LocalDate.now()) -> "Viewing History"
+                        else -> "Viewing Future"
+                    }
                     Column {
                         Text(
-                            text = if (isToday) TimeUtils.getDayGreeting() else "Viewing History / Future",
+                            text = headerSubtitle,
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -384,7 +416,8 @@ fun TodayScreen(
                                     rescheduleNotes = item.occurrence.notes ?: ""
                                 },
                                 onDelete = {
-                                    viewModel.deleteTask(item.task)
+                                    taskToDelete = item.task
+                                    taskToDelete = item.task
                                 }
                             )
                         }

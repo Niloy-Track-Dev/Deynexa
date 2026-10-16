@@ -48,6 +48,32 @@ fun CalendarScreen(
     val uiState by viewModel.uiState.collectAsState()
     val monthTitleFormatter = remember { DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()) }
     val isCurrentMonth = uiState.currentMonth == YearMonth.now()
+    var taskToDelete by remember { mutableStateOf<com.niloy.domain.model.Task?>(null) }
+
+    taskToDelete?.let { task ->
+        AlertDialog(
+            onDismissRequest = { taskToDelete = null },
+            title = { Text("Delete Routine?", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete \"${task.name}\"? This action cannot be undone.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteTask(task)
+                        taskToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { taskToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -196,7 +222,7 @@ fun CalendarScreen(
                             onEditTask(item.task.id)
                         },
                         onDelete = {
-                            viewModel.deleteTask(item.task)
+                            taskToDelete = item.task
                         }
                     )
                 }
