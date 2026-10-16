@@ -447,7 +447,7 @@ fun MainContent(
             }
             composable<Screen.Statistics> {
                 val statisticsViewModel: StatisticsViewModel = viewModel(
-                    factory = StatisticsViewModel.Factory(app.repository, app.schedulingService)
+                    factory = StatisticsViewModel.Factory(app.repository, app.schedulingService, app.diagnosticRepository)
                 )
                 StatisticsScreen(
                     viewModel = statisticsViewModel,

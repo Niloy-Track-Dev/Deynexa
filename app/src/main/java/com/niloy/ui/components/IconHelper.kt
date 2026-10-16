@@ -23,7 +23,22 @@ object IconHelper {
         "spa" to Icons.Default.Spa,
         "psychology" to Icons.Default.Psychology,
         "school" to Icons.Default.School,
-        "bed" to Icons.Default.Bed
+        "bed" to Icons.Default.Bed,
+        "shopping" to Icons.Default.ShoppingCart,
+        "restaurant" to Icons.Default.Restaurant,
+        "finance" to Icons.Default.AttachMoney,
+        "music" to Icons.Default.MusicNote,
+        "travel" to Icons.Default.Flight,
+        "pets" to Icons.Default.Pets,
+        "idea" to Icons.Default.Lightbulb,
+        "timer" to Icons.Default.Timer,
+        "gaming" to Icons.Default.SportsEsports,
+        "eco" to Icons.Default.Eco,
+        "water" to Icons.Default.WaterDrop,
+        "meditation" to Icons.Default.SelfImprovement,
+        "headset" to Icons.Default.Headset,
+        "movie" to Icons.Default.Movie,
+        "camera" to Icons.Default.CameraAlt
     )
 
     fun getIcon(name: String): ImageVector {

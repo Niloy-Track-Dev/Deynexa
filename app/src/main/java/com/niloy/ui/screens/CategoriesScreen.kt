@@ -3,12 +3,14 @@ package com.niloy.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -308,7 +310,15 @@ private fun CategoryDialog(
         CategoryPurple.toArgb(),
         CategoryCyan.toArgb(),
         CategoryIndigo.toArgb(),
-        CategoryTeal.toArgb()
+        CategoryTeal.toArgb(),
+        0xFFF59E0B.toInt(),
+        0xFFEC4899.toInt(),
+        0xFF8B5CF6.toInt(),
+        0xFF10B981.toInt(),
+        0xFF6366F1.toInt(),
+        0xFFEF4444.toInt(),
+        0xFF06B6D4.toInt(),
+        0xFF64748B.toInt()
     )
 
     AlertDialog(
@@ -345,8 +355,11 @@ private fun CategoryDialog(
                 )
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     colorsList.forEach { colorInt ->
                         val isSelected = selectedColor == colorInt
@@ -381,7 +394,7 @@ private fun CategoryDialog(
                     columns = GridCells.Fixed(5),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(130.dp),
+                        .height(180.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {

@@ -8,12 +8,16 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.delay
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
@@ -80,12 +84,43 @@ fun TaskCard(
 
     val isDark = isSystemInDarkTheme()
     val categoryColor = category?.color?.let { Color(it) } ?: MaterialTheme.colorScheme.primary
+    val context = LocalContext.current
+
+    // Uncomplete click counter (requires 2 clicks to uncomplete)
+    var uncompleteClicks by remember(isCompleted) { mutableIntStateOf(0) }
+
+    LaunchedEffect(uncompleteClicks) {
+        if (uncompleteClicks > 0) {
+            delay(2000)
+            uncompleteClicks = 0
+        }
+    }
+
+    val handleTaskClick = {
+        if (isCompleted) {
+            uncompleteClicks++
+            if (uncompleteClicks >= 2) {
+                uncompleteClicks = 0
+                onToggle()
+            } else {
+                Toast.makeText(context, "Tap again to uncomplete task", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            onToggle()
+        }
+    }
+
+    val cardInteractionSource = remember { MutableInteractionSource() }
+    val checkInteractionSource = remember { MutableInteractionSource() }
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .alpha(cardAlpha)
-            .clickable { onToggle() }
+            .clickable(
+                indication = null,
+                interactionSource = cardInteractionSource
+            ) { handleTaskClick() }
             .testTag("task_item_${item.task.id}"),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
@@ -95,7 +130,8 @@ fun TaskCard(
             else if (isSkipped) StateSkipped.copy(alpha = 0.15f)
             else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
         ),
-        tonalElevation = if (isCompleted || isSkipped) 0.dp else 1.dp
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
     ) {
         Row(
             modifier = Modifier
@@ -108,7 +144,10 @@ fun TaskCard(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .clickable { onToggle() },
+                    .clickable(
+                        indication = null,
+                        interactionSource = checkInteractionSource
+                    ) { handleTaskClick() },
                 contentAlignment = Alignment.Center
             ) {
                 Surface(

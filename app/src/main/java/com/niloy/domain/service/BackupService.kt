@@ -44,7 +44,7 @@ data class FocentraSessionBackup(
 
 data class FocentraExportBundle(
     val exportVersion: Int = 1,
-    val appVersion: String = "0.8.0",
+    val appVersion: String = "1.0.0",
     val createdAt: Long = System.currentTimeMillis(),
     val source: String = "Focentra",
     val origin: String = "Focentra Integration API v1",
@@ -55,7 +55,7 @@ data class FocentraExportBundle(
 
 data class BackupData(
     val backupVersion: Int = 4,
-    val appVersion: String = "0.8.0",
+    val appVersion: String = "1.0.0",
     val createdAt: Long = System.currentTimeMillis(),
     val backupType: String = "FULL_BACKUP",
     val source: String = "Daynexa",

@@ -128,7 +128,8 @@ fun AppClassificationScreen(
             onSave = { pkg, name, categories, rating ->
                 viewModel.saveAppClassification(pkg, name, categories, rating)
             },
-            onAddCategory = { name, isProd -> viewModel.saveAppCategory(name, isProd) }
+            onAddCategory = { name, isProd -> viewModel.saveAppCategory(name, isProd) },
+            onDeleteCategory = { viewModel.deleteAppCategory(it) }
         )
     }
 
@@ -231,13 +232,18 @@ private fun EditAppClassificationDialog(
     availableCategories: List<com.niloy.domain.model.AppCategory>,
     onDismiss: () -> Unit,
     onSave: (String, String, List<String>, AppQualityRating) -> Unit,
-    onAddCategory: (String, Boolean) -> Unit
+    onAddCategory: (String, Boolean) -> Unit,
+    onDeleteCategory: (com.niloy.domain.model.AppCategory) -> Unit
 ) {
     var selectedCategories by remember { mutableStateOf(app.categories.toSet()) }
     var selectedRating by remember { mutableStateOf(app.qualityRating) }
     var showQuickAddCategory by remember { mutableStateOf(false) }
     var newQuickCatName by remember { mutableStateOf("") }
     var isNewCatProd by remember { mutableStateOf(true) }
+    var categoryToDelete by remember { mutableStateOf<com.niloy.domain.model.AppCategory?>(null) }
+
+    var lastClickedCatId by remember { mutableLongStateOf(-1L) }
+    var lastClickTime by remember { mutableLongStateOf(0L) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -367,11 +373,18 @@ private fun EditAppClassificationDialog(
                         FilterChip(
                             selected = isSelected,
                             onClick = {
-                                selectedCategories = if (isSelected) {
-                                    selectedCategories - category.name
+                                val now = System.currentTimeMillis()
+                                if (lastClickedCatId == category.id && (now - lastClickTime) < 500) {
+                                    categoryToDelete = category
                                 } else {
-                                    selectedCategories + category.name
+                                    selectedCategories = if (isSelected) {
+                                        selectedCategories - category.name
+                                    } else {
+                                        selectedCategories + category.name
+                                    }
                                 }
+                                lastClickedCatId = category.id
+                                lastClickTime = now
                             },
                             label = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -412,6 +425,33 @@ private fun EditAppClassificationDialog(
             }
         }
     )
+
+    if (categoryToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { categoryToDelete = null },
+            title = { Text("Delete App Category") },
+            text = { Text("Are you sure you want to delete category \"${categoryToDelete?.name}\"?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        categoryToDelete?.let { cat ->
+                            selectedCategories = selectedCategories - cat.name
+                            onDeleteCategory(cat)
+                        }
+                        categoryToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete Category")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { categoryToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
