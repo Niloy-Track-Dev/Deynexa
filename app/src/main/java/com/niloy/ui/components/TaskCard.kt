@@ -55,7 +55,7 @@ import java.util.Locale
 fun TaskCard(
     item: TaskWithOccurrence,
     category: Category? = null,
-    is24Hour: Boolean = true,
+    is24Hour: Boolean = false,
     onToggle: () -> Unit,
     onSkip: () -> Unit,
     onEdit: () -> Unit,

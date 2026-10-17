@@ -7,11 +7,11 @@ import java.util.Locale
 
 object TimeUtils {
 
-    fun formatTime(minutes: Long?, is24Hour: Boolean = true): String {
+    fun formatTime(minutes: Long?, is24Hour: Boolean = false): String {
         if (minutes == null) return ""
-        val normalized = (minutes % 1440).toInt()
-        val hours = normalized / 60
-        val mins = normalized % 60
+        val normalized = ((minutes % 1440) + 1440) % 1440
+        val hours = (normalized / 60).toInt()
+        val mins = (normalized % 60).toInt()
 
         return if (is24Hour) {
             String.format(Locale.getDefault(), "%02d:%02d", hours, mins)
@@ -22,14 +22,14 @@ object TimeUtils {
                 in 1..12 -> hours
                 else -> hours - 12
             }
-            String.format(Locale.getDefault(), "%d:%02d %s", displayHour, mins, period)
+            String.format(Locale.getDefault(), "%02d:%02d %s", displayHour, mins, period)
         }
     }
 
-    fun formatMinutes(minutes: Long, is24Hour: Boolean = true): String = formatTime(minutes, is24Hour)
-    fun formatMinutes(minutes: Int, is24Hour: Boolean = true): String = formatTime(minutes.toLong(), is24Hour)
+    fun formatMinutes(minutes: Long, is24Hour: Boolean = false): String = formatTime(minutes, is24Hour)
+    fun formatMinutes(minutes: Int, is24Hour: Boolean = false): String = formatTime(minutes.toLong(), is24Hour)
 
-    fun formatTimeRange(startTime: Long?, endTime: Long?, isAllDay: Boolean, is24Hour: Boolean = true): String {
+    fun formatTimeRange(startTime: Long?, endTime: Long?, isAllDay: Boolean, is24Hour: Boolean = false): String {
         if (isAllDay) return "All Day"
         if (startTime == null && endTime == null) return "All Day"
         if (startTime != null && endTime != null) {

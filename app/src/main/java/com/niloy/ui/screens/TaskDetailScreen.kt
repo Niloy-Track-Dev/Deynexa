@@ -455,7 +455,7 @@ fun TaskDetailScreen(
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = TimeUtils.formatMinutes(uiState.startTime.toLong(), true),
+                                        text = TimeUtils.formatMinutes(uiState.startTime.toLong(), false),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -491,7 +491,7 @@ fun TaskDetailScreen(
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = TimeUtils.formatMinutes(uiState.endTime.toLong(), true),
+                                        text = TimeUtils.formatMinutes(uiState.endTime.toLong(), false),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold
                                     )

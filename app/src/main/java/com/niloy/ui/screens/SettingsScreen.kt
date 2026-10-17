@@ -530,19 +530,8 @@ fun SettingsScreen(
 
                     val mins = customMinutesInput.toIntOrNull() ?: 0
                     if (mins > 0) {
-                        val sampleTimeStr = if (uiState.timeFormat == "12H") "09:00 AM" else "09:00"
-                        val reminderSample = if (uiState.timeFormat == "12H") {
-                            val targetMins = 9 * 60 - mins
-                            val h = ((targetMins / 60) + 24) % 12
-                            val displayH = if (h == 0) 12 else h
-                            val m = (targetMins % 60 + 60) % 60
-                            String.format(Locale.getDefault(), "%02d:%02d AM", displayH, m)
-                        } else {
-                            val targetMins = 9 * 60 - mins
-                            val h = ((targetMins / 60) + 24) % 24
-                            val m = (targetMins % 60 + 60) % 60
-                            String.format(Locale.getDefault(), "%02d:%02d", h, m)
-                        }
+                        val targetMins = (9 * 60 - mins + 1440) % 1440
+                        val alertFormatted = com.niloy.ui.util.TimeUtils.formatMinutes(targetMins.toLong(), false)
 
                         Surface(
                             shape = RoundedCornerShape(10.dp),
@@ -550,7 +539,7 @@ fun SettingsScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                text = "Preview (${uiState.timeFormat} format):\nRoutine at $sampleTimeStr → Alert at $reminderSample",
+                                text = "Preview (12H format):\nRoutine at 09:00 AM → Alert at $alertFormatted",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(10.dp)

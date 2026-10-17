@@ -245,9 +245,9 @@ fun StatisticsScreen(
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             KpiCard(
-                                title = "Peak Focus Window",
-                                value = uiState.peakFocusHourLabel,
-                                subtitle = "Optimal productivity",
+                                title = "Best Day",
+                                value = uiState.bestDayName,
+                                subtitle = "Peak consistency",
                                 icon = Icons.Outlined.Star,
                                 accentColor = AccentPrimary,
                                 modifier = Modifier.weight(1f)
