@@ -245,9 +245,9 @@ fun StatisticsScreen(
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             KpiCard(
-                                title = "Best Day",
-                                value = uiState.bestDayName,
-                                subtitle = "Peak consistency",
+                                title = "Peak Focus Window",
+                                value = uiState.peakFocusHourLabel,
+                                subtitle = "Optimal productivity",
                                 icon = Icons.Outlined.Star,
                                 accentColor = AccentPrimary,
                                 modifier = Modifier.weight(1f)
@@ -260,6 +260,52 @@ fun StatisticsScreen(
                                 accentColor = Color(0xFF8B5CF6),
                                 modifier = Modifier.weight(1f)
                             )
+                        }
+                    }
+                }
+
+                // Local Smart AI Recommendation Banner
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Insights,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Smart Routine Insight",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = uiState.smartSuggestionTip,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     }
                 }

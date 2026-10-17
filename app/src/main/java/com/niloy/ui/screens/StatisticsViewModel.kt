@@ -7,14 +7,24 @@ import com.niloy.domain.model.*
 import com.niloy.domain.repository.DiagnosticRepository
 import com.niloy.domain.repository.TaskRepository
 import com.niloy.domain.service.SchedulingService
+import androidx.compose.runtime.Immutable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.TextStyle
 import java.util.Locale
 
+private data class Tuple6<A, B, C, D, E, F>(
+    val v1: A, val v2: B, val v3: C, val v4: D, val v5: E, val v6: F
+)
+
+@Immutable
 data class DailyChartPoint(
     val dayLabel: String,
     val date: LocalDate,
@@ -23,6 +33,7 @@ data class DailyChartPoint(
     val completionRate: Float
 )
 
+@Immutable
 data class HeatmapCell(
     val date: LocalDate,
     val totalTasks: Int,
@@ -30,6 +41,7 @@ data class HeatmapCell(
     val intensity: Int // 0: None, 1: Low (1-49%), 2: Medium (50-79%), 3: High (80-100%)
 )
 
+@Immutable
 data class CategoryStat(
     val category: Category,
     val totalCount: Int,
@@ -37,6 +49,7 @@ data class CategoryStat(
     val completionRate: Float
 )
 
+@Immutable
 data class PeriodStats(
     val total: Int = 0,
     val completed: Int = 0,
@@ -45,6 +58,7 @@ data class PeriodStats(
     val completionRate: Float = 0f
 )
 
+@Immutable
 data class SelectedAppDiagnostic(
     val packageName: String,
     val appName: String,
@@ -57,6 +71,7 @@ data class SelectedAppDiagnostic(
     val categories: List<String>
 )
 
+@Immutable
 data class StatisticsUiState(
     val totalCompletedAllTime: Int = 0,
     val totalPendingAllTime: Int = 0,
@@ -64,6 +79,8 @@ data class StatisticsUiState(
     val currentStreak: Int = 0,
     val bestStreak: Int = 0,
     val bestDayName: String = "—",
+    val peakFocusHourLabel: String = "10 AM - 12 PM",
+    val smartSuggestionTip: String = "Your routine consistency is strong! Maintain your momentum.",
     val overallCompletionRate: Float = 0f,
     val productivityScore: Int = 85,
     val productivityRating: String = "High",
@@ -126,223 +143,263 @@ class StatisticsViewModel(
             return@combine StatisticsUiState(isLoading = false)
         }
 
-        val today = LocalDate.now()
+        withContext(Dispatchers.Default) {
+            coroutineScope {
+                val today = LocalDate.now()
 
-        // Helper to compute tasks for any date
-        fun getTasksFor(date: LocalDate): List<com.niloy.domain.service.TaskWithOccurrence> {
-            return schedulingService.getTasksForDate(
-                tasks = tasks,
-                occurrences = allOccurrences,
-                date = date,
-                customWeekend = weekendDays
-            )
-        }
+                // Date tasks lookup cache to avoid recalculating the same date multiple times
+                val dateTasksMap = java.util.concurrent.ConcurrentHashMap<LocalDate, List<com.niloy.domain.service.TaskWithOccurrence>>()
 
-        // Today Stats
-        val todayTasks = getTasksFor(today)
-        val todayCompleted = todayTasks.count { it.occurrence.state == TaskState.COMPLETED }
-        val todayPending = todayTasks.count { it.occurrence.state == TaskState.PENDING }
-        val todaySkipped = todayTasks.count { it.occurrence.state == TaskState.SKIPPED }
-        val todayRate = if (todayTasks.isEmpty()) 0f else todayCompleted.toFloat() / todayTasks.size
+                fun getTasksFor(date: LocalDate): List<com.niloy.domain.service.TaskWithOccurrence> {
+                    return dateTasksMap.getOrPut(date) {
+                        schedulingService.getTasksForDate(
+                            tasks = tasks,
+                            occurrences = allOccurrences,
+                            date = date,
+                            customWeekend = weekendDays
+                        )
+                    }
+                }
 
-        // Last 7 days points
-        val last7Days = (6 downTo 0).map { today.minusDays(it.toLong()) }
-        val last7DaysPoints = last7Days.map { date ->
-            val dayTasks = getTasksFor(date)
-            val comp = dayTasks.count { it.occurrence.state == TaskState.COMPLETED }
-            val rate = if (dayTasks.isEmpty()) 0f else comp.toFloat() / dayTasks.size
-            DailyChartPoint(
-                dayLabel = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
-                date = date,
-                totalCount = dayTasks.size,
-                completedCount = comp,
-                completionRate = rate
-            )
-        }
+                // 1. Parallel Task: Today & Period Stats
+                val periodStatsDeferred = async {
+                    val todayTasks = getTasksFor(today)
+                    val todayCompleted = todayTasks.count { it.occurrence.state == TaskState.COMPLETED }
+                    val todayPending = todayTasks.count { it.occurrence.state == TaskState.PENDING }
+                    val todaySkipped = todayTasks.count { it.occurrence.state == TaskState.SKIPPED }
+                    val todayRate = if (todayTasks.isEmpty()) 0f else todayCompleted.toFloat() / todayTasks.size
 
-        // This Week Stats (Full 7-day week: Monday to Sunday)
-        val startOfWeek = today.with(DayOfWeek.MONDAY)
-        val fullWeekDays = (0..6).map { startOfWeek.plusDays(it.toLong()) }
-        var weekTotal = 0
-        var weekCompleted = 0
-        var weekPending = 0
-        var weekSkipped = 0
-        fullWeekDays.forEach { d ->
-            val dTasks = getTasksFor(d)
-            weekTotal += dTasks.size
-            weekCompleted += dTasks.count { it.occurrence.state == TaskState.COMPLETED }
-            weekPending += dTasks.count { it.occurrence.state == TaskState.PENDING }
-            weekSkipped += dTasks.count { it.occurrence.state == TaskState.SKIPPED }
-        }
-        val weekRate = if (weekTotal == 0) 0f else weekCompleted.toFloat() / weekTotal
+                    val startOfWeek = today.with(DayOfWeek.MONDAY)
+                    val fullWeekDays = (0..6).map { startOfWeek.plusDays(it.toLong()) }
+                    var weekTotal = 0
+                    var weekCompleted = 0
+                    var weekPending = 0
+                    var weekSkipped = 0
+                    fullWeekDays.forEach { d ->
+                        val dTasks = getTasksFor(d)
+                        weekTotal += dTasks.size
+                        weekCompleted += dTasks.count { it.occurrence.state == TaskState.COMPLETED }
+                        weekPending += dTasks.count { it.occurrence.state == TaskState.PENDING }
+                        weekSkipped += dTasks.count { it.occurrence.state == TaskState.SKIPPED }
+                    }
+                    val weekRate = if (weekTotal == 0) 0f else weekCompleted.toFloat() / weekTotal
 
-        // This Month Stats (Full calendar month)
-        val startOfMonth = today.withDayOfMonth(1)
-        val lengthOfMonth = today.lengthOfMonth()
-        val fullMonthDays = (0 until lengthOfMonth).map { startOfMonth.plusDays(it.toLong()) }
-        var monthTotal = 0
-        var monthCompleted = 0
-        var monthPending = 0
-        var monthSkipped = 0
-        fullMonthDays.forEach { d ->
-            val dTasks = getTasksFor(d)
-            monthTotal += dTasks.size
-            monthCompleted += dTasks.count { it.occurrence.state == TaskState.COMPLETED }
-            monthPending += dTasks.count { it.occurrence.state == TaskState.PENDING }
-            monthSkipped += dTasks.count { it.occurrence.state == TaskState.SKIPPED }
-        }
-        val monthRate = if (monthTotal == 0) 0f else monthCompleted.toFloat() / monthTotal
+                    val startOfMonth = today.withDayOfMonth(1)
+                    val lengthOfMonth = today.lengthOfMonth()
+                    val fullMonthDays = (0 until lengthOfMonth).map { startOfMonth.plusDays(it.toLong()) }
+                    var monthTotal = 0
+                    var monthCompleted = 0
+                    var monthPending = 0
+                    var monthSkipped = 0
+                    fullMonthDays.forEach { d ->
+                        val dTasks = getTasksFor(d)
+                        monthTotal += dTasks.size
+                        monthCompleted += dTasks.count { it.occurrence.state == TaskState.COMPLETED }
+                        monthPending += dTasks.count { it.occurrence.state == TaskState.PENDING }
+                        monthSkipped += dTasks.count { it.occurrence.state == TaskState.SKIPPED }
+                    }
+                    val monthRate = if (monthTotal == 0) 0f else monthCompleted.toFloat() / monthTotal
 
-        // Heatmap Cells: last 14 weeks (98 days)
-        val heatmapDaysCount = 14 * 7
-        val heatmapStartDate = today.minusDays((heatmapDaysCount - 1).toLong())
-        val heatmapCells = (0 until heatmapDaysCount).map { offset ->
-            val date = heatmapStartDate.plusDays(offset.toLong())
-            val dayTasks = getTasksFor(date)
-            val comp = dayTasks.count { it.occurrence.state == TaskState.COMPLETED }
-            val rate = if (dayTasks.isEmpty()) 0f else comp.toFloat() / dayTasks.size
-            val intensity = when {
-                dayTasks.isEmpty() -> 0
-                comp == 0 -> 0
-                rate < 0.5f -> 1
-                rate < 0.8f -> 2
-                else -> 3
+                    val prevWeekStart = startOfWeek.minusDays(7)
+                    val prevWeekDays = (0..6).map { prevWeekStart.plusDays(it.toLong()) }
+                    var prevWeekTotal = 0
+                    var prevWeekCompleted = 0
+                    prevWeekDays.forEach { d ->
+                        val dTasks = getTasksFor(d)
+                        prevWeekTotal += dTasks.size
+                        prevWeekCompleted += dTasks.count { it.occurrence.state == TaskState.COMPLETED }
+                    }
+                    val prevWeekRate = if (prevWeekTotal == 0) 0f else prevWeekCompleted.toFloat() / prevWeekTotal
+                    val weeklyDelta = ((weekRate - prevWeekRate) * 100).toInt()
+
+                    Triple(
+                        PeriodStats(todayTasks.size, todayCompleted, todayPending, todaySkipped, todayRate),
+                        PeriodStats(weekTotal, weekCompleted, weekPending, weekSkipped, weekRate),
+                        Tuple6(monthTotal, monthCompleted, monthPending, monthSkipped, monthRate, weeklyDelta)
+                    )
+                }
+
+                // 2. Parallel Task: Last 7 Days & Heatmap Cells
+                val chartAndHeatmapDeferred = async {
+                    val last7Days = (6 downTo 0).map { today.minusDays(it.toLong()) }
+                    val last7DaysPoints = last7Days.map { date ->
+                        val dayTasks = getTasksFor(date)
+                        val comp = dayTasks.count { it.occurrence.state == TaskState.COMPLETED }
+                        val rate = if (dayTasks.isEmpty()) 0f else comp.toFloat() / dayTasks.size
+                        DailyChartPoint(
+                            dayLabel = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
+                            date = date,
+                            totalCount = dayTasks.size,
+                            completedCount = comp,
+                            completionRate = rate
+                        )
+                    }
+
+                    val heatmapDaysCount = 14 * 7
+                    val heatmapStartDate = today.minusDays((heatmapDaysCount - 1).toLong())
+                    val heatmapCells = (0 until heatmapDaysCount).map { offset ->
+                        val date = heatmapStartDate.plusDays(offset.toLong())
+                        val dayTasks = getTasksFor(date)
+                        val comp = dayTasks.count { it.occurrence.state == TaskState.COMPLETED }
+                        val rate = if (dayTasks.isEmpty()) 0f else comp.toFloat() / dayTasks.size
+                        val intensity = when {
+                            dayTasks.isEmpty() -> 0
+                            comp == 0 -> 0
+                            rate < 0.5f -> 1
+                            rate < 0.8f -> 2
+                            else -> 3
+                        }
+                        HeatmapCell(
+                            date = date,
+                            totalTasks = dayTasks.size,
+                            completedTasks = comp,
+                            intensity = intensity
+                        )
+                    }
+
+                    Pair(last7DaysPoints, heatmapCells)
+                }
+
+                // 3. Parallel Task: Category Stats & Insights
+                val categoryAndInsightsDeferred = async {
+                    val insights = schedulingService.calculateProductivityInsights(
+                        tasks = tasks,
+                        allOccurrences = allOccurrences,
+                        customWeekend = weekendDays
+                    )
+
+                    val categoryStatsList = categories.map { cat ->
+                        var catTotalOccurrences = 0
+                        var catCompOccurrences = 0
+                        (0..30).forEach { offset ->
+                            val d = today.minusDays(offset.toLong())
+                            val dTasks = getTasksFor(d).filter { it.task.categoryId == cat.id }
+                            catTotalOccurrences += dTasks.size
+                            catCompOccurrences += dTasks.count { it.occurrence.state == TaskState.COMPLETED }
+                        }
+                        val rate = if (catTotalOccurrences == 0) 0f else catCompOccurrences.toFloat() / catTotalOccurrences
+                        CategoryStat(
+                            category = cat,
+                            totalCount = catTotalOccurrences,
+                            completedCount = catCompOccurrences,
+                            completionRate = rate
+                        )
+                    }
+
+                    Pair(insights, categoryStatsList)
+                }
+
+                // 4. Parallel Task: Diagnostics & Target Apps
+                val diagnosticsDeferred = async {
+                    val installedApps = try { diagnosticRepository.getInstalledApps() } catch (e: Exception) { emptyList() }
+                    val effectiveSelectedPkgs = if (selectedPkgs.isEmpty() && installedApps.isNotEmpty()) {
+                        installedApps.take(3).map { it.packageName }.toSet()
+                    } else {
+                        selectedPkgs
+                    }
+
+                    val todayStart = today.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    val now = System.currentTimeMillis()
+                    val weekStartMillis = today.minusDays(6).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+
+                    val todaySummary = try { diagnosticRepository.getUsageSummary(todayStart, now) } catch (e: Exception) { null }
+                    val weekSummary = try { diagnosticRepository.getUsageSummary(weekStartMillis, now) } catch (e: Exception) { null }
+
+                    val selectedAppsDiagnostics = effectiveSelectedPkgs.mapNotNull { pkg ->
+                        val installed = installedApps.find { it.packageName == pkg }
+                        val todayApp = todaySummary?.topApps?.find { it.packageName == pkg }
+                        val weekApp = weekSummary?.topApps?.find { it.packageName == pkg }
+
+                        if (installed == null && todayApp == null && weekApp == null) return@mapNotNull null
+
+                        val name = installed?.appName ?: todayApp?.appName ?: pkg
+                        val todayMillis = todayApp?.totalTimeInForegroundMillis ?: 0L
+                        val weekMillis = weekApp?.totalTimeInForegroundMillis ?: 0L
+                        val prodType = installed?.productivityType ?: todayApp?.productivityType ?: ProductivityType.NEUTRAL
+                        val rating = installed?.qualityRating ?: todayApp?.qualityRating ?: AppQualityRating.UNRATED
+                        val cats = installed?.categories ?: todayApp?.categories ?: emptyList()
+
+                        SelectedAppDiagnostic(
+                            packageName = pkg,
+                            appName = name,
+                            todayUsageMillis = todayMillis,
+                            todayFormattedTime = formatMillisToUsageString(todayMillis),
+                            weeklyUsageMillis = weekMillis,
+                            weeklyFormattedTime = formatMillisToUsageString(weekMillis),
+                            productivityType = prodType,
+                            qualityRating = rating,
+                            categories = cats
+                        )
+                    }.sortedByDescending { it.todayUsageMillis }
+
+                    Triple(installedApps, effectiveSelectedPkgs, selectedAppsDiagnostics)
+                }
+
+                // Await all parallel calculations
+                val (todayStats, weekStats, monthTuple) = periodStatsDeferred.await()
+                val (last7DaysPoints, heatmapCells) = chartAndHeatmapDeferred.await()
+                val (insights, categoryStatsList) = categoryAndInsightsDeferred.await()
+                val (installedApps, effectiveSelectedPkgs, selectedAppsDiagnostics) = diagnosticsDeferred.await()
+
+                val monthStats = PeriodStats(monthTuple.v1, monthTuple.v2, monthTuple.v3, monthTuple.v4, monthTuple.v5)
+                val weeklyDelta = monthTuple.v6
+
+                val rateFactor = (weekStats.completionRate * 0.35f + monthStats.completionRate * 0.20f) * 100f
+                val streakFactor = (insights.currentStreak.coerceAtMost(10) / 10f) * 25f
+                val todayFactor = todayStats.completionRate * 20f
+                val productivityScore = if (monthStats.total == 0 && todayStats.total == 0) 0 else (rateFactor + streakFactor + todayFactor).toInt().coerceIn(0, 100)
+
+                val productivityRating = when {
+                    productivityScore >= 85 -> "Outstanding"
+                    productivityScore >= 70 -> "High"
+                    productivityScore >= 50 -> "Moderate"
+                    else -> "Growing"
+                }
+
+                val allTimeCompleted = allOccurrences.count { it.state == TaskState.COMPLETED }
+                val allTimeSkipped = allOccurrences.count { it.state == TaskState.SKIPPED }
+                val allTimePending = allOccurrences.count { it.state == TaskState.PENDING }
+
+                // Heuristic Peak Focus Hours & Smart Suggestions
+                val peakHour = when {
+                    insights.bestCompletionWeekday.contains("Mon", ignoreCase = true) || insights.bestCompletionWeekday.contains("Tue", ignoreCase = true) -> "09:00 AM - 11:30 AM"
+                    insights.bestCompletionWeekday.contains("Sat", ignoreCase = true) || insights.bestCompletionWeekday.contains("Sun", ignoreCase = true) -> "04:00 PM - 06:30 PM"
+                    else -> "10:00 AM - 01:00 PM"
+                }
+
+                val smartTip = when {
+                    productivityScore >= 85 -> "Outstanding consistency! Keep up your peak focus routines."
+                    productivityScore >= 70 -> "High momentum. Consider scheduling deep work during $peakHour."
+                    todayStats.skipped > 0 -> "You skipped ${todayStats.skipped} routine(s) today. Reschedule them to less busy hours?"
+                    else -> "Build small daily wins! Completing 1-2 routines early boosts daily momentum."
+                }
+
+                StatisticsUiState(
+                    totalCompletedAllTime = allTimeCompleted,
+                    totalPendingAllTime = allTimePending,
+                    totalSkippedAllTime = allTimeSkipped,
+                    currentStreak = insights.currentStreak,
+                    bestStreak = insights.longestRecurringStreak,
+                    bestDayName = insights.bestCompletionWeekday.ifBlank { "Every Day" },
+                    peakFocusHourLabel = peakHour,
+                    smartSuggestionTip = smartTip,
+                    overallCompletionRate = monthStats.completionRate,
+                    productivityScore = productivityScore,
+                    productivityRating = productivityRating,
+                    weeklyComparisonDelta = weeklyDelta,
+                    todayStats = todayStats,
+                    weekStats = weekStats,
+                    monthStats = monthStats,
+                    last7DaysPoints = last7DaysPoints,
+                    heatmapCells = heatmapCells,
+                    categoryStats = categoryStatsList,
+                    selectedAppsDiagnostics = selectedAppsDiagnostics,
+                    availableInstalledApps = installedApps,
+                    selectedPackageNames = effectiveSelectedPkgs,
+                    isLoading = false
+                )
             }
-            HeatmapCell(
-                date = date,
-                totalTasks = dayTasks.size,
-                completedTasks = comp,
-                intensity = intensity
-            )
         }
-
-        // Productivity Insights Engine
-        val insights = schedulingService.calculateProductivityInsights(
-            tasks = tasks,
-            allOccurrences = allOccurrences,
-            customWeekend = weekendDays
-        )
-
-        // Best Day of Week
-        val bestDayName = insights.bestCompletionWeekday.ifBlank { "Every Day" }
-
-        // Balanced Productivity Score Calculation:
-        // 55% from week & month completion rate
-        // 25% from current streak consistency
-        // 20% from today's momentum
-        val rateFactor = (weekRate * 0.35f + monthRate * 0.20f) * 100f
-        val streakFactor = (insights.currentStreak.coerceAtMost(10) / 10f) * 25f
-        val todayFactor = todayRate * 20f
-        val productivityScore = if (monthTotal == 0 && todayTasks.isEmpty()) 0 else (rateFactor + streakFactor + todayFactor).toInt().coerceIn(0, 100)
-
-        val productivityRating = when {
-            productivityScore >= 85 -> "Outstanding"
-            productivityScore >= 70 -> "High"
-            productivityScore >= 50 -> "Moderate"
-            else -> "Growing"
-        }
-
-        // Category Stats
-        val categoryStatsList = categories.map { cat ->
-            val catTasks = tasks.filter { it.categoryId == cat.id }
-            var catTotalOccurrences = 0
-            var catCompOccurrences = 0
-            (0..30).forEach { offset ->
-                val d = today.minusDays(offset.toLong())
-                val dTasks = getTasksFor(d).filter { it.task.categoryId == cat.id }
-                catTotalOccurrences += dTasks.size
-                catCompOccurrences += dTasks.count { it.occurrence.state == TaskState.COMPLETED }
-            }
-            val rate = if (catTotalOccurrences == 0) 0f else catCompOccurrences.toFloat() / catTotalOccurrences
-            CategoryStat(
-                category = cat,
-                totalCount = catTotalOccurrences,
-                completedCount = catCompOccurrences,
-                completionRate = rate
-            )
-        }
-
-        val allTimeCompleted = allOccurrences.count { it.state == TaskState.COMPLETED }
-        val allTimeSkipped = allOccurrences.count { it.state == TaskState.SKIPPED }
-        val allTimePending = allOccurrences.count { it.state == TaskState.PENDING }
-
-        // Previous week stats for comparison delta
-        val prevWeekStart = startOfWeek.minusDays(7)
-        val prevWeekDays = (0..6).map { prevWeekStart.plusDays(it.toLong()) }
-        var prevWeekTotal = 0
-        var prevWeekCompleted = 0
-        prevWeekDays.forEach { d ->
-            val dTasks = getTasksFor(d)
-            prevWeekTotal += dTasks.size
-            prevWeekCompleted += dTasks.count { it.occurrence.state == TaskState.COMPLETED }
-        }
-        val prevWeekRate = if (prevWeekTotal == 0) 0f else prevWeekCompleted.toFloat() / prevWeekTotal
-        val weeklyDelta = ((weekRate - prevWeekRate) * 100).toInt()
-
-        // Diagnostics for Selected Target Apps
-        val installedApps = try { diagnosticRepository.getInstalledApps() } catch (e: Exception) { emptyList() }
-        val effectiveSelectedPkgs = if (selectedPkgs.isEmpty() && installedApps.isNotEmpty()) {
-            installedApps.take(3).map { it.packageName }.toSet()
-        } else {
-            selectedPkgs
-        }
-
-        val todayStart = today.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        val now = System.currentTimeMillis()
-        val weekStartMillis = today.minusDays(6).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-
-        val todaySummary = try { diagnosticRepository.getUsageSummary(todayStart, now) } catch (e: Exception) { null }
-        val weekSummary = try { diagnosticRepository.getUsageSummary(weekStartMillis, now) } catch (e: Exception) { null }
-
-        val selectedAppsDiagnostics = effectiveSelectedPkgs.mapNotNull { pkg ->
-            val installed = installedApps.find { it.packageName == pkg }
-            val todayApp = todaySummary?.topApps?.find { it.packageName == pkg }
-            val weekApp = weekSummary?.topApps?.find { it.packageName == pkg }
-
-            if (installed == null && todayApp == null && weekApp == null) return@mapNotNull null
-
-            val name = installed?.appName ?: todayApp?.appName ?: pkg
-            val todayMillis = todayApp?.totalTimeInForegroundMillis ?: 0L
-            val weekMillis = weekApp?.totalTimeInForegroundMillis ?: 0L
-            val prodType = installed?.productivityType ?: todayApp?.productivityType ?: ProductivityType.NEUTRAL
-            val rating = installed?.qualityRating ?: todayApp?.qualityRating ?: AppQualityRating.UNRATED
-            val cats = installed?.categories ?: todayApp?.categories ?: emptyList()
-
-            SelectedAppDiagnostic(
-                packageName = pkg,
-                appName = name,
-                todayUsageMillis = todayMillis,
-                todayFormattedTime = formatMillisToUsageString(todayMillis),
-                weeklyUsageMillis = weekMillis,
-                weeklyFormattedTime = formatMillisToUsageString(weekMillis),
-                productivityType = prodType,
-                qualityRating = rating,
-                categories = cats
-            )
-        }.sortedByDescending { it.todayUsageMillis }
-
-        StatisticsUiState(
-            totalCompletedAllTime = allTimeCompleted,
-            totalPendingAllTime = allTimePending,
-            totalSkippedAllTime = allTimeSkipped,
-            currentStreak = insights.currentStreak,
-            bestStreak = insights.longestRecurringStreak,
-            bestDayName = bestDayName,
-            overallCompletionRate = monthRate,
-            productivityScore = productivityScore,
-            productivityRating = productivityRating,
-            weeklyComparisonDelta = weeklyDelta,
-            todayStats = PeriodStats(todayTasks.size, todayCompleted, todayPending, todaySkipped, todayRate),
-            weekStats = PeriodStats(weekTotal, weekCompleted, weekPending, weekSkipped, weekRate),
-            monthStats = PeriodStats(monthTotal, monthCompleted, monthPending, monthSkipped, monthRate),
-            last7DaysPoints = last7DaysPoints,
-            heatmapCells = heatmapCells,
-            categoryStats = categoryStatsList,
-            selectedAppsDiagnostics = selectedAppsDiagnostics,
-            availableInstalledApps = installedApps,
-            selectedPackageNames = effectiveSelectedPkgs,
-            isLoading = false
-        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
