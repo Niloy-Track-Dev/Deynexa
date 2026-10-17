@@ -54,20 +54,39 @@ fun SettingsScreen(
     var customMinutesInput by remember { mutableStateOf("${if (uiState.defaultReminderOffset !in listOf(0, 5, 10, 15, 30)) uiState.defaultReminderOffset else 20}") }
     var selectedImportMode by remember { mutableStateOf(ImportMode.MERGE) }
 
-    // File creation launcher for export (JSON or CSV)
-    val createBackupLauncher = rememberLauncherForActivityResult(
+    // File creation launchers for JSON and CSV exports
+    val createJsonBackupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri: Uri? ->
         uri?.let { exportUri ->
-            val content = uiState.generatedExportJson ?: uiState.generatedExportCsv ?: return@let
+            val content = uiState.generatedExportJson ?: return@let
             try {
-                context.contentResolver.openOutputStream(exportUri)?.use { outputStream ->
+                context.contentResolver.openOutputStream(exportUri, "w")?.use { outputStream ->
                     outputStream.write(content.toByteArray(Charsets.UTF_8))
+                    outputStream.flush()
                 }
-                Toast.makeText(context, "File saved successfully!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Backup saved successfully!", Toast.LENGTH_SHORT).show()
                 viewModel.dismissExportDialog()
             } catch (e: Exception) {
-                Toast.makeText(context, "Failed to write file: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Failed to write backup: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    val createCsvBackupLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri: Uri? ->
+        uri?.let { exportUri ->
+            val content = uiState.generatedExportCsv ?: return@let
+            try {
+                context.contentResolver.openOutputStream(exportUri, "w")?.use { outputStream ->
+                    outputStream.write(content.toByteArray(Charsets.UTF_8))
+                    outputStream.flush()
+                }
+                Toast.makeText(context, "CSV exported successfully!", Toast.LENGTH_SHORT).show()
+                viewModel.dismissExportDialog()
+            } catch (e: Exception) {
+                Toast.makeText(context, "Failed to write CSV: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -109,9 +128,9 @@ fun SettingsScreen(
     LaunchedEffect(uiState.generatedExportJson, uiState.generatedExportCsv) {
         val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         if (uiState.generatedExportJson != null) {
-            createBackupLauncher.launch("Daynexa_Backup_$dateStr.daynexa")
+            createJsonBackupLauncher.launch("Daynexa_Backup_$dateStr.daynexa")
         } else if (uiState.generatedExportCsv != null) {
-            createBackupLauncher.launch("Daynexa_Routines_$dateStr.csv")
+            createCsvBackupLauncher.launch("Daynexa_Routines_$dateStr.csv")
         }
     }
 
