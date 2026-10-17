@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.niloy.domain.model.Category
 import com.niloy.domain.repository.TaskRepository
 import com.niloy.domain.service.*
+import androidx.compose.runtime.Immutable
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 import java.time.DayOfWeek
 
+@Immutable
 data class SettingsUiState(
     val isOnboardingCompleted: Boolean = false,
     val theme: String = "SYSTEM",

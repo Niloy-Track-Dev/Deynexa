@@ -190,7 +190,9 @@ fun MainContent(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .offset(y = bottomBarOffsetY)
+                        .graphicsLayer {
+                            translationY = bottomBarOffsetY.toPx()
+                        }
                         .navigationBarsPadding()
                         .padding(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 6.dp),
                     contentAlignment = Alignment.Center

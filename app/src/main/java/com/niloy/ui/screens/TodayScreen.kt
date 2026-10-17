@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -295,6 +296,11 @@ fun TodayScreen(
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
+            val fabTranslationY by animateDpAsState(
+                targetValue = if (isBottomBarVisible) 0.dp else 66.dp,
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                label = "fabTranslationY"
+            )
             FloatingActionButton(
                 onClick = onAddTask,
                 containerColor = MaterialTheme.colorScheme.primary,
@@ -303,7 +309,10 @@ fun TodayScreen(
                 elevation = FloatingActionButtonDefaults.elevation(4.dp),
                 modifier = Modifier
                     .navigationBarsPadding()
-                    .padding(bottom = fabBottomPadding, end = 12.dp)
+                    .graphicsLayer {
+                        translationY = fabTranslationY.toPx()
+                    }
+                    .padding(bottom = 82.dp, end = 12.dp)
                     .testTag("add_task_fab")
             ) {
                 Icon(
