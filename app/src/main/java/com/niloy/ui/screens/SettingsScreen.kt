@@ -173,80 +173,31 @@ fun SettingsScreen(
                 }
             }
 
-            // Appearance Section
-            item {
-                SettingsSection(title = "APPEARANCE") {
-                    SettingsRowItem(
-                        icon = Icons.Outlined.Palette,
-                        title = "App Theme",
-                        subtitle = "Select between Light or Dark mode",
-                        trailing = {
-                            SettingsChipRow(
-                                options = listOf("Light" to "LIGHT", "Dark" to "DARK"),
-                                selectedOption = if (uiState.theme == "SYSTEM") "LIGHT" else uiState.theme,
-                                onOptionSelected = { viewModel.updateTheme(it) }
-                            )
-                        }
-                    )
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-
-                    SettingsRowItem(
-                        icon = Icons.Outlined.Schedule,
-                        title = "Time Format",
-                        subtitle = "Standard 12H (AM/PM) clock system",
-                        trailing = {
-                            SettingsChipRow(
-                                options = listOf("12H" to "12H"),
-                                selectedOption = "12H",
-                                onOptionSelected = { viewModel.updateTimeFormat("12H") }
-                            )
-                        }
-                    )
-                }
-            }
-
-            // General Preferences Section
-            item {
-                SettingsSection(title = "GENERAL PREFERENCES") {
-                    SettingsRowItem(
-                        icon = Icons.Outlined.CalendarToday,
-                        title = "Week Start Day",
-                        subtitle = "Fixed to Sunday",
-                        trailing = {
-                            SettingsChipRow(
-                                options = listOf("Sun" to "SUNDAY"),
-                                selectedOption = "SUNDAY",
-                                onOptionSelected = { viewModel.updateWeekStart("SUNDAY") }
-                            )
-                        }
-                    )
-                }
-            }
 
             // Focentra Integration Section
             item {
                 val focentraStatus = uiState.focentraStatus
 
                 SettingsSection(title = "INTEGRATIONS • FOCENTRA") {
-                    Column(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                            .padding(horizontal = 16.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(14.dp),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.weight(1f)
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Hub,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(28.dp)
                             )
-                            Column(modifier = Modifier.weight(1f)) {
+                            Column {
                                 Text(
                                     text = "Focentra Study Focus",
                                     style = MaterialTheme.typography.titleMedium,
@@ -257,56 +208,33 @@ fun SettingsScreen(
                                 Text(
                                     text = when {
                                         focentraStatus == null -> "Checking installation..."
-                                        !focentraStatus.isInstalled -> "Focentra isn't installed on device"
-                                        focentraStatus.isConnected -> "Connected • ${focentraStatus.totalImportedSessions} sessions imported"
+                                        !focentraStatus.isInstalled -> "Not Connected (Optional)"
+                                        focentraStatus.isConnected -> "Connected"
                                         else -> "Not Connected (Optional)"
                                     },
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    lineHeight = 16.sp
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Button(
-                                onClick = {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Niloy-Track-Dev"))
-                                    context.startActivity(intent)
-                                },
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Text("Focentra Study Focus")
-                            }
-
-                            if (focentraStatus?.isInstalled == true) {
-                                if (focentraStatus.isConnected) {
-                                    Button(
-                                        onClick = { viewModel.syncFocentra() },
-                                        shape = RoundedCornerShape(10.dp)
-                                    ) {
-                                        Text("Sync")
-                                    }
+                        OutlinedButton(
+                            onClick = {
+                                if (focentraStatus?.isConnected == true) {
+                                    viewModel.syncFocentra()
                                 } else {
-                                    OutlinedButton(
-                                        onClick = { showConsentDialog = true },
-                                        shape = RoundedCornerShape(10.dp)
-                                    ) {
-                                        Text("Connect")
-                                    }
+                                    showConsentDialog = true
                                 }
-                            } else {
-                                OutlinedButton(
-                                    onClick = { showConsentDialog = true },
-                                    shape = RoundedCornerShape(10.dp)
-                                ) {
-                                    Text("Connect")
-                                }
-                            }
+                            },
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
+                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = if (focentraStatus?.isConnected == true) "Sync" else "Connect",
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
                 }
