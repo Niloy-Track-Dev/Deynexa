@@ -36,7 +36,53 @@ object TimeUtils {
             if (startTime == endTime) {
                 return formatTime(startTime, is24Hour)
             }
-            return "${formatTime(startTime, is24Hour)} – ${formatTime(endTime, is24Hour)}"
+            if (is24Hour) {
+                return "${formatTime(startTime, true)} – ${formatTime(endTime, true)}"
+            }
+
+            val startNorm = ((startTime % 1440) + 1440) % 1440
+            val endNorm = ((endTime % 1440) + 1440) % 1440
+
+            val startHours = (startNorm / 60).toInt()
+            val startMins = (startNorm % 60).toInt()
+            val startPeriod = if (startHours < 12) "AM" else "PM"
+            val startDispHour = when (startHours) {
+                0 -> 12
+                in 1..12 -> startHours
+                else -> startHours - 12
+            }
+
+            val endHours = (endNorm / 60).toInt()
+            val endMins = (endNorm % 60).toInt()
+            val endPeriod = if (endHours < 12) "AM" else "PM"
+            val endDispHour = when (endHours) {
+                0 -> 12
+                in 1..12 -> endHours
+                else -> endHours - 12
+            }
+
+            return if (startPeriod == endPeriod) {
+                String.format(
+                    Locale.getDefault(),
+                    "%02d:%02d – %02d:%02d %s",
+                    startDispHour,
+                    startMins,
+                    endDispHour,
+                    endMins,
+                    startPeriod
+                )
+            } else {
+                String.format(
+                    Locale.getDefault(),
+                    "%02d:%02d %s – %02d:%02d %s",
+                    startDispHour,
+                    startMins,
+                    startPeriod,
+                    endDispHour,
+                    endMins,
+                    endPeriod
+                )
+            }
         }
         return formatTime(startTime ?: endTime, is24Hour)
     }

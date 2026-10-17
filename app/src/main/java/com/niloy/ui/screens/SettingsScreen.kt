@@ -54,17 +54,17 @@ fun SettingsScreen(
     var customMinutesInput by remember { mutableStateOf("${if (uiState.defaultReminderOffset !in listOf(0, 5, 10, 15, 30)) uiState.defaultReminderOffset else 20}") }
     var selectedImportMode by remember { mutableStateOf(ImportMode.MERGE) }
 
-    // File creation launcher for export
+    // File creation launcher for export (JSON or CSV)
     val createBackupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri: Uri? ->
         uri?.let { exportUri ->
-            val json = uiState.generatedExportJson ?: return@let
+            val content = uiState.generatedExportJson ?: uiState.generatedExportCsv ?: return@let
             try {
                 context.contentResolver.openOutputStream(exportUri)?.use { outputStream ->
-                    outputStream.write(json.toByteArray(Charsets.UTF_8))
+                    outputStream.write(content.toByteArray(Charsets.UTF_8))
                 }
-                Toast.makeText(context, "Backup file saved successfully!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "File saved successfully!", Toast.LENGTH_SHORT).show()
                 viewModel.dismissExportDialog()
             } catch (e: Exception) {
                 Toast.makeText(context, "Failed to write file: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
@@ -72,7 +72,7 @@ fun SettingsScreen(
         }
     }
 
-    // File picker launcher for import
+    // File picker launcher for JSON import
     val importBackupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
@@ -89,10 +89,29 @@ fun SettingsScreen(
         }
     }
 
-    LaunchedEffect(uiState.generatedExportJson) {
-        uiState.generatedExportJson?.let {
-            val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+    // File picker launcher for CSV import
+    val importCsvLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let { importUri ->
+            try {
+                context.contentResolver.openInputStream(importUri)?.use { inputStream ->
+                    val reader = BufferedReader(InputStreamReader(inputStream))
+                    val content = reader.readText()
+                    viewModel.importCsvContent(content)
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error reading CSV: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    LaunchedEffect(uiState.generatedExportJson, uiState.generatedExportCsv) {
+        val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        if (uiState.generatedExportJson != null) {
             createBackupLauncher.launch("Daynexa_Backup_$dateStr.daynexa")
+        } else if (uiState.generatedExportCsv != null) {
+            createBackupLauncher.launch("Daynexa_Routines_$dateStr.csv")
         }
     }
 
@@ -365,13 +384,13 @@ fun SettingsScreen(
                 }
             }
 
-            // Data & Portability Section
+            // Data & Portability Section (JSON & CSV Export/Import)
             item {
                 SettingsSection(title = "DATA & PORTABILITY") {
                     SettingsActionItem(
                         icon = Icons.Outlined.FileUpload,
-                        title = "Export Backup",
-                        subtitle = "Unified backup including routines, logs, goals & imported Focentra sessions",
+                        title = "Export JSON Backup",
+                        subtitle = "Full system backup (routines, history logs, settings & Focentra focus data)",
                         onClick = {
                             viewModel.generateFullBackup()
                         }
@@ -381,10 +400,32 @@ fun SettingsScreen(
 
                     SettingsActionItem(
                         icon = Icons.Outlined.FileDownload,
-                        title = "Import Backup / Restore Data",
-                        subtitle = "Select .daynexa or .json backup file with Merge or Replace mode",
+                        title = "Import JSON Backup",
+                        subtitle = "Restore routines, logs and settings from .daynexa or .json backup file",
                         onClick = {
                             importBackupLauncher.launch(arrayOf("application/json", "*/*"))
+                        }
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                    SettingsActionItem(
+                        icon = Icons.Outlined.TableChart,
+                        title = "Export CSV Spreadsheet",
+                        subtitle = "Export all routines into CSV table format for Excel / Google Sheets",
+                        onClick = {
+                            viewModel.generateCsvExport()
+                        }
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                    SettingsActionItem(
+                        icon = Icons.Outlined.TableRows,
+                        title = "Import CSV File",
+                        subtitle = "Bulk import routines directly from CSV spreadsheet file",
+                        onClick = {
+                            importCsvLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "*/*"))
                         }
                     )
                 }
@@ -597,10 +638,16 @@ fun SettingsScreen(
         )
     }
 
-    // Export Result Dialog
-    if (uiState.generatedExportJson != null && uiState.exportDialogType != null) {
-        val json = uiState.generatedExportJson ?: ""
-        val title = if (uiState.exportDialogType == "FULL") "Full Daynexa Backup Ready" else "Focentra Focus Data Ready"
+    // Export Result Dialog (JSON or CSV)
+    if ((uiState.generatedExportJson != null || uiState.generatedExportCsv != null) && uiState.exportDialogType != null) {
+        val exportText = uiState.generatedExportJson ?: uiState.generatedExportCsv ?: ""
+        val isCsv = uiState.exportDialogType == "CSV"
+        val mimeType = if (isCsv) "text/csv" else "application/json"
+        val title = when (uiState.exportDialogType) {
+            "CSV" -> "CSV Spreadsheet Export Ready"
+            "FULL" -> "Full Daynexa Backup Ready"
+            else -> "Focentra Focus Data Ready"
+        }
 
         AlertDialog(
             onDismissRequest = { viewModel.dismissExportDialog() },
@@ -608,7 +655,7 @@ fun SettingsScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "Your JSON export bundle is generated and ready to share or save:",
+                        text = if (isCsv) "Your CSV spreadsheet export is generated and ready to share or save:" else "Your JSON export bundle is generated and ready to share or save:",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Surface(
@@ -620,7 +667,7 @@ fun SettingsScreen(
                             .height(150.dp)
                     ) {
                         Text(
-                            text = json,
+                            text = exportText,
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier
                                 .padding(10.dp)
@@ -634,11 +681,11 @@ fun SettingsScreen(
                     OutlinedButton(
                         onClick = {
                             val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                type = "application/json"
-                                putExtra(Intent.EXTRA_TEXT, json)
+                                type = mimeType
+                                putExtra(Intent.EXTRA_TEXT, exportText)
                                 putExtra(Intent.EXTRA_SUBJECT, title)
                             }
-                            context.startActivity(Intent.createChooser(shareIntent, "Share Backup JSON"))
+                            context.startActivity(Intent.createChooser(shareIntent, "Share Export File"))
                         },
                         shape = RoundedCornerShape(10.dp)
                     ) {
@@ -649,9 +696,9 @@ fun SettingsScreen(
                     Button(
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText(title, json)
+                            val clip = ClipData.newPlainText(title, exportText)
                             clipboard.setPrimaryClip(clip)
-                            Toast.makeText(context, "Backup copied to clipboard", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Export copied to clipboard", Toast.LENGTH_SHORT).show()
                             viewModel.dismissExportDialog()
                         },
                         shape = RoundedCornerShape(10.dp)
