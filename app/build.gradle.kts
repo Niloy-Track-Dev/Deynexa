@@ -17,8 +17,8 @@ android {
     applicationId = "com.niloy.daynexa"
     minSdk = 26
     targetSdk = 36
-    versionCode = 12
-    versionName = "1.1.0"
+    versionCode = 13
+    versionName = "1.2.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -60,7 +60,14 @@ android {
         signingConfig = signingConfigs.getByName("debugConfig")
       }
     }
-    debug { signingConfig = signingConfigs.getByName("debugConfig") }
+    debug {
+      val releaseConfig = signingConfigs.getByName("release")
+      if (releaseConfig.storeFile != null && releaseConfig.storeFile!!.exists()) {
+        signingConfig = releaseConfig
+      } else {
+        signingConfig = signingConfigs.getByName("debugConfig")
+      }
+    }
   }
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_11

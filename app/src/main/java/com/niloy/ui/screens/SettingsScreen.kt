@@ -179,11 +179,11 @@ fun SettingsScreen(
                     SettingsRowItem(
                         icon = Icons.Outlined.Palette,
                         title = "App Theme",
-                        subtitle = "Select between Light, Dark, or System mode",
+                        subtitle = "Select between Light or Dark mode",
                         trailing = {
                             SettingsChipRow(
-                                options = listOf("Light" to "LIGHT", "Dark" to "DARK", "Auto" to "SYSTEM"),
-                                selectedOption = uiState.theme,
+                                options = listOf("Light" to "LIGHT", "Dark" to "DARK"),
+                                selectedOption = if (uiState.theme == "SYSTEM") "LIGHT" else uiState.theme,
                                 onOptionSelected = { viewModel.updateTheme(it) }
                             )
                         }
@@ -194,12 +194,12 @@ fun SettingsScreen(
                     SettingsRowItem(
                         icon = Icons.Outlined.Schedule,
                         title = "Time Format",
-                        subtitle = "Choose your preferred clock system",
+                        subtitle = "Standard 12H (AM/PM) clock system",
                         trailing = {
                             SettingsChipRow(
-                                options = listOf("12H" to "12H", "24H" to "24H"),
-                                selectedOption = uiState.timeFormat,
-                                onOptionSelected = { viewModel.updateTimeFormat(it) }
+                                options = listOf("12H" to "12H"),
+                                selectedOption = "12H",
+                                onOptionSelected = { viewModel.updateTimeFormat("12H") }
                             )
                         }
                     )
@@ -212,12 +212,12 @@ fun SettingsScreen(
                     SettingsRowItem(
                         icon = Icons.Outlined.CalendarToday,
                         title = "Week Start Day",
-                        subtitle = "Select which day starts your routine week",
+                        subtitle = "Fixed to Sunday",
                         trailing = {
                             SettingsChipRow(
-                                options = listOf("Mon" to "MONDAY", "Sun" to "SUNDAY"),
-                                selectedOption = uiState.weekStart,
-                                onOptionSelected = { viewModel.updateWeekStart(it) }
+                                options = listOf("Sun" to "SUNDAY"),
+                                selectedOption = "SUNDAY",
+                                onOptionSelected = { viewModel.updateWeekStart("SUNDAY") }
                             )
                         }
                     )
@@ -270,24 +270,29 @@ fun SettingsScreen(
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Button(
+                                onClick = {
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Niloy-Track-Dev"))
+                                    context.startActivity(intent)
+                                },
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text("Focentra Study Focus")
+                            }
+
                             if (focentraStatus?.isInstalled == true) {
                                 if (focentraStatus.isConnected) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        TextButton(onClick = { viewModel.syncFocentra() }) {
-                                            Text("Sync")
-                                        }
-                                        OutlinedButton(
-                                            onClick = { viewModel.disconnectFocentra() },
-                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                                        ) {
-                                            Text("Disconnect")
-                                        }
+                                    Button(
+                                        onClick = { viewModel.syncFocentra() },
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
+                                        Text("Sync")
                                     }
                                 } else {
-                                    Button(
+                                    OutlinedButton(
                                         onClick = { showConsentDialog = true },
                                         shape = RoundedCornerShape(10.dp)
                                     ) {
@@ -295,11 +300,11 @@ fun SettingsScreen(
                                     }
                                 }
                             } else {
-                                TextButton(onClick = {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Niloy-Track-Dev"))
-                                    context.startActivity(intent)
-                                }) {
-                                    Text("Get App")
+                                OutlinedButton(
+                                    onClick = { showConsentDialog = true },
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("Connect")
                                 }
                             }
                         }

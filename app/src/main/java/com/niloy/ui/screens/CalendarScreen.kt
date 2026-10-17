@@ -125,19 +125,19 @@ fun CalendarScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Weekday labels (Mon -> Sun)
+                        // Weekday labels (Fixed Sun -> Sat)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceAround
                         ) {
                             listOf(
+                                DayOfWeek.SUNDAY,
                                 DayOfWeek.MONDAY,
                                 DayOfWeek.TUESDAY,
                                 DayOfWeek.WEDNESDAY,
                                 DayOfWeek.THURSDAY,
                                 DayOfWeek.FRIDAY,
-                                DayOfWeek.SATURDAY,
-                                DayOfWeek.SUNDAY
+                                DayOfWeek.SATURDAY
                             ).forEach { dayOfWeek ->
                                 Text(
                                     text = dayOfWeek.getDisplayName(TextStyle.NARROW, Locale.getDefault()),
@@ -242,8 +242,8 @@ private fun MonthCalendarGrid(
     val daysInMonth = currentMonth.lengthOfMonth()
     val today = LocalDate.now()
 
-    // 1 (Monday) to 7 (Sunday)
-    val startDayOffset = firstDayOfMonth.dayOfWeek.value - 1
+    // Sunday start: 7 (Sunday) -> 0 offset, 1 (Monday) -> 1 offset, etc.
+    val startDayOffset = firstDayOfMonth.dayOfWeek.value % 7
 
     val totalCells = ((startDayOffset + daysInMonth + 6) / 7) * 7
 

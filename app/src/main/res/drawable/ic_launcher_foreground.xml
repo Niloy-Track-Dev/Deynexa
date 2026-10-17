@@ -1,8 +1,12 @@
-<?xml version="1.0" encoding="utf-8"?>
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item
-        android:width="66dp"
-        android:height="66dp"
-        android:drawable="@drawable/daynexa_icon_1787805069018"
-        android:gravity="center" />
-</layer-list>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,28 C38,28 58,28 66,28 C76,28 82,34 82,44 C82,54 82,54 82,64 C82,74 76,80 66,80 C58,80 38,80 38,80 L38,28 Z M46,36 L46,72 L64,72 C71,72 74,68 74,62 L74,46 C74,40 71,36 64,36 L46,36 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M50,53 L56,59 L68,47 L72,51 L56,67 L46,57 Z" />
+</vector>

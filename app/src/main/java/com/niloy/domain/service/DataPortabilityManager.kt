@@ -360,6 +360,95 @@ class DataPortabilityManager(
         }
     }
 
+    suspend fun generateCsvExport(): String = withContext(Dispatchers.IO) {
+        val tasks = database.taskDao().getAllTasksOnce().map { it.toDomain() }
+        val sb = StringBuilder()
+        sb.append("id,name,description,categoryId,startTime,endTime,isAllDay,isRecurring,recurrenceType,createdAt,updatedAt\n")
+        tasks.forEach { t ->
+            val cleanDesc = t.description.replace("\"", "\"\"")
+            val cleanName = t.name.replace("\"", "\"\"")
+            sb.append("${t.id},\"$cleanName\",\"$cleanDesc\",${t.categoryId},${t.startTime},${t.endTime},${t.isAllDay},${t.isRecurring},${t.recurrenceType.name},${t.createdAt},${t.updatedAt}\n")
+        }
+        sb.toString()
+    }
+
+    suspend fun importCsvText(csvContent: String, mode: ImportMode): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val lines = csvContent.lines().filter { it.isNotBlank() }
+            if (lines.size <= 1) return@withContext true
+            val dataLines = lines.drop(1)
+            database.withTransaction {
+                if (mode == ImportMode.REPLACE) {
+                    database.taskDao().deleteAll()
+                }
+                dataLines.forEach { line ->
+                    val tokens = parseCsvLine(line)
+                    if (tokens.size >= 11) {
+                        val name = tokens[1]
+                        val desc = tokens[2]
+                        val catId = tokens[3].toLongOrNull() ?: 1L
+                        val startTime = tokens[4].toLongOrNull()
+                        val endTime = tokens[5].toLongOrNull()
+                        val isAllDay = tokens[6].toBoolean()
+                        val isRecurring = tokens[7].toBoolean()
+                        val recurrenceType = tokens[8]
+                        val createdAt = tokens[9].toLongOrNull() ?: System.currentTimeMillis()
+                        val updatedAt = tokens[10].toLongOrNull() ?: System.currentTimeMillis()
+
+                        val entity = TaskEntity(
+                            id = 0,
+                            name = name,
+                            description = desc,
+                            categoryId = catId,
+                            startTime = startTime,
+                            endTime = endTime,
+                            isAllDay = isAllDay,
+                            isRecurring = isRecurring,
+                            recurringDays = "",
+                            recurrenceType = recurrenceType,
+                            recurrenceInterval = 1,
+                            recurrenceDayOfMonth = null,
+                            recurrenceMonthOfYear = null,
+                            recurrenceEndType = "NEVER",
+                            recurrenceEndDate = null,
+                            recurrenceCount = null,
+                            seriesId = null,
+                            startDate = java.time.LocalDate.now().toString(),
+                            isEnabled = true,
+                            reminderEnabled = false,
+                            reminderOffsetMinutes = 0,
+                            createdAt = createdAt,
+                            updatedAt = updatedAt
+                        )
+                        database.taskDao().insert(entity)
+                    }
+                }
+            }
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun parseCsvLine(line: String): List<String> {
+        val result = mutableListOf<String>()
+        val sb = StringBuilder()
+        var inQuotes = false
+        for (i in 0 until line.length) {
+            val c = line[i]
+            if (c == '"') {
+                inQuotes = !inQuotes
+            } else if (c == ',' && !inQuotes) {
+                result.add(sb.toString())
+                sb.clear()
+            } else {
+                sb.append(c)
+            }
+        }
+        result.add(sb.toString())
+        return result
+    }
+
     private fun parseRecurringDays(str: String): Set<DayOfWeek> {
         if (str.isBlank()) return emptySet()
         return str.split(",")
