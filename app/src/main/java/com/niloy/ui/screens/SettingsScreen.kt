@@ -209,7 +209,7 @@ fun SettingsScreen(
                                     text = when {
                                         focentraStatus == null -> "Checking installation..."
                                         !focentraStatus.isInstalled -> "Not Connected (Optional)"
-                                        focentraStatus.isConnected -> "Connected"
+                                        focentraStatus.isConnected -> "Connected • ${focentraStatus.totalImportedSessions} Sessions Synced"
                                         else -> "Not Connected (Optional)"
                                     },
                                     style = MaterialTheme.typography.bodySmall,
