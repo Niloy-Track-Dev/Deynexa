@@ -771,7 +771,6 @@ private fun SelectTargetAppsDialog(
                             )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(appInfo.appName, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
-                                Text(appInfo.packageName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }

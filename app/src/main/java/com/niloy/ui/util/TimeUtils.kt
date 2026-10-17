@@ -61,28 +61,16 @@ object TimeUtils {
                 else -> endHours - 12
             }
 
-            return if (startPeriod == endPeriod) {
-                String.format(
-                    Locale.getDefault(),
-                    "%02d:%02d – %02d:%02d %s",
-                    startDispHour,
-                    startMins,
-                    endDispHour,
-                    endMins,
-                    startPeriod
-                )
-            } else {
-                String.format(
-                    Locale.getDefault(),
-                    "%02d:%02d %s – %02d:%02d %s",
-                    startDispHour,
-                    startMins,
-                    startPeriod,
-                    endDispHour,
-                    endMins,
-                    endPeriod
-                )
-            }
+            return String.format(
+                Locale.getDefault(),
+                "%02d:%02d %s – %02d:%02d %s",
+                startDispHour,
+                startMins,
+                startPeriod,
+                endDispHour,
+                endMins,
+                endPeriod
+            )
         }
         return formatTime(startTime ?: endTime, is24Hour)
     }
