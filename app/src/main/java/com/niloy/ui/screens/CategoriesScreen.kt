@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -73,6 +74,11 @@ fun CategoriesScreen(
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
+            val fabTranslationY by animateDpAsState(
+                targetValue = if (isBottomBarVisible) 0.dp else 66.dp,
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                label = "fabTranslationY"
+            )
             FloatingActionButton(
                 onClick = {
                     editingCategory = null
@@ -83,7 +89,10 @@ fun CategoriesScreen(
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .navigationBarsPadding()
-                    .padding(bottom = fabBottomPadding, end = 12.dp)
+                    .graphicsLayer {
+                        translationY = fabTranslationY.toPx()
+                    }
+                    .padding(bottom = 82.dp, end = 12.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Category")
             }

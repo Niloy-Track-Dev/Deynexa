@@ -17,7 +17,8 @@ import androidx.room.PrimaryKey
     ],
     indices = [
         Index("taskId"),
-        Index("date")
+        Index("date"),
+        Index(value = ["date", "state"])
     ]
 )
 data class TaskOccurrenceEntity(

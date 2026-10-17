@@ -3,7 +3,14 @@ package com.niloy.data.local.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "tasks")
+import androidx.room.Index
+
+@Entity(
+    tableName = "tasks",
+    indices = [
+        Index("categoryId")
+    ]
+)
 data class TaskEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
