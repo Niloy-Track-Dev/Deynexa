@@ -198,13 +198,25 @@ private fun CategoryItemCard(
     val category = categoryWithCount.category
     val catColor = Color(category.color)
     var showMenu by remember { mutableStateOf(false) }
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    var lastClickTime by remember { mutableLongStateOf(0L) }
+
+    val handleCardClick = {
+        val now = System.currentTimeMillis()
+        if (now - lastClickTime < 500) {
+            // Double click detected -> Delete Confirmation Pop-up
+            onDelete()
+            lastClickTime = 0L
+        } else {
+            lastClickTime = now
+            onEdit()
+        }
+    }
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .clickable { onEdit() },
+            .clickable { handleCardClick() },
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),

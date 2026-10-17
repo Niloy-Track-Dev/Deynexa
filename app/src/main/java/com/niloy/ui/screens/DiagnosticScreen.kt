@@ -849,11 +849,36 @@ fun AppIconImage(packageName: String, modifier: Modifier = Modifier) {
     var bitmap by remember(packageName) { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
 
     LaunchedEffect(packageName) {
-        try {
-            val drawable: Drawable = context.packageManager.getApplicationIcon(packageName)
-            bitmap = drawable.toBitmap(96, 96).asImageBitmap()
-        } catch (e: Exception) {
-            bitmap = null
+        kotlinx.coroutines.Dispatchers.IO.let { dispatcher ->
+            kotlinx.coroutines.withContext(dispatcher) {
+                try {
+                    val pm = context.packageManager
+                    val appInfo = try {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                            pm.getApplicationInfo(packageName, android.content.pm.PackageManager.ApplicationInfoFlags.of(0))
+                        } else {
+                            pm.getApplicationInfo(packageName, 0)
+                        }
+                    } catch (e: Exception) {
+                        null
+                    }
+                    val drawable: Drawable? = appInfo?.loadIcon(pm) ?: try {
+                        pm.getApplicationIcon(packageName)
+                    } catch (e: Exception) {
+                        null
+                    }
+                    if (drawable != null) {
+                        val bmp = drawable.toBitmap(96, 96).asImageBitmap()
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            bitmap = bmp
+                        }
+                    }
+                } catch (e: Exception) {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        bitmap = null
+                    }
+                }
+            }
         }
     }
 

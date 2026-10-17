@@ -443,7 +443,7 @@ fun TaskDetailScreen(
                                             },
                                             initialHour,
                                             initialMinute,
-                                            true
+                                            false
                                         ).show()
                                     }
                             ) {
@@ -479,7 +479,7 @@ fun TaskDetailScreen(
                                             },
                                             initialHour,
                                             initialMinute,
-                                            true
+                                            false
                                         ).show()
                                     }
                             ) {

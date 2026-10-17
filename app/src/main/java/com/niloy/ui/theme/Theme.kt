@@ -1,13 +1,18 @@
 package com.niloy.ui.theme
 
 import android.os.Build
+import androidx.compose.foundation.IndicationNodeFactory
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.Modifier
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
@@ -57,6 +62,14 @@ private val LightColorScheme = lightColorScheme(
     onError = Color.White
 )
 
+private object NoIndication : IndicationNodeFactory {
+    override fun create(interactionSource: InteractionSource): Modifier.Node {
+        return object : Modifier.Node() {}
+    }
+    override fun equals(other: Any?): Boolean = other === this
+    override fun hashCode(): Int = System.identityHashCode(this)
+}
+
 @Composable
 fun DaynexaTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -72,9 +85,13 @@ fun DaynexaTheme(
         else -> LightColorScheme
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(
+        LocalIndication provides NoIndication
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

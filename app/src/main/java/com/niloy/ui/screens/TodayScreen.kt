@@ -159,7 +159,7 @@ fun TodayScreen(
                                     },
                                     h,
                                     m,
-                                    true
+                                    false
                                 ).show()
                             }
                     ) {
@@ -214,9 +214,9 @@ fun TodayScreen(
             TopAppBar(
                 title = {
                     val headerSubtitle = when {
-                        isToday -> TimeUtils.getDayGreeting()
                         uiState.selectedDate.isBefore(LocalDate.now()) -> "Viewing History"
-                        else -> "Viewing Future"
+                        uiState.selectedDate.isAfter(LocalDate.now()) -> "Viewing Future"
+                        else -> TimeUtils.formatDateHeader(uiState.selectedDate)
                     }
                     Column {
                         Text(
