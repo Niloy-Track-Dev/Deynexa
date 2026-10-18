@@ -27,6 +27,9 @@ class DiagnosticRepositoryImpl(
     private val appCategoryDao: com.niloy.data.local.dao.AppCategoryDao
 ) : DiagnosticRepository {
 
+    private var cachedInstalledApps: List<InstalledAppInfo>? = null
+    private val summaryCache = java.util.concurrent.ConcurrentHashMap<String, DiagnosticSummary>()
+
     init {
         kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
             seedDefaultCategoriesIfNeeded()
@@ -123,6 +126,8 @@ class DiagnosticRepositoryImpl(
                 updatedAt = System.currentTimeMillis()
             )
             classificationDao.insertOrUpdate(entity)
+            cachedInstalledApps = null
+            summaryCache.clear()
         }
     }
 
@@ -133,6 +138,8 @@ class DiagnosticRepositoryImpl(
     }
 
     override suspend fun getInstalledApps(): List<InstalledAppInfo> = withContext(Dispatchers.IO) {
+        cachedInstalledApps?.let { return@withContext it }
+
         val pm = context.packageManager
         val installedPackages = try {
             pm.getInstalledApplications(PackageManager.GET_META_DATA)
@@ -140,18 +147,8 @@ class DiagnosticRepositoryImpl(
             emptyList()
         }
 
-        val classificationsMap = try {
-            val list = mutableMapOf<String, AppClassificationEntity>()
-            classificationDao.getAllClassifications()
-            // We read one-shot by querying DB directly
-            list
-        } catch (e: Exception) {
-            emptyMap<String, AppClassificationEntity>()
-        }
-
         val result = mutableListOf<InstalledAppInfo>()
         for (app in installedPackages) {
-            // Filter out system apps without launch intent if desired, or show launcher apps
             val launchIntent = pm.getLaunchIntentForPackage(app.packageName)
             if (launchIntent != null || (app.flags and ApplicationInfo.FLAG_SYSTEM) == 0) {
                 val appName = pm.getApplicationLabel(app).toString()
@@ -183,13 +180,18 @@ class DiagnosticRepositoryImpl(
                 )
             }
         }
-        result.sortedBy { it.appName.lowercase() }
+        val sortedList = result.sortedBy { it.appName.lowercase() }
+        cachedInstalledApps = sortedList
+        sortedList
     }
 
     override suspend fun getUsageSummary(
         startTimeMillis: Long,
         endTimeMillis: Long
     ): DiagnosticSummary = withContext(Dispatchers.IO) {
+        val cacheKey = "$startTimeMillis-$endTimeMillis"
+        summaryCache[cacheKey]?.let { return@withContext it }
+
         if (!isUsagePermissionGranted()) {
             return@withContext createEmptySummary(startTimeMillis, endTimeMillis)
         }
@@ -355,7 +357,7 @@ class DiagnosticRepositoryImpl(
             )
         }.sortedByDescending { it.durationMillis }
 
-        DiagnosticSummary(
+        val summaryResult = DiagnosticSummary(
             startDateLabel = startDate.format(startFormatter),
             endDateLabel = endDate.format(startFormatter),
             totalUsageTimeMillis = totalMillis,
@@ -373,6 +375,9 @@ class DiagnosticRepositoryImpl(
             dailyTrend = dailyTrend,
             categoryBreakdown = categoryBreakdown
         )
+
+        summaryCache[cacheKey] = summaryResult
+        summaryResult
     }
 
     private suspend fun calculateDailyTrend(
