@@ -310,13 +310,15 @@ fun StatisticsScreen(
                     }
                 }
 
-                // Target App In-Details Diagnostics Card (Replaces Old Diagnostic Card)
+                // Target App In-Details Diagnostics Card (Entire Card Clickable to open Diagnostic Dashboard)
                 item {
                     Surface(
                         shape = RoundedCornerShape(22.dp),
                         color = MaterialTheme.colorScheme.surface,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onNavigateToDiagnostic() }
                     ) {
                         Column(
                             modifier = Modifier.padding(18.dp),
@@ -405,15 +407,6 @@ fun StatisticsScreen(
                                     uiState.selectedAppsDiagnostics.forEach { appDiag ->
                                         SelectedAppDiagnosticItem(appDiag = appDiag)
                                     }
-                                }
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                TextButton(onClick = onNavigateToDiagnostic) {
-                                    Text("Full Diagnostic Dashboard →", style = MaterialTheme.typography.labelMedium)
                                 }
                             }
                         }

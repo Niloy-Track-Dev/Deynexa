@@ -17,8 +17,8 @@ android {
     applicationId = "com.niloy.daynexa"
     minSdk = 26
     targetSdk = 36
-    versionCode = 20
-    versionName = "1.3.6"
+    versionCode = 21
+    versionName = "1.3.7"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
