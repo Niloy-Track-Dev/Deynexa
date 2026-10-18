@@ -13,31 +13,24 @@ object TimeUtils {
         val hours = (normalized / 60).toInt()
         val mins = (normalized % 60).toInt()
 
-        return if (is24Hour) {
-            String.format(Locale.getDefault(), "%02d:%02d", hours, mins)
-        } else {
-            val period = if (hours < 12) "AM" else "PM"
-            val displayHour = when (hours) {
-                0 -> 12
-                in 1..12 -> hours
-                else -> hours - 12
-            }
-            String.format(Locale.getDefault(), "%02d:%02d %s", displayHour, mins, period)
+        val period = if (hours < 12) "AM" else "PM"
+        val displayHour = when (hours) {
+            0 -> 12
+            in 1..12 -> hours
+            else -> hours - 12
         }
+        return String.format(Locale.getDefault(), "%02d:%02d %s", displayHour, mins, period)
     }
 
-    fun formatMinutes(minutes: Long, is24Hour: Boolean = false): String = formatTime(minutes, is24Hour)
-    fun formatMinutes(minutes: Int, is24Hour: Boolean = false): String = formatTime(minutes.toLong(), is24Hour)
+    fun formatMinutes(minutes: Long, is24Hour: Boolean = false): String = formatTime(minutes, false)
+    fun formatMinutes(minutes: Int, is24Hour: Boolean = false): String = formatTime(minutes.toLong(), false)
 
     fun formatTimeRange(startTime: Long?, endTime: Long?, isAllDay: Boolean, is24Hour: Boolean = false): String {
         if (isAllDay) return "All Day"
         if (startTime == null && endTime == null) return "All Day"
         if (startTime != null && endTime != null) {
             if (startTime == endTime) {
-                return formatTime(startTime, is24Hour)
-            }
-            if (is24Hour) {
-                return "${formatTime(startTime, true)} – ${formatTime(endTime, true)}"
+                return formatTime(startTime, false)
             }
 
             val startNorm = ((startTime % 1440) + 1440) % 1440
@@ -72,7 +65,7 @@ object TimeUtils {
                 endPeriod
             )
         }
-        return formatTime(startTime ?: endTime, is24Hour)
+        return formatTime(startTime ?: endTime, false)
     }
 
     fun getDayGreeting(): String {
