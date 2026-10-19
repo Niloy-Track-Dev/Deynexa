@@ -239,17 +239,19 @@ fun TaskCard(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 // Time, Recurrence & Category row
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    val timeString = TimeUtils.formatTimeRange(
-                        startTime = item.effectiveStartTime,
-                        endTime = item.effectiveEndTime,
-                        isAllDay = item.task.isAllDay,
-                        is24Hour = is24Hour
-                    )
+                val timeString = TimeUtils.formatTimeRange(
+                    startTime = item.effectiveStartTime,
+                    endTime = item.effectiveEndTime,
+                    isAllDay = item.task.isAllDay,
+                    is24Hour = is24Hour
+                )
 
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -264,39 +266,47 @@ fun TaskCard(
                             text = timeString,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = if (isRescheduled) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isRescheduled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (isRescheduled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
                         )
                     }
 
-
                     if (category != null) {
-                        Text(
-                            text = "•",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outlineVariant
-                        )
-
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = categoryColor.copy(alpha = 0.12f)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            Text(
+                                text = "•",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outlineVariant
+                            )
+
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = categoryColor.copy(alpha = 0.12f)
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(categoryColor)
-                                )
-                                Text(
-                                    text = category.name,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = categoryColor
-                                )
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .clip(CircleShape)
+                                            .background(categoryColor)
+                                    )
+                                    Text(
+                                        text = category.name,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Medium,
+                                        color = categoryColor,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
                         }
                     }
