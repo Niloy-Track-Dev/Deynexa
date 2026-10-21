@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.niloy.domain.model.Category
 import com.niloy.domain.repository.TaskRepository
 import com.niloy.domain.service.*
+import androidx.compose.runtime.Immutable
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 import java.time.DayOfWeek
 
+@Immutable
 data class SettingsUiState(
     val isOnboardingCompleted: Boolean = false,
     val theme: String = "SYSTEM",
@@ -23,8 +25,9 @@ data class SettingsUiState(
     val isLoading: Boolean = true,
     val isExporting: Boolean = false,
     val isImporting: Boolean = false,
-    val exportDialogType: String? = null, // "FULL" or "FOCENTRA"
+    val exportDialogType: String? = null, // "FULL", "FOCENTRA", "CSV"
     val generatedExportJson: String? = null,
+    val generatedExportCsv: String? = null,
     val validationResult: BackupValidationResult? = null,
     val importFeedbackMessage: String? = null,
     val isImportSuccess: Boolean = false,
@@ -253,8 +256,46 @@ class SettingsViewModel(
         }
     }
 
+    fun generateCsvExport() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExporting = true) }
+            try {
+                val csv = dataPortabilityManager.generateCsvExport()
+                _uiState.update {
+                    it.copy(
+                        isExporting = false,
+                        exportDialogType = "CSV",
+                        generatedExportCsv = csv
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isExporting = false,
+                        importFeedbackMessage = "CSV Export failed: ${e.localizedMessage}",
+                        isImportSuccess = false
+                    )
+                }
+            }
+        }
+    }
+
+    fun importCsvContent(rawCsv: String, mode: ImportMode = ImportMode.MERGE) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isImporting = true) }
+            val success = dataPortabilityManager.importCsvText(rawCsv, mode)
+            _uiState.update {
+                it.copy(
+                    isImporting = false,
+                    isImportSuccess = success,
+                    importFeedbackMessage = if (success) "CSV Routines restored successfully!" else "Failed to parse CSV file."
+                )
+            }
+        }
+    }
+
     fun dismissExportDialog() {
-        _uiState.update { it.copy(exportDialogType = null, generatedExportJson = null) }
+        _uiState.update { it.copy(exportDialogType = null, generatedExportJson = null, generatedExportCsv = null) }
     }
 
     fun dismissValidationDialog() {

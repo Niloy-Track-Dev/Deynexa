@@ -69,14 +69,6 @@ class MainActivity : ComponentActivity() {
             )
             val settingsState by settingsViewModel.uiState.collectAsState()
 
-            val systemDark = isSystemInDarkTheme()
-            val isDark = when (settingsState.theme) {
-                "DARK" -> true
-                "LIGHT" -> false
-                "SYSTEM" -> systemDark
-                else -> systemDark
-            }
-
             val context = androidx.compose.ui.platform.LocalContext.current
             val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
             var permissionsGranted by remember {
@@ -101,7 +93,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            DaynexaTheme(darkTheme = isDark) {
+            DaynexaTheme(darkTheme = false) {
                 if (settingsState.isLoading) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
@@ -163,25 +155,18 @@ fun MainContent(
         isBottomBarVisible = true
     }
 
-    val isDark = isSystemInDarkTheme()
     Box(
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(nestedScrollConnection)
-            .then(
-                if (isDark) {
-                    Modifier.background(MaterialTheme.colorScheme.background)
-                } else {
-                    Modifier.background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFFF2F7FF), // Soft light blue touch
-                                Color(0xFFF3FAF5), // Soft light green touch
-                                Color(0xFFF6F3FE)  // Soft light purple touch
-                            )
-                        )
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFF2F7FF), // Soft light blue touch
+                        Color(0xFFF3FAF5), // Soft light green touch
+                        Color(0xFFF6F3FE)  // Soft light purple touch
                     )
-                }
+                )
             )
     ) {
         Scaffold(
@@ -205,7 +190,9 @@ fun MainContent(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .offset(y = bottomBarOffsetY)
+                        .graphicsLayer {
+                            translationY = bottomBarOffsetY.toPx()
+                        }
                         .navigationBarsPadding()
                         .padding(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 6.dp),
                     contentAlignment = Alignment.Center

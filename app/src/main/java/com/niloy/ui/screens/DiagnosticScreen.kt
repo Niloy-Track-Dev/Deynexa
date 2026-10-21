@@ -843,40 +843,50 @@ private fun formatShortDuration(millis: Long): String {
     }
 }
 
+object AppIconCache {
+    private val cache = android.util.LruCache<String, androidx.compose.ui.graphics.ImageBitmap>(50)
+
+    fun get(packageName: String): androidx.compose.ui.graphics.ImageBitmap? = cache.get(packageName)
+    fun put(packageName: String, bitmap: androidx.compose.ui.graphics.ImageBitmap) {
+        cache.put(packageName, bitmap)
+    }
+}
+
 @Composable
 fun AppIconImage(packageName: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    var bitmap by remember(packageName) { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+    var bitmap by remember(packageName) { mutableStateOf(AppIconCache.get(packageName)) }
 
     LaunchedEffect(packageName) {
-        kotlinx.coroutines.Dispatchers.IO.let { dispatcher ->
-            kotlinx.coroutines.withContext(dispatcher) {
-                try {
-                    val pm = context.packageManager
-                    val appInfo = try {
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                            pm.getApplicationInfo(packageName, android.content.pm.PackageManager.ApplicationInfoFlags.of(0))
-                        } else {
-                            pm.getApplicationInfo(packageName, 0)
-                        }
-                    } catch (e: Exception) {
-                        null
-                    }
-                    val drawable: Drawable? = appInfo?.loadIcon(pm) ?: try {
-                        pm.getApplicationIcon(packageName)
-                    } catch (e: Exception) {
-                        null
-                    }
-                    if (drawable != null) {
-                        val bmp = drawable.toBitmap(96, 96).asImageBitmap()
-                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                            bitmap = bmp
-                        }
+        if (bitmap != null) return@LaunchedEffect
+
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val pm = context.packageManager
+                val appInfo = try {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        pm.getApplicationInfo(packageName, android.content.pm.PackageManager.ApplicationInfoFlags.of(0))
+                    } else {
+                        pm.getApplicationInfo(packageName, 0)
                     }
                 } catch (e: Exception) {
+                    null
+                }
+                val drawable: Drawable? = appInfo?.loadIcon(pm) ?: try {
+                    pm.getApplicationIcon(packageName)
+                } catch (e: Exception) {
+                    null
+                }
+                if (drawable != null) {
+                    val bmp = drawable.toBitmap(96, 96).asImageBitmap()
+                    AppIconCache.put(packageName, bmp)
                     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                        bitmap = null
+                        bitmap = bmp
                     }
+                }
+            } catch (e: Exception) {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    bitmap = null
                 }
             }
         }

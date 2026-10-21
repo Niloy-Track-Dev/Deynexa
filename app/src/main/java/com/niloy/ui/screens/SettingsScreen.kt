@@ -51,28 +51,31 @@ fun SettingsScreen(
     var showResetDialog by remember { mutableStateOf(false) }
     var showConsentDialog by remember { mutableStateOf(false) }
     var showCustomReminderDialog by remember { mutableStateOf(false) }
+    var showCsvImportDialog by remember { mutableStateOf(false) }
+    var csvInputText by remember { mutableStateOf("") }
     var customMinutesInput by remember { mutableStateOf("${if (uiState.defaultReminderOffset !in listOf(0, 5, 10, 15, 30)) uiState.defaultReminderOffset else 20}") }
     var selectedImportMode by remember { mutableStateOf(ImportMode.MERGE) }
 
-    // File creation launcher for export
-    val createBackupLauncher = rememberLauncherForActivityResult(
+    // File creation launcher for JSON exports
+    val createJsonBackupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri: Uri? ->
         uri?.let { exportUri ->
-            val json = uiState.generatedExportJson ?: return@let
+            val content = uiState.generatedExportJson ?: return@let
             try {
-                context.contentResolver.openOutputStream(exportUri)?.use { outputStream ->
-                    outputStream.write(json.toByteArray(Charsets.UTF_8))
+                context.contentResolver.openOutputStream(exportUri, "w")?.use { outputStream ->
+                    outputStream.write(content.toByteArray(Charsets.UTF_8))
+                    outputStream.flush()
                 }
-                Toast.makeText(context, "Backup file saved successfully!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Backup saved successfully!", Toast.LENGTH_SHORT).show()
                 viewModel.dismissExportDialog()
             } catch (e: Exception) {
-                Toast.makeText(context, "Failed to write file: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Failed to write backup: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    // File picker launcher for import
+    // File picker launcher for JSON import
     val importBackupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
@@ -90,9 +93,9 @@ fun SettingsScreen(
     }
 
     LaunchedEffect(uiState.generatedExportJson) {
-        uiState.generatedExportJson?.let {
-            val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-            createBackupLauncher.launch("Daynexa_Backup_$dateStr.daynexa")
+        val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        if (uiState.generatedExportJson != null && uiState.exportDialogType == "FULL") {
+            createJsonBackupLauncher.launch("Daynexa_Backup_$dateStr.daynexa")
         }
     }
 
@@ -209,7 +212,7 @@ fun SettingsScreen(
                                     text = when {
                                         focentraStatus == null -> "Checking installation..."
                                         !focentraStatus.isInstalled -> "Not Connected (Optional)"
-                                        focentraStatus.isConnected -> "Connected"
+                                        focentraStatus.isConnected -> "Connected • ${focentraStatus.totalImportedSessions} Sessions Synced"
                                         else -> "Not Connected (Optional)"
                                     },
                                     style = MaterialTheme.typography.bodySmall,
@@ -365,13 +368,13 @@ fun SettingsScreen(
                 }
             }
 
-            // Data & Portability Section
+            // Data & Portability Section (JSON & CSV Export/Import)
             item {
                 SettingsSection(title = "DATA & PORTABILITY") {
                     SettingsActionItem(
                         icon = Icons.Outlined.FileUpload,
-                        title = "Export Backup",
-                        subtitle = "Unified backup including routines, logs, goals & imported Focentra sessions",
+                        title = "Export JSON Backup",
+                        subtitle = "Full system backup (routines, history logs, settings & Focentra focus data)",
                         onClick = {
                             viewModel.generateFullBackup()
                         }
@@ -381,10 +384,33 @@ fun SettingsScreen(
 
                     SettingsActionItem(
                         icon = Icons.Outlined.FileDownload,
-                        title = "Import Backup / Restore Data",
-                        subtitle = "Select .daynexa or .json backup file with Merge or Replace mode",
+                        title = "Import JSON Backup",
+                        subtitle = "Restore routines, logs and settings from .daynexa or .json backup file",
                         onClick = {
                             importBackupLauncher.launch(arrayOf("application/json", "*/*"))
+                        }
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                    SettingsActionItem(
+                        icon = Icons.Outlined.TableChart,
+                        title = "Export CSV Spreadsheet",
+                        subtitle = "View and copy all routines in CSV format with a Copy button",
+                        onClick = {
+                            viewModel.generateCsvExport()
+                        }
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                    SettingsActionItem(
+                        icon = Icons.Outlined.TableRows,
+                        title = "Import CSV File / Text",
+                        subtitle = "Paste CSV text with a Paste button to bulk import routines",
+                        onClick = {
+                            csvInputText = ""
+                            showCsvImportDialog = true
                         }
                     )
                 }
@@ -530,19 +556,8 @@ fun SettingsScreen(
 
                     val mins = customMinutesInput.toIntOrNull() ?: 0
                     if (mins > 0) {
-                        val sampleTimeStr = if (uiState.timeFormat == "12H") "09:00 AM" else "09:00"
-                        val reminderSample = if (uiState.timeFormat == "12H") {
-                            val targetMins = 9 * 60 - mins
-                            val h = ((targetMins / 60) + 24) % 12
-                            val displayH = if (h == 0) 12 else h
-                            val m = (targetMins % 60 + 60) % 60
-                            String.format(Locale.getDefault(), "%02d:%02d AM", displayH, m)
-                        } else {
-                            val targetMins = 9 * 60 - mins
-                            val h = ((targetMins / 60) + 24) % 24
-                            val m = (targetMins % 60 + 60) % 60
-                            String.format(Locale.getDefault(), "%02d:%02d", h, m)
-                        }
+                        val targetMins = (9 * 60 - mins + 1440) % 1440
+                        val alertFormatted = com.niloy.ui.util.TimeUtils.formatMinutes(targetMins.toLong(), false)
 
                         Surface(
                             shape = RoundedCornerShape(10.dp),
@@ -550,7 +565,7 @@ fun SettingsScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                text = "Preview (${uiState.timeFormat} format):\nRoutine at $sampleTimeStr → Alert at $reminderSample",
+                                text = "Preview (12H format):\nRoutine at 09:00 AM → Alert at $alertFormatted",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(10.dp)
@@ -608,18 +623,16 @@ fun SettingsScreen(
         )
     }
 
-    // Export Result Dialog
-    if (uiState.generatedExportJson != null && uiState.exportDialogType != null) {
-        val json = uiState.generatedExportJson ?: ""
-        val title = if (uiState.exportDialogType == "FULL") "Full Daynexa Backup Ready" else "Focentra Focus Data Ready"
-
+    // Export Result Dialog (JSON or CSV)
+    if (uiState.generatedExportCsv != null && uiState.exportDialogType == "CSV") {
+        val exportText = uiState.generatedExportCsv ?: ""
         AlertDialog(
             onDismissRequest = { viewModel.dismissExportDialog() },
-            title = { Text(title, fontWeight = FontWeight.Bold) },
+            title = { Text("CSV Routine Export Ready", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "Your JSON export bundle is generated and ready to share or save:",
+                        text = "Your routine CSV text is ready. Tap 'Copy' to copy to clipboard:",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Surface(
@@ -628,10 +641,10 @@ fun SettingsScreen(
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(150.dp)
+                            .height(180.dp)
                     ) {
                         Text(
-                            text = json,
+                            text = exportText,
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier
                                 .padding(10.dp)
@@ -641,41 +654,103 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        onClick = {
-                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                type = "application/json"
-                                putExtra(Intent.EXTRA_TEXT, json)
-                                putExtra(Intent.EXTRA_SUBJECT, title)
-                            }
-                            context.startActivity(Intent.createChooser(shareIntent, "Share Backup JSON"))
-                        },
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Icon(Icons.Outlined.Share, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Share")
-                    }
-                    Button(
-                        onClick = {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText(title, json)
-                            clipboard.setPrimaryClip(clip)
-                            Toast.makeText(context, "Backup copied to clipboard", Toast.LENGTH_SHORT).show()
-                            viewModel.dismissExportDialog()
-                        },
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Icon(Icons.Outlined.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Copy")
-                    }
+                Button(
+                    onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val clip = ClipData.newPlainText("Daynexa Routine CSV", exportText)
+                        clipboard.setPrimaryClip(clip)
+                        Toast.makeText(context, "CSV copied to clipboard!", Toast.LENGTH_SHORT).show()
+                        viewModel.dismissExportDialog()
+                    },
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(Icons.Outlined.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Copy CSV")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.dismissExportDialog() }) {
                     Text("Close")
+                }
+            }
+        )
+    }
+
+    // CSV Import Dialog with Paste Button
+    if (showCsvImportDialog) {
+        AlertDialog(
+            onDismissRequest = { showCsvImportDialog = false },
+            title = { Text("Import Routines from CSV", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Paste CSV formatted routine data below or use 'Paste from Clipboard':",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    OutlinedTextField(
+                        value = csvInputText,
+                        onValueChange = { csvInputText = it },
+                        placeholder = { Text("ID, Title, Description, Category, StartTime, EndTime...") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(160.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                try {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val clipData = clipboard.primaryClip
+                                    if (clipData != null && clipData.itemCount > 0) {
+                                        val pastedText = clipData.getItemAt(0).text?.toString() ?: ""
+                                        if (pastedText.isNotBlank()) {
+                                            csvInputText = pastedText
+                                            Toast.makeText(context, "Pasted from clipboard!", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            Toast.makeText(context, "Clipboard is empty", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } else {
+                                        Toast.makeText(context, "Clipboard is empty", Toast.LENGTH_SHORT).show()
+                                    }
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Could not read clipboard", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Outlined.ContentPaste, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Paste")
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (csvInputText.isNotBlank()) {
+                            viewModel.importCsvContent(csvInputText)
+                            showCsvImportDialog = false
+                        } else {
+                            Toast.makeText(context, "Please enter or paste CSV content", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    shape = RoundedCornerShape(10.dp),
+                    enabled = csvInputText.isNotBlank()
+                ) {
+                    Text("Import CSV")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCsvImportDialog = false }) {
+                    Text("Cancel")
                 }
             }
         )

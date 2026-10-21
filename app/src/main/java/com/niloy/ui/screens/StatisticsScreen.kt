@@ -264,13 +264,61 @@ fun StatisticsScreen(
                     }
                 }
 
-                // Target App In-Details Diagnostics Card (Replaces Old Diagnostic Card)
+                // Local Smart AI Recommendation Banner
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Insights,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Smart Routine Insight",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = uiState.smartSuggestionTip,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Target App In-Details Diagnostics Card (Entire Card Clickable to open Diagnostic Dashboard)
                 item {
                     Surface(
                         shape = RoundedCornerShape(22.dp),
                         color = MaterialTheme.colorScheme.surface,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onNavigateToDiagnostic() }
                     ) {
                         Column(
                             modifier = Modifier.padding(18.dp),
@@ -359,15 +407,6 @@ fun StatisticsScreen(
                                     uiState.selectedAppsDiagnostics.forEach { appDiag ->
                                         SelectedAppDiagnosticItem(appDiag = appDiag)
                                     }
-                                }
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                TextButton(onClick = onNavigateToDiagnostic) {
-                                    Text("Full Diagnostic Dashboard →", style = MaterialTheme.typography.labelMedium)
                                 }
                             }
                         }
@@ -603,27 +642,10 @@ private fun SelectedAppDiagnosticItem(appDiag: com.niloy.ui.screens.SelectedAppD
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = when (appDiag.productivityType) {
-                    ProductivityType.PRODUCTIVE -> StateCompleted.copy(alpha = 0.15f)
-                    ProductivityType.NON_PRODUCTIVE -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
-                    else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                },
+            AppIconImage(
+                packageName = appDiag.packageName,
                 modifier = Modifier.size(40.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = appDiag.appName.take(1).uppercase(),
-                        fontWeight = FontWeight.Bold,
-                        color = when (appDiag.productivityType) {
-                            ProductivityType.PRODUCTIVE -> StateCompleted
-                            ProductivityType.NON_PRODUCTIVE -> MaterialTheme.colorScheme.error
-                            else -> MaterialTheme.colorScheme.primary
-                        }
-                    )
-                }
-            }
+            )
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -736,9 +758,12 @@ private fun SelectTargetAppsDialog(
                                     selectedPkgs = if (checked) selectedPkgs + appInfo.packageName else selectedPkgs - appInfo.packageName
                                 }
                             )
+                            AppIconImage(
+                                packageName = appInfo.packageName,
+                                modifier = Modifier.size(36.dp)
+                            )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(appInfo.appName, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
-                                Text(appInfo.packageName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
