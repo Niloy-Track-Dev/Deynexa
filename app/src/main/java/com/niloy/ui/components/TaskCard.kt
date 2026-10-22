@@ -126,7 +126,7 @@ fun TaskCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 12.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Animated Check Button with minimum 48dp touch target
@@ -169,7 +169,7 @@ fun TaskCard(
                 }
             }
 
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(10.dp))
 
             // Task info
             Column(
@@ -249,7 +249,7 @@ fun TaskCard(
                 @OptIn(ExperimentalLayoutApi::class)
                 FlowRow(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -274,14 +274,8 @@ fun TaskCard(
                     if (category != null) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Text(
-                                text = "•",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outlineVariant
-                            )
-
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
                                 color = categoryColor.copy(alpha = 0.12f)

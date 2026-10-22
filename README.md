@@ -7,16 +7,16 @@
 <p>A privacy-first, 100% offline Android daily routine and habit management application built with Jetpack Compose, Kotlin Coroutines, and Room.</p>
 
 <p>
-  <a href="https://github.com/Niloy-Track-Dev/Deynexa/releases">
+  <a href="https://github.com/craftplex/Deynexa/releases">
     <img src="https://img.shields.io/badge/Download%20Apk-Latest%20Release-2ea44f?style=for-the-badge&logo=android&logoColor=white" alt="Download Apk" />
   </a>
-  <a href="https://github.com/Niloy-Track-Dev/Deynexa/actions/workflows/android.yml">
+  <a href="https://github.com/craftplex/Deynexa/actions/workflows/android.yml">
     <img src="https://img.shields.io/badge/CI%2FCD-Automated-0969da?style=for-the-badge&logo=githubactions&logoColor=white" alt="CI Status" />
   </a>
 </p>
 
 <p>
-  <a href="https://github.com/Niloy-Track-Dev/Deynexa/releases"><img src="https://img.shields.io/badge/Release-v0.8.0-blue.svg" alt="Latest Release" /></a>
+  <a href="https://github.com/craftplex/Deynexa/releases"><img src="https://img.shields.io/github/v/release/craftplex/Deynexa?label=Latest%20Release" alt="Latest Release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-emerald.svg" alt="License: MIT" /></a>
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Platform-Android%208.0%2B%20%28API%2026%2B%29-brightgreen.svg" alt="Platform" /></a>
   <a href="#offline-architecture"><img src="https://img.shields.io/badge/Architecture-100%25%20Offline--First-blueviolet.svg" alt="Offline-First" /></a>
@@ -24,7 +24,7 @@
 </p>
 
 <p>
-  👉 <a href="https://github.com/Niloy-Track-Dev/Deynexa/releases"><strong>[ Download Apk (GitHub Releases) ]</strong></a> 👈 • <a href="https://github.com/Niloy-Track-Dev/Deynexa/issues/new?template=bug_report.md"><strong>Report Bug</strong></a> • <a href="https://github.com/Niloy-Track-Dev/Deynexa/issues/new?template=feature_request.md"><strong>Request Feature</strong></a> • <a href="docs/ARCHITECTURE.md"><strong>Documentation</strong></a>
+  👉 <a href="https://github.com/craftplex/Deynexa/releases"><strong>[ Download Apk (GitHub Releases) ]</strong></a> 👈 • <a href="https://github.com/craftplex/Deynexa/issues/new?template=bug_report.md"><strong>Report Bug</strong></a> • <a href="https://github.com/craftplex/Deynexa/issues/new?template=feature_request.md"><strong>Request Feature</strong></a> • <a href="docs/ARCHITECTURE.md"><strong>Documentation</strong></a>
 </p>
 
 </div>
@@ -71,12 +71,12 @@ Featuring deterministic schedule computation, an interactive monthly calendar ma
 
 You can download the latest signed production APK directly from the GitHub Releases section:
 
-👉 **[Go to GitHub Releases Section & Download Apk](https://github.com/Niloy-Track-Dev/Deynexa/releases)** 👈
+👉 **[Go to GitHub Releases Section & Download Apk](https://github.com/craftplex/Deynexa/releases)** 👈
 
 ### Installation Steps
-1. Navigate to the **[Releases](https://github.com/Niloy-Track-Dev/Deynexa/releases)** section.
-2. Under the latest release (`v0.8.0`), look under **Assets**.
-3. Download the file **`Daynexa-v0.8.0-release.apk`**.
+1. Navigate to the **[Releases](https://github.com/craftplex/Deynexa/releases)** section.
+2. Open the latest release and look under **Assets**.
+3. Download the `Daynexa-v<version>-release.apk` file.
 4. Open the APK file on your Android device (Android 8.0+ / API 26+) and confirm installation.
 
 ---
@@ -256,7 +256,7 @@ daynexa/
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/Niloy-Track-Dev/Deynexa.git
+   git clone https://github.com/craftplex/Deynexa.git
    cd Deynexa
    ```
 
@@ -301,7 +301,7 @@ Publish GitHub Release & Upload APK Artifact
 
 ## Roadmap
 
-### Current (Release v0.8.0) — ✅ Completed
+### Current (Release v1.3.9) — ✅ Completed
 - [x] **UI/UX Aesthetics & Design System Overhaul**: Material 3 elevated card surfaces, clean dark/light dynamic tokens, responsive screens, and keyboard IME navigation.
 - [x] **Accessibility Standards**: Minimum 48dp touch targets on all interactive buttons, toggle chips, and navigation icons.
 - [x] Weekly recurring & one-time task scheduling

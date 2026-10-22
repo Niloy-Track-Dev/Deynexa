@@ -17,34 +17,40 @@ android {
     applicationId = "com.niloy.daynexa"
     minSdk = 26
     targetSdk = 36
-    versionCode = 22
-    versionName = "1.3.8"
+    versionCode = 23
+    versionName = "1.3.9"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
-  signingConfigs {
-    val releaseKeystorePath = System.getenv("KEYSTORE_PATH")
-      ?: if (file("${rootDir}/daynexa-keystore.jks").exists()) "${rootDir}/daynexa-keystore.jks"
-         else "${rootDir}/my-upload-key.jks"
-    val releaseStoreFile = file(releaseKeystorePath)
-    val storePass = System.getenv("STORE_PASSWORD") ?: if (releaseStoreFile.name == "daynexa-keystore.jks") "daynexa123" else ""
-    val aliasName = System.getenv("KEY_ALIAS") ?: if (releaseStoreFile.name == "daynexa-keystore.jks") "daynexa-key" else "upload"
-    val keyPass = System.getenv("KEY_PASSWORD") ?: if (releaseStoreFile.name == "daynexa-keystore.jks") "daynexa123" else storePass
+  val releaseKeystorePath = System.getenv("KEYSTORE_PATH")
+  val releaseStoreFile = releaseKeystorePath?.let(::file)
+  val storePass = System.getenv("STORE_PASSWORD")
+  val aliasName = System.getenv("KEY_ALIAS")
+  val keyPass = System.getenv("KEY_PASSWORD")
+  val hasAnyReleaseSigningValue = listOf(
+    releaseKeystorePath,
+    storePass,
+    aliasName,
+    keyPass
+  ).any { !it.isNullOrBlank() }
+  val hasReleaseSigning = releaseStoreFile?.isFile == true &&
+    !storePass.isNullOrBlank() &&
+    !aliasName.isNullOrBlank() &&
+    !keyPass.isNullOrBlank()
 
+  if (hasAnyReleaseSigningValue && !hasReleaseSigning) {
+    throw GradleException("Release signing is incomplete. Set KEYSTORE_PATH, STORE_PASSWORD, KEY_PASSWORD, and KEY_ALIAS.")
+  }
+
+  signingConfigs {
     create("release") {
-      if (releaseStoreFile.exists() && storePass.isNotEmpty()) {
+      if (hasReleaseSigning) {
         storeFile = releaseStoreFile
         storePassword = storePass
         keyAlias = aliasName
         keyPassword = keyPass
       }
-    }
-    create("debugConfig") {
-      storeFile = file("${rootDir}/debug.keystore")
-      storePassword = "android"
-      keyAlias = "androiddebugkey"
-      keyPassword = "android"
     }
   }
 
@@ -53,19 +59,8 @@ android {
       isCrunchPngs = false
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      val releaseConfig = signingConfigs.getByName("release")
-      if (releaseConfig.storeFile != null && releaseConfig.storeFile!!.exists()) {
-        signingConfig = releaseConfig
-      } else {
-        signingConfig = signingConfigs.getByName("debugConfig")
-      }
-    }
-    debug {
-      val releaseConfig = signingConfigs.getByName("release")
-      if (releaseConfig.storeFile != null && releaseConfig.storeFile!!.exists()) {
-        signingConfig = releaseConfig
-      } else {
-        signingConfig = signingConfigs.getByName("debugConfig")
+      if (hasReleaseSigning) {
+        signingConfig = signingConfigs.getByName("release")
       }
     }
   }
