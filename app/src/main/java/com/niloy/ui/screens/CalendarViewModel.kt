@@ -10,6 +10,10 @@ import com.niloy.domain.model.TaskState
 import com.niloy.domain.repository.TaskRepository
 import com.niloy.domain.service.SchedulingService
 import com.niloy.domain.service.TaskWithOccurrence
+import com.niloy.ui.util.SideEffectEffectHandler
+import com.niloy.ui.util.UiIntent
+import com.niloy.ui.util.UiSideEffect
+import com.niloy.ui.util.UiState
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
@@ -40,7 +44,21 @@ data class CalendarUiState(
     val stats: CalendarStats = CalendarStats(),
     val is24Hour: Boolean = true,
     val isLoading: Boolean = true
-)
+) : UiState
+
+sealed interface CalendarIntent : UiIntent {
+    data class SelectDate(val date: LocalDate) : CalendarIntent
+    object NextMonth : CalendarIntent
+    object PreviousMonth : CalendarIntent
+    object JumpToToday : CalendarIntent
+    data class ToggleTaskCompletion(val taskId: Long, val date: String, val currentState: TaskState) : CalendarIntent
+    data class ToggleSkipTask(val taskId: Long, val date: String, val currentState: TaskState) : CalendarIntent
+    data class DeleteTask(val task: Task) : CalendarIntent
+}
+
+sealed interface CalendarSideEffect : UiSideEffect {
+    data class ShowToast(val message: String) : CalendarSideEffect
+}
 
 private data class CalendarRepoData(
     val tasks: List<Task>,
@@ -62,6 +80,9 @@ class CalendarViewModel(
 
     private val _is24Hour = MutableStateFlow(true)
     private val _weekendDays = MutableStateFlow(setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY))
+
+    private val sideEffectHandler = SideEffectEffectHandler<CalendarSideEffect>()
+    val sideEffect: Flow<CalendarSideEffect> = sideEffectHandler.effectFlow
 
     init {
         viewModelScope.launch {
@@ -153,6 +174,18 @@ class CalendarViewModel(
         initialValue = CalendarUiState()
     )
 
+    fun onIntent(intent: CalendarIntent) {
+        when (intent) {
+            is CalendarIntent.SelectDate -> selectDate(intent.date)
+            is CalendarIntent.NextMonth -> nextMonth()
+            is CalendarIntent.PreviousMonth -> previousMonth()
+            is CalendarIntent.JumpToToday -> jumpToToday()
+            is CalendarIntent.ToggleTaskCompletion -> toggleTaskCompletion(intent.taskId, intent.date, intent.currentState)
+            is CalendarIntent.ToggleSkipTask -> toggleSkipTask(intent.taskId, intent.date, intent.currentState)
+            is CalendarIntent.DeleteTask -> deleteTask(intent.task)
+        }
+    }
+
     fun selectDate(date: LocalDate) {
         _selectedDate.value = date
         if (YearMonth.from(date) != _currentMonth.value) {
@@ -201,6 +234,7 @@ class CalendarViewModel(
     fun deleteTask(task: Task) {
         viewModelScope.launch {
             repository.deleteTask(task)
+            sideEffectHandler.trySendEffect(CalendarSideEffect.ShowToast("Routine deleted"))
         }
     }
 
