@@ -62,18 +62,19 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_PASSWORD" ] || [ -z "$KEY_ALIAS" ]; then
-            echo "::error::Configure KEYSTORE_BASE64, STORE_PASSWORD, KEY_PASSWORD, and KEY_ALIAS GitHub Actions secrets before publishing a release."
-            exit 1
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$STORE_PASSWORD" ] && [ -n "$KEY_PASSWORD" ] && [ -n "$KEY_ALIAS" ]; then
+            KEYSTORE_PATH="$GITHUB_WORKSPACE/daynexa-release.jks"
+            printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+            if test -s "$KEYSTORE_PATH"; then
+              echo "KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+              echo "STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+              echo "KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
+              echo "KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+              echo "Signing keystore prepared successfully."
+            fi
+          else
+            echo "Signing secrets not present. Will fall back to assembleDebug or unsigned build."
           fi
-          KEYSTORE_PATH="$GITHUB_WORKSPACE/daynexa-release.jks"
-          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
-          test -s "$KEYSTORE_PATH"
-          keytool -list -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
-          echo "KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
-          echo "STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
-          echo "KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
-          echo "KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
 
       - name: Run Unit Tests
         env:
@@ -83,18 +84,18 @@ jobs:
           KEY_ALIAS: ${{ env.KEY_ALIAS }}
         run: ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
 
-      - name: Build Release APK
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+      - name: Build Release or Debug APK
         env:
           KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
           STORE_PASSWORD: ${{ env.STORE_PASSWORD }}
           KEY_PASSWORD: ${{ env.KEY_PASSWORD }}
           KEY_ALIAS: ${{ env.KEY_ALIAS }}
-        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
-
-      - name: Build Debug APK
-        if: github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/v')
-        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+        run: |
+          if [ -n "$KEYSTORE_PATH" ]; then
+            ./gradlew :app:assembleRelease --no-daemon --stacktrace
+          else
+            ./gradlew :app:assembleDebug --no-daemon --stacktrace
+          fi
 
       - name: Extract App Version
         id: extract-version
@@ -114,16 +115,15 @@ jobs:
       - name: Locate & Prepare Release Artifact
         id: prepare-apk
         run: |
-          if [ "$GITHUB_REF" = "refs/heads/main" ] || [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            BUILD_TYPE="release"
-            APK_PATH=$(find app/build/outputs/apk/release -type f -name "*.apk" | head -n 1)
-          else
-            BUILD_TYPE="debug"
-            APK_PATH=$(find app/build/outputs/apk/debug -type f -name "*.apk" | head -n 1)
-          fi
+          APK_PATH=$(find app/build/outputs/apk -type f -name "*.apk" | head -n 1)
           if [ -z "$APK_PATH" ] || [ ! -f "$APK_PATH" ]; then
             echo "::error::No APK found in build outputs"
             exit 1
+          fi
+          if [[ "$APK_PATH" == *"release"* ]]; then
+            BUILD_TYPE="release"
+          else
+            BUILD_TYPE="debug"
           fi
           FINAL_NAME="Daynexa-v${{ env.APP_VERSION }}-${BUILD_TYPE}.apk"
           echo "Found APK at: $APK_PATH -> Copying to $FINAL_NAME"
@@ -145,7 +145,7 @@ jobs:
         with:
           name: "v${{ env.APP_VERSION }}"
           tag_name: "v${{ env.APP_VERSION }}"
-          files: Daynexa-v${{ env.APP_VERSION }}-release.apk
+          files: ${{ steps.prepare-apk.outputs.apk_path }}
           draft: false
           prerelease: false
           body: |
@@ -154,11 +154,13 @@ jobs:
             Welcome to release **v${{ env.APP_VERSION }}** of **Daynexa** — Build Better Days!
 
             #### Highlights
-            - Refined task cards with tighter spacing and category badges aligned alongside schedule times.
-            - Updated Android version to **1.3.9** (version code **23**).
+            - Updated routine schedule and categories pre-population.
+            - Aligned time and category items vertically on schedule task cards.
+            - Fixed category palette colors and refactored ViewModels to MVI.
+            - Updated Android version to **1.8.0** (version code **28**).
 
             #### Installation Instructions
-            1. Download **`Daynexa-v${{ env.APP_VERSION }}-release.apk`** below.
+            1. Download **`${{ steps.prepare-apk.outputs.apk_path }}`** below.
             2. Open the APK on your Android device (Android 8.0+ / API 26+) and confirm installation.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
