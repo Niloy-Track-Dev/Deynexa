@@ -23,7 +23,7 @@ android {
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
-  val releaseKeystorePath = System.getenv("KEYSTORE_PATH")
+  val releaseKeystorePath = System.getenv("KEYSTORE_PATH")?.takeIf { it.isNotBlank() }
   val releaseStoreFile = releaseKeystorePath?.let(::file)
   val storePass = System.getenv("STORE_PASSWORD")
   val aliasName = System.getenv("KEY_ALIAS")
