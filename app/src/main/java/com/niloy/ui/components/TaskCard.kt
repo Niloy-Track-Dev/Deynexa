@@ -249,10 +249,11 @@ fun TaskCard(
                 @OptIn(ExperimentalLayoutApi::class)
                 FlowRow(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
+                        modifier = Modifier.align(Alignment.CenterVertically),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
@@ -273,6 +274,7 @@ fun TaskCard(
 
                     if (category != null) {
                         Row(
+                            modifier = Modifier.align(Alignment.CenterVertically),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
