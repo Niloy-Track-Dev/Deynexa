@@ -403,7 +403,35 @@ fun MainContent(
             NavHost(
                 navController = navController,
                 startDestination = startDestination,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                enterTransition = {
+                    androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(300)) +
+                    androidx.compose.animation.slideInHorizontally(
+                        initialOffsetX = { 60 },
+                        animationSpec = androidx.compose.animation.core.tween(300)
+                    )
+                },
+                exitTransition = {
+                    androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(250)) +
+                    androidx.compose.animation.slideOutHorizontally(
+                        targetOffsetX = { -60 },
+                        animationSpec = androidx.compose.animation.core.tween(250)
+                    )
+                },
+                popEnterTransition = {
+                    androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(300)) +
+                    androidx.compose.animation.slideInHorizontally(
+                        initialOffsetX = { -60 },
+                        animationSpec = androidx.compose.animation.core.tween(300)
+                    )
+                },
+                popExitTransition = {
+                    androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(250)) +
+                    androidx.compose.animation.slideOutHorizontally(
+                        targetOffsetX = { 60 },
+                        animationSpec = androidx.compose.animation.core.tween(250)
+                    )
+                }
             ) {
             composable<Screen.Onboarding> {
                 OnboardingScreen(onComplete = {
