@@ -21,12 +21,13 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 class DiagnosticRepositoryImpl(
-    private val context: Context,
+    context: Context,
     private val classificationDao: AppClassificationDao,
     private val focentraDao: com.niloy.data.local.dao.FocentraStudySessionDao,
     private val appCategoryDao: com.niloy.data.local.dao.AppCategoryDao
 ) : DiagnosticRepository {
 
+    private val applicationContext = context.applicationContext
     private var cachedInstalledApps: List<InstalledAppInfo>? = null
     private val summaryCache = java.util.concurrent.ConcurrentHashMap<String, DiagnosticSummary>()
 
@@ -95,11 +96,11 @@ class DiagnosticRepositoryImpl(
     }
 
     override fun isUsagePermissionGranted(): Boolean {
-        val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager ?: return false
+        val appOps = applicationContext.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager ?: return false
         val mode = appOps.checkOpNoThrow(
             AppOpsManager.OPSTR_GET_USAGE_STATS,
             android.os.Process.myUid(),
-            context.packageName
+            applicationContext.packageName
         )
         return mode == AppOpsManager.MODE_ALLOWED
     }
@@ -140,7 +141,7 @@ class DiagnosticRepositoryImpl(
     override suspend fun getInstalledApps(): List<InstalledAppInfo> = withContext(Dispatchers.IO) {
         cachedInstalledApps?.let { return@withContext it }
 
-        val pm = context.packageManager
+        val pm = applicationContext.packageManager
         val installedPackages = try {
             pm.getInstalledApplications(PackageManager.GET_META_DATA)
         } catch (e: Exception) {
@@ -196,10 +197,10 @@ class DiagnosticRepositoryImpl(
             return@withContext createEmptySummary(startTimeMillis, endTimeMillis)
         }
 
-        val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
+        val usageStatsManager = applicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
             ?: return@withContext createEmptySummary(startTimeMillis, endTimeMillis)
 
-        val pm = context.packageManager
+        val pm = applicationContext.packageManager
 
         val statsList = usageStatsManager.queryUsageStats(
             UsageStatsManager.INTERVAL_DAILY,

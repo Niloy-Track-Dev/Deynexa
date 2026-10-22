@@ -17,7 +17,8 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 
-class TaskReminderScheduler(private val context: Context) {
+class TaskReminderScheduler(context: Context) {
+    private val appContext = context.applicationContext
 
     companion object {
         const val CHANNEL_ID = "daynexa_task_reminders"
@@ -50,10 +51,10 @@ class TaskReminderScheduler(private val context: Context) {
         }
     }
 
-    private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    private val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
     init {
-        createNotificationChannel(context)
+        createNotificationChannel(appContext)
     }
 
     fun scheduleReminder(task: Task, categoryName: String = "") {
@@ -132,7 +133,7 @@ class TaskReminderScheduler(private val context: Context) {
         categoryName: String,
         dayValue: Int
     ) {
-        val intent = Intent(context, TaskReminderReceiver::class.java).apply {
+        val intent = Intent(appContext, TaskReminderReceiver::class.java).apply {
             action = ACTION_TASK_REMINDER
             putExtra(EXTRA_TASK_ID, task.id)
             putExtra(EXTRA_TASK_NAME, task.name)
@@ -143,7 +144,7 @@ class TaskReminderScheduler(private val context: Context) {
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
-            context,
+            appContext,
             requestCode,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -194,11 +195,11 @@ class TaskReminderScheduler(private val context: Context) {
         // Cancel single requestCode 0 and recurring requestCodes 1..7
         for (dayVal in 0..7) {
             val requestCode = generateRequestCode(taskId, dayVal)
-            val intent = Intent(context, TaskReminderReceiver::class.java).apply {
+            val intent = Intent(appContext, TaskReminderReceiver::class.java).apply {
                 action = ACTION_TASK_REMINDER
             }
             val pendingIntent = PendingIntent.getBroadcast(
-                context,
+                appContext,
                 requestCode,
                 intent,
                 PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
