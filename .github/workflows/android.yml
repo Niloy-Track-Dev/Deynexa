@@ -55,30 +55,25 @@ jobs:
         run: ./gradlew clean --no-daemon
 
       - name: Prepare Signing Keystore
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "Decoding release keystore from GitHub Secrets..."
-            echo "$KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/my-upload-key.jks"
-            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/my-upload-key.jks" >> $GITHUB_ENV
-            echo "STORE_PASSWORD=$STORE_PASSWORD" >> $GITHUB_ENV
-            echo "KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
-            echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
-          else
-            echo "Generating automated fallback release keystore..."
-            keytool -genkey -v -keystore "$GITHUB_WORKSPACE/daynexa-keystore.jks" \
-              -alias daynexa-key -keyalg RSA -keysize 2048 -validity 10000 \
-              -storepass daynexa123 -keypass daynexa123 \
-              -dname "CN=Daynexa, OU=App, O=Niloy, L=Dhaka, S=Dhaka, C=BD"
-            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/daynexa-keystore.jks" >> $GITHUB_ENV
-            echo "STORE_PASSWORD=daynexa123" >> $GITHUB_ENV
-            echo "KEY_PASSWORD=daynexa123" >> $GITHUB_ENV
-            echo "KEY_ALIAS=daynexa-key" >> $GITHUB_ENV
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_PASSWORD" ] || [ -z "$KEY_ALIAS" ]; then
+            echo "::error::Configure KEYSTORE_BASE64, STORE_PASSWORD, KEY_PASSWORD, and KEY_ALIAS GitHub Actions secrets before publishing a release."
+            exit 1
           fi
+          KEYSTORE_PATH="$GITHUB_WORKSPACE/daynexa-release.jks"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          test -s "$KEYSTORE_PATH"
+          keytool -list -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
+          echo "KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+          echo "STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
+          echo "KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
 
       - name: Run Unit Tests
         env:
@@ -89,6 +84,7 @@ jobs:
         run: ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
 
       - name: Build Release APK
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
         env:
           KEYSTORE_PATH: ${{ env.KEYSTORE_PATH }}
           STORE_PASSWORD: ${{ env.STORE_PASSWORD }}
@@ -96,12 +92,21 @@ jobs:
           KEY_ALIAS: ${{ env.KEY_ALIAS }}
         run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
 
+      - name: Build Debug APK
+        if: github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/v')
+        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
       - name: Extract App Version
         id: extract-version
         run: |
           VER_NAME=$(grep "versionName =" app/build.gradle.kts | head -n 1 | awk -F '"' '{print $2}')
           if [ -z "$VER_NAME" ]; then
-            VER_NAME="1.1.0"
+            echo "::error::Could not extract versionName from app/build.gradle.kts"
+            exit 1
+          fi
+          if [[ "$GITHUB_REF" == refs/tags/v* && "$GITHUB_REF_NAME" != "v$VER_NAME" ]]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match app version v$VER_NAME"
+            exit 1
           fi
           echo "APP_VERSION=$VER_NAME" >> $GITHUB_ENV
           echo "Extracted App Version: $VER_NAME"
@@ -109,24 +114,28 @@ jobs:
       - name: Locate & Prepare Release Artifact
         id: prepare-apk
         run: |
-          APK_PATH=$(find app/build/outputs/apk/release -type f -name "*.apk" | head -n 1)
-          if [ -z "$APK_PATH" ] || [ ! -f "$APK_PATH" ]; then
-            APK_PATH=$(find app/build/outputs/apk -type f -name "*.apk" | head -n 1)
+          if [ "$GITHUB_REF" = "refs/heads/main" ] || [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            BUILD_TYPE="release"
+            APK_PATH=$(find app/build/outputs/apk/release -type f -name "*.apk" | head -n 1)
+          else
+            BUILD_TYPE="debug"
+            APK_PATH=$(find app/build/outputs/apk/debug -type f -name "*.apk" | head -n 1)
           fi
           if [ -z "$APK_PATH" ] || [ ! -f "$APK_PATH" ]; then
             echo "::error::No APK found in build outputs"
             exit 1
           fi
-          FINAL_NAME="Daynexa-v${{ env.APP_VERSION }}-release.apk"
+          FINAL_NAME="Daynexa-v${{ env.APP_VERSION }}-${BUILD_TYPE}.apk"
           echo "Found APK at: $APK_PATH -> Copying to $FINAL_NAME"
           cp "$APK_PATH" "$FINAL_NAME"
           echo "apk_path=$FINAL_NAME" >> "$GITHUB_OUTPUT"
+          echo "build_type=$BUILD_TYPE" >> "$GITHUB_OUTPUT"
 
       - name: Upload APK Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Daynexa-Release-APK-v${{ env.APP_VERSION }}
-          path: Daynexa-v${{ env.APP_VERSION }}-release.apk
+          name: Daynexa-${{ steps.prepare-apk.outputs.build_type }}-APK-v${{ env.APP_VERSION }}
+          path: ${{ steps.prepare-apk.outputs.apk_path }}
           if-no-files-found: error
           retention-days: 30
 
@@ -140,21 +149,13 @@ jobs:
           draft: false
           prerelease: false
           body: |
-            ### Daynexa v${{ env.APP_VERSION }} Major Release
+            ### Daynexa v${{ env.APP_VERSION }}
 
             Welcome to release **v${{ env.APP_VERSION }}** of **Daynexa** — Build Better Days!
 
-            #### Release Highlights in v${{ env.APP_VERSION }}
-            - **Signed APK Release**: Built and signed with the official Daynexa keystore for easy updates.
-            - **Target App In-Details Diagnostics**: Select specific installed target apps for deep screen time, usage, and focus tracking.
-            - **High Performance Import & Export**: In-memory indexing and Room batch transactions for fast data restores without UI lag.
-            - **UI & Interaction Refinements**:
-              - TimePickerDialog respects user 12H / 24H time format preference.
-              - Disabled ripple shadows app-wide for clean visual feedback.
-              - Double-click Complete / Uncomplete task toggling.
-              - Clean single-color vector logo icon.
-              - Date navigation indicators ("Viewing History", "Viewing Future").
-              - Confirmation pop-ups for all deletion actions.
+            #### Highlights
+            - Refined task cards with tighter spacing and category badges aligned alongside schedule times.
+            - Updated Android version to **1.3.9** (version code **23**).
 
             #### Installation Instructions
             1. Download **`Daynexa-v${{ env.APP_VERSION }}-release.apk`** below.

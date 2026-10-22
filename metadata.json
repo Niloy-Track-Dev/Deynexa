@@ -1,6 +1,6 @@
 {
   "name": "Daynexa",
-  "description": "Daynexa v0.8.0 — Advanced Productivity Intelligence & Unified Backup with Smart Daily Planner, Task Priority, Deadlines, Goals & Streaks, Productivity Score 2.0, Weekly Review, and Unified SAF File Backup.",
+  "description": "Daynexa v1.3.9 — Advanced Productivity Intelligence & Unified Backup with Smart Daily Planner, Task Priority, Deadlines, Goals & Streaks, Productivity Score 2.0, Weekly Review, and Unified SAF File Backup.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
