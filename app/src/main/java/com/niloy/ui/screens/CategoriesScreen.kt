@@ -332,13 +332,13 @@ private fun CategoryDialog(
         CategoryCyan.toArgb(),
         CategoryIndigo.toArgb(),
         CategoryTeal.toArgb(),
-        0xFFF59E0B.toInt(),
+        0xFFFF6B6B.toInt(),
         0xFFEC4899.toInt(),
-        0xFF8B5CF6.toInt(),
-        0xFF10B981.toInt(),
-        0xFF6366F1.toInt(),
+        0xFFD946EF.toInt(),
+        0xFF84CC16.toInt(),
+        0xFFF97316.toInt(),
         0xFFEF4444.toInt(),
-        0xFF06B6D4.toInt(),
+        0xFF0284C7.toInt(),
         0xFF64748B.toInt()
     )
 
