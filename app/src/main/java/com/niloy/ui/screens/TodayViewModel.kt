@@ -7,11 +7,17 @@ import com.niloy.domain.model.*
 import com.niloy.domain.repository.TaskRepository
 import com.niloy.domain.service.SchedulingService
 import com.niloy.domain.service.TaskWithOccurrence
+import com.niloy.ui.util.SideEffectEffectHandler
+import com.niloy.ui.util.UiIntent
+import com.niloy.ui.util.UiSideEffect
+import com.niloy.ui.util.UiState
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
 
+// MVI UI State
 data class TodayUiState(
     val selectedDate: LocalDate = LocalDate.now(),
     val tasksWithOccurrences: List<TaskWithOccurrence> = emptyList(),
@@ -26,7 +32,32 @@ data class TodayUiState(
     val weekendDays: Set<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY),
     val productivityInsights: ProductivityInsights = ProductivityInsights(),
     val isLoading: Boolean = true
-)
+) : UiState
+
+// MVI UI Intents (Actions)
+sealed interface TodayIntent : UiIntent {
+    data class SelectDate(val date: LocalDate) : TodayIntent
+    object NextDay : TodayIntent
+    object PreviousDay : TodayIntent
+    object JumpToToday : TodayIntent
+    data class SelectCategoryFilter(val categoryId: Long?) : TodayIntent
+    data class ToggleTaskCompletion(val taskId: Long, val date: String, val currentState: TaskState) : TodayIntent
+    data class ToggleSkipTask(val taskId: Long, val date: String, val currentState: TaskState, val reason: String? = null) : TodayIntent
+    data class RescheduleOccurrence(
+        val taskId: Long,
+        val originalDate: String,
+        val newStartTime: Long?,
+        val newEndTime: Long?,
+        val newDate: String?,
+        val notes: String?
+    ) : TodayIntent
+    data class DeleteTask(val task: Task) : TodayIntent
+}
+
+// MVI Single Event Side-Effects
+sealed interface TodaySideEffect : UiSideEffect {
+    data class ShowToast(val message: String) : TodaySideEffect
+}
 
 private data class RepoData(
     val tasks: List<Task>,
@@ -48,6 +79,9 @@ class TodayViewModel(
 
     private val _is24Hour = MutableStateFlow(true)
     private val _weekendDays = MutableStateFlow(setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY))
+
+    private val sideEffectHandler = SideEffectEffectHandler<TodaySideEffect>()
+    val sideEffect: Flow<TodaySideEffect> = sideEffectHandler.effectFlow
 
     init {
         viewModelScope.launch {
@@ -127,6 +161,23 @@ class TodayViewModel(
         initialValue = TodayUiState()
     )
 
+    // MVI Intent Processor
+    fun onIntent(intent: TodayIntent) {
+        when (intent) {
+            is TodayIntent.SelectDate -> selectDate(intent.date)
+            is TodayIntent.NextDay -> nextDay()
+            is TodayIntent.PreviousDay -> previousDay()
+            is TodayIntent.JumpToToday -> jumpToToday()
+            is TodayIntent.SelectCategoryFilter -> selectCategoryFilter(intent.categoryId)
+            is TodayIntent.ToggleTaskCompletion -> toggleTaskCompletion(intent.taskId, intent.date, intent.currentState)
+            is TodayIntent.ToggleSkipTask -> toggleSkipTask(intent.taskId, intent.date, intent.currentState, intent.reason)
+            is TodayIntent.RescheduleOccurrence -> rescheduleOccurrence(
+                intent.taskId, intent.originalDate, intent.newStartTime, intent.newEndTime, intent.newDate, intent.notes
+            )
+            is TodayIntent.DeleteTask -> deleteTask(intent.task)
+        }
+    }
+
     fun selectDate(date: LocalDate) {
         _selectedDate.value = date
     }
@@ -156,6 +207,9 @@ class TodayViewModel(
                 updatedAt = System.currentTimeMillis()
             )
             repository.saveOccurrence(updated)
+            if (newState == TaskState.COMPLETED) {
+                sideEffectHandler.trySendEffect(TodaySideEffect.ShowToast("Routine marked as completed"))
+            }
         }
     }
 
@@ -191,12 +245,14 @@ class TodayViewModel(
                 updatedAt = System.currentTimeMillis()
             )
             repository.saveOccurrence(updated)
+            sideEffectHandler.trySendEffect(TodaySideEffect.ShowToast("Routine adjusted"))
         }
     }
 
     fun deleteTask(task: Task) {
         viewModelScope.launch {
             repository.deleteTask(task)
+            sideEffectHandler.trySendEffect(TodaySideEffect.ShowToast("Routine deleted"))
         }
     }
 
