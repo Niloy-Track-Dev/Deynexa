@@ -5,11 +5,13 @@ import com.niloy.domain.model.Goal
 import com.niloy.domain.model.Task
 import com.niloy.domain.model.TaskOccurrence
 import com.niloy.domain.model.TaskTemplate
+import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.json.JSONObject
 import java.security.MessageDigest
 
+@JsonClass(generateAdapter = true)
 data class AppClassificationBackup(
     val packageName: String,
     val appName: String,
@@ -19,6 +21,7 @@ data class AppClassificationBackup(
     val updatedAt: Long = System.currentTimeMillis()
 )
 
+@JsonClass(generateAdapter = true)
 data class AppCategoryBackup(
     val id: Long = 0,
     val name: String,
@@ -26,6 +29,7 @@ data class AppCategoryBackup(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+@JsonClass(generateAdapter = true)
 data class FocentraSessionBackup(
     val sessionId: String,
     val subject: String,
@@ -42,9 +46,10 @@ data class FocentraSessionBackup(
     val storageOwner: String = "Daynexa imported local copy"
 )
 
+@JsonClass(generateAdapter = true)
 data class FocentraExportBundle(
     val exportVersion: Int = 1,
-    val appVersion: String = "1.1.0",
+    val appVersion: String = "2.0.0",
     val createdAt: Long = System.currentTimeMillis(),
     val source: String = "Focentra",
     val origin: String = "Focentra Integration API v1",
@@ -53,9 +58,10 @@ data class FocentraExportBundle(
     val sessions: List<FocentraSessionBackup> = emptyList()
 )
 
+@JsonClass(generateAdapter = true)
 data class BackupData(
-    val backupVersion: Int = 4,
-    val appVersion: String = "1.1.0",
+    val backupVersion: Int = 5,
+    val appVersion: String = "2.0.0",
     val createdAt: Long = System.currentTimeMillis(),
     val backupType: String = "FULL_BACKUP",
     val source: String = "Daynexa",
@@ -112,10 +118,14 @@ class BackupService {
         return hash.joinToString("") { "%02x".format(it) }
     }
 
+    fun computeBackupChecksum(data: BackupData): String {
+        val contentDigest = "${data.categories.size}-${data.tasks.size}-${data.occurrences.size}-${data.taskTemplates?.size ?: 0}-${data.goals?.size ?: 0}-${data.settings.size}-${data.createdAt}"
+        return calculateSha256(contentDigest)
+    }
+
     fun exportBackup(data: BackupData): String {
         val dataWithChecksum = if (data.checksum.isNullOrBlank()) {
-            val contentDigest = "${data.categories.size}-${data.tasks.size}-${data.occurrences.size}-${data.createdAt}"
-            data.copy(checksum = calculateSha256(contentDigest))
+            data.copy(checksum = computeBackupChecksum(data))
         } else {
             data
         }
@@ -148,16 +158,15 @@ class BackupService {
             return BackupValidationResult.Invalid("The provided backup file is empty.")
         }
 
-        // Basic JSON sanity check
-        val jsonObject = try {
-            JSONObject(trimmed)
-        } catch (e: Exception) {
-            return BackupValidationResult.Invalid("Invalid JSON syntax: ${e.localizedMessage}")
+        if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
+            return BackupValidationResult.Invalid("Invalid JSON syntax: Content is not a valid JSON object.")
         }
 
         // Check if it's a dedicated Focentra Export Bundle
-        val hasSourceFocentra = jsonObject.optString("source") == "Focentra" || jsonObject.has("sessions")
-        if (hasSourceFocentra && !jsonObject.has("tasks") && !jsonObject.has("categories")) {
+        val isFocentraBundle = (trimmed.contains("\"source\": \"Focentra\"") || trimmed.contains("\"source\":\"Focentra\"") || trimmed.contains("\"sessions\":"))
+            && !trimmed.contains("\"categories\":") && !trimmed.contains("\"tasks\":")
+
+        if (isFocentraBundle) {
             val bundle = parseFocentraBundle(trimmed)
                 ?: return BackupValidationResult.Invalid("Failed to parse Focentra export bundle structure.")
 
@@ -181,8 +190,18 @@ class BackupService {
         // Otherwise check as Full Backup (or legacy backup)
         val fullData = parseBackup(trimmed)
         if (fullData != null) {
+            // Verify checksum if present
+            if (!fullData.checksum.isNullOrBlank()) {
+                val expectedChecksum = computeBackupChecksum(fullData)
+                // Note: For legacy version 4 checksum format check fallback if needed
+                val legacyChecksum = calculateSha256("${fullData.categories.size}-${fullData.tasks.size}-${fullData.occurrences.size}-${fullData.createdAt}")
+                if (fullData.checksum != expectedChecksum && fullData.checksum != legacyChecksum) {
+                    return BackupValidationResult.Invalid("Backup integrity check failed: Checksum mismatch. The file may be corrupt or altered.")
+                }
+            }
+
             val preview = BackupPreviewInfo(
-                backupType = "Unified Daynexa Backup",
+                backupType = "Unified Daynexa Enterprise Backup",
                 appVersion = fullData.appVersion,
                 createdAt = fullData.createdAt,
                 tasksCount = fullData.tasks.size,
@@ -198,6 +217,6 @@ class BackupService {
             return BackupValidationResult.ValidFull(fullData, preview)
         }
 
-        return BackupValidationResult.Invalid("Unrecognized backup schema. Please ensure the file is a valid Daynexa backup (.daynexa or .json).")
+        return BackupValidationResult.Invalid("Unrecognized backup schema. Please ensure the content is a valid Daynexa backup (.daynexa or .json).")
     }
 }
