@@ -212,29 +212,20 @@ class DaynexaApplication : Application() {
     private fun initDemoData() {
         kotlinx.coroutines.MainScope().launch {
             try {
-                val seededSetting = database.settingDao().getByKey("routine_seeded_v3")
+                val seededSetting = database.settingDao().getByKey("routine_seeded_v4")
                 if (seededSetting?.value != "true") {
                     database.taskOccurrenceDao().deleteAll()
                     database.taskDao().deleteAll()
                     database.categoryDao().deleteAll()
 
                     val studyId = repository.saveCategory(com.niloy.domain.model.Category(name = "Study", icon = "book", color = 0xFF3B82F6.toInt()))
+                    val revisionId = repository.saveCategory(com.niloy.domain.model.Category(name = "Revision", icon = "refresh", color = 0xFF6366F1.toInt()))
                     val mealId = repository.saveCategory(com.niloy.domain.model.Category(name = "Meal", icon = "restaurant", color = 0xFFF59E0B.toInt()))
                     val personalId = repository.saveCategory(com.niloy.domain.model.Category(name = "Personal", icon = "person", color = 0xFF10B981.toInt()))
                     val spiritualId = repository.saveCategory(com.niloy.domain.model.Category(name = "Spiritual", icon = "favorite", color = 0xFF8B5CF6.toInt()))
                     val breakId = repository.saveCategory(com.niloy.domain.model.Category(name = "Break", icon = "timer", color = 0xFF06B6D4.toInt()))
-                    val napId = repository.saveCategory(com.niloy.domain.model.Category(name = "Nap", icon = "bed", color = 0xFF6366F1.toInt()))
+                    val napId = repository.saveCategory(com.niloy.domain.model.Category(name = "Nap", icon = "bed", color = 0xFF818CF8.toInt()))
                     val othersId = repository.saveCategory(com.niloy.domain.model.Category(name = "Others", icon = "more_horiz", color = 0xFF14B8A6.toInt()))
-
-                    // Daily "ঘুম থেকে উঠা" task at 07:00 AM
-                    repository.saveTask(com.niloy.domain.model.Task(
-                        name = "ঘুম থেকে উঠা",
-                        categoryId = personalId,
-                        startTime = 420L, // 07:00 AM
-                        endTime = 420L,   // 07:00 AM
-                        isRecurring = true,
-                        recurringDays = java.time.DayOfWeek.values().toSet()
-                    ))
 
                     val sat = java.time.DayOfWeek.SATURDAY
                     val sun = java.time.DayOfWeek.SUNDAY
@@ -247,111 +238,149 @@ class DaynexaApplication : Application() {
                     data class SeedTask(val name: String, val categoryId: Long, val start: Long, val end: Long, val days: Set<java.time.DayOfWeek>)
 
                     val seedTasks = listOf(
-                        // Saturday & Thursday
-                        SeedTask("ঘুম থেকে উঠে রেডি হওয়া ও নাস্তা", othersId, 420L, 450L, setOf(sat, thu)),
-                        SeedTask("কলেজ (যাওয়া-আসা ও ক্লাস)", othersId, 450L, 870L, setOf(sat, thu)),
-                        SeedTask("Fresh হওয়া", personalId, 870L, 880L, setOf(sat, thu)),
-                        SeedTask("দুপুরের ভাত", mealId, 880L, 900L, setOf(sat, thu)),
-                        SeedTask("ঘুম", napId, 900L, 990L, setOf(sat, thu)),
-                        SeedTask("প্রার্থনা", spiritualId, 990L, 1020L, setOf(sat, thu)),
-                        SeedTask("নাস্তা", mealId, 1020L, 1050L, setOf(sat, thu)),
-                        SeedTask("Physics পড়া", studyId, 1050L, 1170L, setOf(sat, thu)),
-                        SeedTask("Chemistry পড়া", studyId, 1170L, 1260L, setOf(sat, thu)),
-                        SeedTask("রাতের ভাত", mealId, 1260L, 1280L, setOf(sat, thu)),
-                        SeedTask("বিরতি", breakId, 1280L, 1290L, setOf(sat, thu)),
-                        SeedTask("Bangla 1st পড়া", studyId, 1290L, 1380L, setOf(sat, thu)),
-                        SeedTask("Chemistry পড়া", studyId, 1380L, 1480L, setOf(sat, thu)),
+                        // Daily "ঘুম থেকে উঠা" at 07:00 AM (Others)
+                        SeedTask("ঘুম থেকে উঠা", othersId, 420L, 420L, setOf(sat, sun, mon, tue, wed, thu, fri)),
 
-                        // Sunday & Friday
-                        SeedTask("নাস্তা ও Fresh Air", mealId, 420L, 450L, setOf(sun, fri)),
-                        SeedTask("হাঁটাহাঁটি", othersId, 450L, 460L, setOf(sun, fri)),
-                        SeedTask("ওয়াশরুম ও স্নান", othersId, 460L, 490L, setOf(sun, fri)),
-                        SeedTask("প্রার্থনা", spiritualId, 490L, 520L, setOf(sun, fri)),
-                        SeedTask("Higher Math পড়া", studyId, 520L, 670L, setOf(sun, fri)),
-                        SeedTask("Biology পড়া", studyId, 670L, 750L, setOf(sun, fri)),
-                        SeedTask("ছোট বিরতি", breakId, 750L, 760L, setOf(sun, fri)),
-                        SeedTask("দুপুরের ভাত", mealId, 760L, 790L, setOf(sun, fri)),
-                        SeedTask("কোচিংয়ের জন্য রেডি হওয়া", personalId, 790L, 800L, setOf(sun, fri)),
-                        SeedTask("কোচিং (যাওয়া-আসা সহ)", othersId, 800L, 945L, setOf(sun, fri)),
-                        SeedTask("মোবাইল", othersId, 945L, 975L, setOf(sun, fri)),
-                        SeedTask("বিশ্রাম", othersId, 975L, 1005L, setOf(sun, fri)),
-                        SeedTask("প্রার্থনা", spiritualId, 1005L, 1025L, setOf(sun, fri)),
-                        SeedTask("নাস্তা", mealId, 1025L, 1050L, setOf(sun, fri)),
-                        SeedTask("Higher Math পড়া", studyId, 1050L, 1170L, setOf(sun, fri)),
-                        SeedTask("English 2nd পড়া", studyId, 1170L, 1260L, setOf(sun, fri)),
-                        SeedTask("রাতের ভাত", mealId, 1260L, 1280L, setOf(sun, fri)),
-                        SeedTask("বিরতি", breakId, 1280L, 1290L, setOf(sun, fri)),
-                        SeedTask("Biology পড়া", studyId, 1290L, 1410L, setOf(sun, fri)),
+                        // Saturday (শনিবার)
+                        SeedTask("নাস্তা ও Fresh Air", othersId, 420L, 450L, setOf(sat)),
+                        SeedTask("হাঁটাহাঁটি", othersId, 450L, 460L, setOf(sat)),
+                        SeedTask("ওয়াশরুম ও স্নান", personalId, 460L, 490L, setOf(sat)),
+                        SeedTask("প্রার্থনা", spiritualId, 490L, 530L, setOf(sat)),
+                        SeedTask("বিরতি & Prepare for study", breakId, 530L, 540L, setOf(sat)),
+                        SeedTask("◆ Study - || Physics || -", studyId, 540L, 810L, setOf(sat)),
+                        SeedTask("ছোট বিরতি", breakId, 810L, 820L, setOf(sat)),
+                        SeedTask("দুপুরের ভাত", mealId, 820L, 850L, setOf(sat)),
+                        SeedTask("বিরতি", breakId, 850L, 860L, setOf(sat)),
+                        SeedTask("Nap", napId, 860L, 880L, setOf(sat)),
+                        SeedTask("◆ Study - || English 1st Paper || -", studyId, 880L, 1060L, setOf(sat)),
+                        SeedTask("প্রার্থনা, নাস্তা & ছোট বিরতি", othersId, 1060L, 1110L, setOf(sat)),
+                        SeedTask("◆ Study - || Higher Math || -", studyId, 1110L, 1320L, setOf(sat)),
+                        SeedTask("রাতের ভাত", mealId, 1320L, 1340L, setOf(sat)),
+                        SeedTask("বিরতি", breakId, 1340L, 1350L, setOf(sat)),
+                        SeedTask("◆ Revision - || Physics || -", revisionId, 1350L, 1410L, setOf(sat)),
+                        SeedTask("◆ Revision - || Higher Math || -", revisionId, 1410L, 1470L, setOf(sat)),
+                        SeedTask("Get Ready & Go To Sleep", othersId, 1470L, 1500L, setOf(sat)),
 
-                        // Monday
-                        SeedTask("নাস্তা ও Fresh Air", mealId, 420L, 450L, setOf(mon)),
-                        SeedTask("হাঁটাহাঁটি", othersId, 450L, 460L, setOf(mon)),
-                        SeedTask("ওয়াশরুম ও স্নান", othersId, 460L, 490L, setOf(mon)),
-                        SeedTask("প্রার্থনা", spiritualId, 490L, 520L, setOf(mon)),
-                        SeedTask("Physics পড়া", studyId, 520L, 660L, setOf(mon)),
-                        SeedTask("Biology পড়া", studyId, 660L, 750L, setOf(mon)),
-                        SeedTask("ছোট বিরতি", breakId, 750L, 760L, setOf(mon)),
-                        SeedTask("দুপুরের ভাত", mealId, 760L, 790L, setOf(mon)),
-                        SeedTask("বিরতি", breakId, 790L, 800L, setOf(mon)),
-                        SeedTask("ঘুম", napId, 800L, 890L, setOf(mon)),
-                        SeedTask("ঘুম থেকে উঠে Fresh হওয়া", personalId, 890L, 900L, setOf(mon)),
-                        SeedTask("English 1st পড়া", studyId, 900L, 975L, setOf(mon)),
-                        SeedTask("বাজারে যাওয়ার প্রস্তুতি", othersId, 975L, 980L, setOf(mon)),
-                        SeedTask("বাজার করা", othersId, 980L, 1005L, setOf(mon)),
-                        SeedTask("Fresh হওয়া", personalId, 1005L, 1015L, setOf(mon)),
-                        SeedTask("মোবাইল ও বিশ্রাম", othersId, 1015L, 1030L, setOf(mon)),
-                        SeedTask("প্রার্থনা", spiritualId, 1030L, 1040L, setOf(mon)),
-                        SeedTask("নাস্তা", mealId, 1040L, 1050L, setOf(mon)),
-                        SeedTask("Physics পড়া", studyId, 1050L, 1170L, setOf(mon)),
-                        SeedTask("Biology পড়া", studyId, 1170L, 1260L, setOf(mon)),
-                        SeedTask("রাতের ভাত", mealId, 1260L, 1280L, setOf(mon)),
-                        SeedTask("বিরতি", breakId, 1280L, 1290L, setOf(mon)),
-                        SeedTask("English 1st পড়া", studyId, 1290L, 1350L, setOf(mon)),
-                        SeedTask("Physics পড়া", studyId, 1350L, 1410L, setOf(mon)),
+                        // Sunday (রবিবার)
+                        SeedTask("নাস্তা ও Fresh Air", othersId, 420L, 450L, setOf(sun)),
+                        SeedTask("হাঁটাহাঁটি", othersId, 450L, 460L, setOf(sun)),
+                        SeedTask("ওয়াশরুম ও স্নান", personalId, 460L, 490L, setOf(sun)),
+                        SeedTask("প্রার্থনা", spiritualId, 490L, 530L, setOf(sun)),
+                        SeedTask("বিরতি & Prepare for study", breakId, 530L, 540L, setOf(sun)),
+                        SeedTask("◆ Study - || Physics || -", studyId, 540L, 810L, setOf(sun)),
+                        SeedTask("ছোট বিরতি", breakId, 810L, 820L, setOf(sun)),
+                        SeedTask("দুপুরের ভাত", mealId, 820L, 850L, setOf(sun)),
+                        SeedTask("বিরতি", breakId, 850L, 860L, setOf(sun)),
+                        SeedTask("Nap", napId, 860L, 880L, setOf(sun)),
+                        SeedTask("◆ Study - || ICT || -", studyId, 880L, 1060L, setOf(sun)),
+                        SeedTask("প্রার্থনা, নাস্তা & ছোট বিরতি", othersId, 1060L, 1110L, setOf(sun)),
+                        SeedTask("Shopping", othersId, 1110L, 1190L, setOf(sun)),
+                        SeedTask("◆ Study - || Biology || -", studyId, 1190L, 1320L, setOf(sun)),
+                        SeedTask("রাতের ভাত", mealId, 1320L, 1340L, setOf(sun)),
+                        SeedTask("বিরতি", breakId, 1340L, 1350L, setOf(sun)),
+                        SeedTask("◆ Revision - || Chemistry || -", revisionId, 1350L, 1410L, setOf(sun)),
+                        SeedTask("◆ Revision - || Biology || -", revisionId, 1410L, 1470L, setOf(sun)),
+                        SeedTask("Get Ready & Go To Sleep", othersId, 1470L, 1500L, setOf(sun)),
 
-                        // Tuesday
-                        SeedTask("নাস্তা ও Fresh Air", mealId, 420L, 450L, setOf(tue)),
+                        // Monday (সোমবার)
+                        SeedTask("নাস্তা ও Fresh Air", othersId, 420L, 440L, setOf(mon)),
+                        SeedTask("হাঁটাহাঁটি", othersId, 440L, 450L, setOf(mon)),
+                        SeedTask("ওয়াশরুম ও স্নান", personalId, 450L, 480L, setOf(mon)),
+                        SeedTask("প্রার্থনা", spiritualId, 480L, 500L, setOf(mon)),
+                        SeedTask("কলেজ যাওয়া-আসা ও ক্লাস", othersId, 500L, 930L, setOf(mon)),
+                        SeedTask("Get Fresh", personalId, 930L, 940L, setOf(mon)),
+                        SeedTask("দুপুরের ভাত", mealId, 940L, 960L, setOf(mon)),
+                        SeedTask("Nap", napId, 960L, 1060L, setOf(mon)),
+                        SeedTask("প্রার্থনা, নাস্তা & ছোট বিরতি", othersId, 1060L, 1110L, setOf(mon)),
+                        SeedTask("◆ Study - || Physics|| -", studyId, 1110L, 1320L, setOf(mon)),
+                        SeedTask("রাতের ভাত", mealId, 1320L, 1340L, setOf(mon)),
+                        SeedTask("বিরতি", breakId, 1340L, 1350L, setOf(mon)),
+                        SeedTask("◆ Revision - || Chemistry || -", revisionId, 1350L, 1410L, setOf(mon)),
+                        SeedTask("◆ Study - || Bangla 1st Paper|| -", studyId, 1410L, 1470L, setOf(mon)),
+                        SeedTask("Get Ready & Go To Sleep", othersId, 1470L, 1500L, setOf(mon)),
+
+                        // Tuesday (মঙ্গলবার)
+                        SeedTask("নাস্তা ও Fresh Air", othersId, 420L, 450L, setOf(tue)),
                         SeedTask("হাঁটাহাঁটি", othersId, 450L, 460L, setOf(tue)),
-                        SeedTask("ওয়াশরুম ও স্নান", othersId, 460L, 490L, setOf(tue)),
-                        SeedTask("প্রার্থনা", spiritualId, 490L, 520L, setOf(tue)),
-                        SeedTask("Physics পড়া", studyId, 520L, 660L, setOf(tue)),
-                        SeedTask("Higher Math পড়া", studyId, 660L, 750L, setOf(tue)),
-                        SeedTask("ছোট বিরতি", breakId, 750L, 760L, setOf(tue)),
-                        SeedTask("দুপুরের ভাত", mealId, 760L, 790L, setOf(tue)),
-                        SeedTask("বিরতি", breakId, 790L, 800L, setOf(tue)),
-                        SeedTask("ঘুম", napId, 800L, 890L, setOf(tue)),
-                        SeedTask("ঘুম থেকে উঠে Fresh হওয়া", personalId, 890L, 900L, setOf(tue)),
-                        SeedTask("English 1st পড়া", studyId, 900L, 1000L, setOf(tue)),
-                        SeedTask("প্রার্থনা", spiritualId, 1000L, 1025L, setOf(tue)),
-                        SeedTask("নাস্তা", mealId, 1025L, 1050L, setOf(tue)),
-                        SeedTask("Higher Math পড়া", studyId, 1050L, 1170L, setOf(tue)),
-                        SeedTask("Physics পড়া", studyId, 1170L, 1260L, setOf(tue)),
-                        SeedTask("রাতের ভাত", mealId, 1260L, 1280L, setOf(tue)),
-                        SeedTask("বিরতি", breakId, 1280L, 1290L, setOf(tue)),
-                        SeedTask("Physics পড়া", studyId, 1290L, 1350L, setOf(tue)),
-                        SeedTask("English 1st পড়া", studyId, 1350L, 1410L, setOf(tue)),
+                        SeedTask("ওয়াশরুম ও স্নান", personalId, 460L, 490L, setOf(tue)),
+                        SeedTask("প্রার্থনা", spiritualId, 490L, 530L, setOf(tue)),
+                        SeedTask("বিরতি & Prepare for study", breakId, 530L, 540L, setOf(tue)),
+                        SeedTask("◆ Study - || Higher Math || -", studyId, 540L, 810L, setOf(tue)),
+                        SeedTask("ছোট বিরতি", breakId, 810L, 820L, setOf(tue)),
+                        SeedTask("দুপুরের ভাত", mealId, 820L, 850L, setOf(tue)),
+                        SeedTask("বিরতি", breakId, 850L, 860L, setOf(tue)),
+                        SeedTask("Nap", napId, 860L, 880L, setOf(tue)),
+                        SeedTask("◆ Study - || English 2nd Paper || -", studyId, 880L, 1060L, setOf(tue)),
+                        SeedTask("প্রার্থনা, নাস্তা & ছোট বিরতি", othersId, 1060L, 1110L, setOf(tue)),
+                        SeedTask("◆ Study - || Biology || -", studyId, 1110L, 1320L, setOf(tue)),
+                        SeedTask("রাতের ভাত", mealId, 1320L, 1340L, setOf(tue)),
+                        SeedTask("বিরতি", breakId, 1340L, 1350L, setOf(tue)),
+                        SeedTask("◆ Revision - || Higher Math || -", revisionId, 1350L, 1410L, setOf(tue)),
+                        SeedTask("◆ Revision - || Biology || -", revisionId, 1410L, 1470L, setOf(tue)),
+                        SeedTask("Get Ready & Go To Sleep", othersId, 1470L, 1500L, setOf(tue)),
 
-                        // Wednesday
-                        SeedTask("নাস্তা ও Fresh Air", mealId, 420L, 450L, setOf(wed)),
+                        // Wednesday (বুধবার)
+                        SeedTask("নাস্তা ও Fresh Air", othersId, 420L, 450L, setOf(wed)),
                         SeedTask("হাঁটাহাঁটি", othersId, 450L, 460L, setOf(wed)),
-                        SeedTask("ওয়াশরুম ও স্নান", othersId, 460L, 490L, setOf(wed)),
-                        SeedTask("প্রার্থনা", spiritualId, 490L, 520L, setOf(wed)),
-                        SeedTask("Chemistry পড়া", studyId, 520L, 650L, setOf(wed)),
-                        SeedTask("Biology পড়া", studyId, 650L, 750L, setOf(wed)),
-                        SeedTask("ছোট বিরতি", breakId, 750L, 760L, setOf(wed)),
-                        SeedTask("দুপুরের ভাত", mealId, 760L, 790L, setOf(wed)),
-                        SeedTask("কোচিংয়ের জন্য রেডি হওয়া", personalId, 790L, 800L, setOf(wed)),
-                        SeedTask("কোচিং (যাওয়া-আসা সহ)", othersId, 800L, 945L, setOf(wed)),
-                        SeedTask("মোবাইল ও বিশ্রাম", othersId, 945L, 990L, setOf(wed)),
-                        SeedTask("প্রার্থনা", spiritualId, 990L, 1020L, setOf(wed)),
-                        SeedTask("নাস্তা", mealId, 1020L, 1050L, setOf(wed)),
-                        SeedTask("দোকানে গিয়ে বাজার করা", othersId, 1050L, 1120L, setOf(wed)),
-                        SeedTask("Chemistry পড়া", studyId, 1120L, 1210L, setOf(wed)),
-                        SeedTask("ICT পড়া", studyId, 1210L, 1260L, setOf(wed)),
-                        SeedTask("রাতের ভাত", mealId, 1260L, 1280L, setOf(wed)),
-                        SeedTask("বিরতি", breakId, 1280L, 1290L, setOf(wed)),
-                        SeedTask("Biology পড়া", studyId, 1290L, 1350L, setOf(wed)),
-                        SeedTask("ICT পড়া", studyId, 1350L, 1410L, setOf(wed))
+                        SeedTask("ওয়াশরুম ও স্নান", personalId, 460L, 490L, setOf(wed)),
+                        SeedTask("প্রার্থনা", spiritualId, 490L, 530L, setOf(wed)),
+                        SeedTask("বিরতি & Prepare for study", breakId, 530L, 540L, setOf(wed)),
+                        SeedTask("◆ Study - || Physics || -", studyId, 540L, 810L, setOf(wed)),
+                        SeedTask("ছোট বিরতি", breakId, 810L, 820L, setOf(wed)),
+                        SeedTask("দুপুরের ভাত", mealId, 820L, 850L, setOf(wed)),
+                        SeedTask("বিরতি", breakId, 850L, 860L, setOf(wed)),
+                        SeedTask("Nap", napId, 860L, 880L, setOf(wed)),
+                        SeedTask("◆ Study - || English 1st Paper || -", studyId, 880L, 1035L, setOf(wed)),
+                        SeedTask("Shopping", othersId, 1035L, 1110L, setOf(wed)),
+                        SeedTask("ছোট বিরতি", breakId, 1110L, 1140L, setOf(wed)),
+                        SeedTask("◆ Study - || Biology || -", studyId, 1140L, 1320L, setOf(wed)),
+                        SeedTask("রাতের ভাত", mealId, 1320L, 1340L, setOf(wed)),
+                        SeedTask("বিরতি", breakId, 1340L, 1350L, setOf(wed)),
+                        SeedTask("◆ Revision - || ICT || -", revisionId, 1350L, 1410L, setOf(wed)),
+                        SeedTask("◆ Revision - || Biology || -", revisionId, 1410L, 1470L, setOf(wed)),
+                        SeedTask("Get Ready & Go To Sleep", othersId, 1470L, 1500L, setOf(wed)),
+
+                        // Thursday (বৃহস্পতিবার)
+                        SeedTask("নাস্তা ও Fresh Air", othersId, 420L, 450L, setOf(thu)),
+                        SeedTask("হাঁটাহাঁটি", othersId, 450L, 460L, setOf(thu)),
+                        SeedTask("ওয়াশরুম ও স্নান", personalId, 460L, 490L, setOf(thu)),
+                        SeedTask("প্রার্থনা", spiritualId, 490L, 530L, setOf(thu)),
+                        SeedTask("বিরতি & Prepare for study", breakId, 530L, 540L, setOf(thu)),
+                        SeedTask("◆ Study - || Chemistry|| -", studyId, 540L, 810L, setOf(thu)),
+                        SeedTask("ছোট বিরতি", breakId, 810L, 820L, setOf(thu)),
+                        SeedTask("দুপুরের ভাত", mealId, 820L, 850L, setOf(thu)),
+                        SeedTask("বিরতি", breakId, 850L, 860L, setOf(thu)),
+                        SeedTask("Nap", napId, 860L, 880L, setOf(thu)),
+                        SeedTask("◆ Study - || English 1st Paper || -", studyId, 880L, 1035L, setOf(thu)),
+                        SeedTask("Shopping", othersId, 1035L, 1110L, setOf(thu)),
+                        SeedTask("ছোট বিরতি", breakId, 1110L, 1140L, setOf(thu)),
+                        SeedTask("◆ Study - || Biology || -", studyId, 1140L, 1320L, setOf(thu)),
+                        SeedTask("রাতের ভাত", mealId, 1320L, 1340L, setOf(thu)),
+                        SeedTask("বিরতি", breakId, 1340L, 1350L, setOf(thu)),
+                        SeedTask("◆ Revision - || English 1st Paper|| -", revisionId, 1350L, 1410L, setOf(thu)),
+                        SeedTask("◆ Revision - || Biology || -", revisionId, 1410L, 1470L, setOf(thu)),
+                        SeedTask("Get Ready & Go To Sleep", othersId, 1470L, 1500L, setOf(thu)),
+
+                        // Friday (শুক্রবার)
+                        SeedTask("নাস্তা ও Fresh Air", othersId, 420L, 450L, setOf(fri)),
+                        SeedTask("হাঁটাহাঁটি", othersId, 450L, 460L, setOf(fri)),
+                        SeedTask("ওয়াশরুম ও স্নান", personalId, 460L, 490L, setOf(fri)),
+                        SeedTask("প্রার্থনা", spiritualId, 490L, 530L, setOf(fri)),
+                        SeedTask("বিরতি & Prepare for study", breakId, 530L, 540L, setOf(fri)),
+                        SeedTask("◆ Study - || Physics || -", studyId, 540L, 810L, setOf(fri)),
+                        SeedTask("ছোট বিরতি", breakId, 810L, 820L, setOf(fri)),
+                        SeedTask("দুপুরের ভাত", mealId, 820L, 850L, setOf(fri)),
+                        SeedTask("বিরতি", breakId, 850L, 860L, setOf(fri)),
+                        SeedTask("Nap", napId, 860L, 880L, setOf(fri)),
+                        SeedTask("◆ Study - || English 2nd Paper || -", studyId, 880L, 1035L, setOf(fri)),
+                        SeedTask("Shopping", othersId, 1035L, 1110L, setOf(fri)),
+                        SeedTask("ছোট বিরতি", breakId, 1110L, 1140L, setOf(fri)),
+                        SeedTask("◆ Study - || Chemistry || -", studyId, 1140L, 1320L, setOf(fri)),
+                        SeedTask("রাতের ভাত", mealId, 1320L, 1340L, setOf(fri)),
+                        SeedTask("বিরতি", breakId, 1340L, 1350L, setOf(fri)),
+                        SeedTask("◆ Revision - || English 2nd Paper|| -", revisionId, 1350L, 1410L, setOf(fri)),
+                        SeedTask("◆ Revision - || Chemistry || -", revisionId, 1410L, 1470L, setOf(fri)),
+                        SeedTask("Get Ready & Go To Sleep", othersId, 1470L, 1500L, setOf(fri))
                     )
 
                     seedTasks.forEach { task ->
@@ -365,7 +394,7 @@ class DaynexaApplication : Application() {
                         ))
                     }
 
-                    database.settingDao().insert(com.niloy.data.local.entity.SettingEntity("routine_seeded_v3", "true"))
+                    database.settingDao().insert(com.niloy.data.local.entity.SettingEntity("routine_seeded_v4", "true"))
                 }
             } catch (e: Exception) {
                 // Ignore seed errors on launch
