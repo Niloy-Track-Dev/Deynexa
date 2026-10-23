@@ -212,12 +212,16 @@ class DaynexaApplication : Application() {
     private fun initDemoData() {
         kotlinx.coroutines.MainScope().launch {
             try {
-                val categories = repository.getCategories().first()
-                if (categories.isEmpty()) {
+                val seededSetting = database.settingDao().getByKey("routine_seeded_v3")
+                if (seededSetting?.value != "true") {
+                    database.taskOccurrenceDao().deleteAll()
+                    database.taskDao().deleteAll()
+                    database.categoryDao().deleteAll()
+
                     val studyId = repository.saveCategory(com.niloy.domain.model.Category(name = "Study", icon = "book", color = 0xFF3B82F6.toInt()))
                     val mealId = repository.saveCategory(com.niloy.domain.model.Category(name = "Meal", icon = "restaurant", color = 0xFFF59E0B.toInt()))
-                    val personalCareId = repository.saveCategory(com.niloy.domain.model.Category(name = "Personal Care", icon = "person", color = 0xFF10B981.toInt()))
-                    val prayerId = repository.saveCategory(com.niloy.domain.model.Category(name = "Prayer", icon = "favorite", color = 0xFF8B5CF6.toInt()))
+                    val personalId = repository.saveCategory(com.niloy.domain.model.Category(name = "Personal", icon = "person", color = 0xFF10B981.toInt()))
+                    val spiritualId = repository.saveCategory(com.niloy.domain.model.Category(name = "Spiritual", icon = "favorite", color = 0xFF8B5CF6.toInt()))
                     val breakId = repository.saveCategory(com.niloy.domain.model.Category(name = "Break", icon = "timer", color = 0xFF06B6D4.toInt()))
                     val napId = repository.saveCategory(com.niloy.domain.model.Category(name = "Nap", icon = "bed", color = 0xFF6366F1.toInt()))
                     val othersId = repository.saveCategory(com.niloy.domain.model.Category(name = "Others", icon = "more_horiz", color = 0xFF14B8A6.toInt()))
@@ -225,7 +229,7 @@ class DaynexaApplication : Application() {
                     // Daily "ঘুম থেকে উঠা" task at 07:00 AM
                     repository.saveTask(com.niloy.domain.model.Task(
                         name = "ঘুম থেকে উঠা",
-                        categoryId = personalCareId,
+                        categoryId = personalId,
                         startTime = 420L, // 07:00 AM
                         endTime = 420L,   // 07:00 AM
                         isRecurring = true,
@@ -244,12 +248,12 @@ class DaynexaApplication : Application() {
 
                     val seedTasks = listOf(
                         // Saturday & Thursday
-                        SeedTask("ঘুম থেকে উঠে রেডি হওয়া ও নাস্তা", personalCareId, 420L, 450L, setOf(sat, thu)),
+                        SeedTask("ঘুম থেকে উঠে রেডি হওয়া ও নাস্তা", othersId, 420L, 450L, setOf(sat, thu)),
                         SeedTask("কলেজ (যাওয়া-আসা ও ক্লাস)", othersId, 450L, 870L, setOf(sat, thu)),
-                        SeedTask("Fresh হওয়া", personalCareId, 870L, 880L, setOf(sat, thu)),
+                        SeedTask("Fresh হওয়া", personalId, 870L, 880L, setOf(sat, thu)),
                         SeedTask("দুপুরের ভাত", mealId, 880L, 900L, setOf(sat, thu)),
                         SeedTask("ঘুম", napId, 900L, 990L, setOf(sat, thu)),
-                        SeedTask("প্রার্থনা", prayerId, 990L, 1020L, setOf(sat, thu)),
+                        SeedTask("প্রার্থনা", spiritualId, 990L, 1020L, setOf(sat, thu)),
                         SeedTask("নাস্তা", mealId, 1020L, 1050L, setOf(sat, thu)),
                         SeedTask("Physics পড়া", studyId, 1050L, 1170L, setOf(sat, thu)),
                         SeedTask("Chemistry পড়া", studyId, 1170L, 1260L, setOf(sat, thu)),
@@ -261,17 +265,17 @@ class DaynexaApplication : Application() {
                         // Sunday & Friday
                         SeedTask("নাস্তা ও Fresh Air", mealId, 420L, 450L, setOf(sun, fri)),
                         SeedTask("হাঁটাহাঁটি", othersId, 450L, 460L, setOf(sun, fri)),
-                        SeedTask("ওয়াশরুম ও স্নান", personalCareId, 460L, 490L, setOf(sun, fri)),
-                        SeedTask("প্রার্থনা", prayerId, 490L, 520L, setOf(sun, fri)),
+                        SeedTask("ওয়াশরুম ও স্নান", othersId, 460L, 490L, setOf(sun, fri)),
+                        SeedTask("প্রার্থনা", spiritualId, 490L, 520L, setOf(sun, fri)),
                         SeedTask("Higher Math পড়া", studyId, 520L, 670L, setOf(sun, fri)),
                         SeedTask("Biology পড়া", studyId, 670L, 750L, setOf(sun, fri)),
                         SeedTask("ছোট বিরতি", breakId, 750L, 760L, setOf(sun, fri)),
                         SeedTask("দুপুরের ভাত", mealId, 760L, 790L, setOf(sun, fri)),
-                        SeedTask("কোচিংয়ের জন্য রেডি হওয়া", personalCareId, 790L, 800L, setOf(sun, fri)),
+                        SeedTask("কোচিংয়ের জন্য রেডি হওয়া", personalId, 790L, 800L, setOf(sun, fri)),
                         SeedTask("কোচিং (যাওয়া-আসা সহ)", othersId, 800L, 945L, setOf(sun, fri)),
                         SeedTask("মোবাইল", othersId, 945L, 975L, setOf(sun, fri)),
                         SeedTask("বিশ্রাম", othersId, 975L, 1005L, setOf(sun, fri)),
-                        SeedTask("প্রার্থনা", prayerId, 1005L, 1025L, setOf(sun, fri)),
+                        SeedTask("প্রার্থনা", spiritualId, 1005L, 1025L, setOf(sun, fri)),
                         SeedTask("নাস্তা", mealId, 1025L, 1050L, setOf(sun, fri)),
                         SeedTask("Higher Math পড়া", studyId, 1050L, 1170L, setOf(sun, fri)),
                         SeedTask("English 2nd পড়া", studyId, 1170L, 1260L, setOf(sun, fri)),
@@ -282,21 +286,21 @@ class DaynexaApplication : Application() {
                         // Monday
                         SeedTask("নাস্তা ও Fresh Air", mealId, 420L, 450L, setOf(mon)),
                         SeedTask("হাঁটাহাঁটি", othersId, 450L, 460L, setOf(mon)),
-                        SeedTask("ওয়াশরুম ও স্নান", personalCareId, 460L, 490L, setOf(mon)),
-                        SeedTask("প্রার্থনা", prayerId, 490L, 520L, setOf(mon)),
+                        SeedTask("ওয়াশরুম ও স্নান", othersId, 460L, 490L, setOf(mon)),
+                        SeedTask("প্রার্থনা", spiritualId, 490L, 520L, setOf(mon)),
                         SeedTask("Physics পড়া", studyId, 520L, 660L, setOf(mon)),
                         SeedTask("Biology পড়া", studyId, 660L, 750L, setOf(mon)),
                         SeedTask("ছোট বিরতি", breakId, 750L, 760L, setOf(mon)),
                         SeedTask("দুপুরের ভাত", mealId, 760L, 790L, setOf(mon)),
                         SeedTask("বিরতি", breakId, 790L, 800L, setOf(mon)),
                         SeedTask("ঘুম", napId, 800L, 890L, setOf(mon)),
-                        SeedTask("ঘুম থেকে উঠে Fresh হওয়া", personalCareId, 890L, 900L, setOf(mon)),
+                        SeedTask("ঘুম থেকে উঠে Fresh হওয়া", personalId, 890L, 900L, setOf(mon)),
                         SeedTask("English 1st পড়া", studyId, 900L, 975L, setOf(mon)),
                         SeedTask("বাজারে যাওয়ার প্রস্তুতি", othersId, 975L, 980L, setOf(mon)),
                         SeedTask("বাজার করা", othersId, 980L, 1005L, setOf(mon)),
-                        SeedTask("Fresh হওয়া", personalCareId, 1005L, 1015L, setOf(mon)),
+                        SeedTask("Fresh হওয়া", personalId, 1005L, 1015L, setOf(mon)),
                         SeedTask("মোবাইল ও বিশ্রাম", othersId, 1015L, 1030L, setOf(mon)),
-                        SeedTask("প্রার্থনা", prayerId, 1030L, 1040L, setOf(mon)),
+                        SeedTask("প্রার্থনা", spiritualId, 1030L, 1040L, setOf(mon)),
                         SeedTask("নাস্তা", mealId, 1040L, 1050L, setOf(mon)),
                         SeedTask("Physics পড়া", studyId, 1050L, 1170L, setOf(mon)),
                         SeedTask("Biology পড়া", studyId, 1170L, 1260L, setOf(mon)),
@@ -308,17 +312,17 @@ class DaynexaApplication : Application() {
                         // Tuesday
                         SeedTask("নাস্তা ও Fresh Air", mealId, 420L, 450L, setOf(tue)),
                         SeedTask("হাঁটাহাঁটি", othersId, 450L, 460L, setOf(tue)),
-                        SeedTask("ওয়াশরুম ও স্নান", personalCareId, 460L, 490L, setOf(tue)),
-                        SeedTask("প্রার্থনা", prayerId, 490L, 520L, setOf(tue)),
+                        SeedTask("ওয়াশরুম ও স্নান", othersId, 460L, 490L, setOf(tue)),
+                        SeedTask("প্রার্থনা", spiritualId, 490L, 520L, setOf(tue)),
                         SeedTask("Physics পড়া", studyId, 520L, 660L, setOf(tue)),
                         SeedTask("Higher Math পড়া", studyId, 660L, 750L, setOf(tue)),
                         SeedTask("ছোট বিরতি", breakId, 750L, 760L, setOf(tue)),
                         SeedTask("দুপুরের ভাত", mealId, 760L, 790L, setOf(tue)),
                         SeedTask("বিরতি", breakId, 790L, 800L, setOf(tue)),
                         SeedTask("ঘুম", napId, 800L, 890L, setOf(tue)),
-                        SeedTask("ঘুম থেকে উঠে Fresh হওয়া", personalCareId, 890L, 900L, setOf(tue)),
+                        SeedTask("ঘুম থেকে উঠে Fresh হওয়া", personalId, 890L, 900L, setOf(tue)),
                         SeedTask("English 1st পড়া", studyId, 900L, 1000L, setOf(tue)),
-                        SeedTask("প্রার্থনা", prayerId, 1000L, 1025L, setOf(tue)),
+                        SeedTask("প্রার্থনা", spiritualId, 1000L, 1025L, setOf(tue)),
                         SeedTask("নাস্তা", mealId, 1025L, 1050L, setOf(tue)),
                         SeedTask("Higher Math পড়া", studyId, 1050L, 1170L, setOf(tue)),
                         SeedTask("Physics পড়া", studyId, 1170L, 1260L, setOf(tue)),
@@ -330,16 +334,16 @@ class DaynexaApplication : Application() {
                         // Wednesday
                         SeedTask("নাস্তা ও Fresh Air", mealId, 420L, 450L, setOf(wed)),
                         SeedTask("হাঁটাহাঁটি", othersId, 450L, 460L, setOf(wed)),
-                        SeedTask("ওয়াশরুম ও স্নান", personalCareId, 460L, 490L, setOf(wed)),
-                        SeedTask("প্রার্থনা", prayerId, 490L, 520L, setOf(wed)),
+                        SeedTask("ওয়াশরুম ও স্নান", othersId, 460L, 490L, setOf(wed)),
+                        SeedTask("প্রার্থনা", spiritualId, 490L, 520L, setOf(wed)),
                         SeedTask("Chemistry পড়া", studyId, 520L, 650L, setOf(wed)),
                         SeedTask("Biology পড়া", studyId, 650L, 750L, setOf(wed)),
                         SeedTask("ছোট বিরতি", breakId, 750L, 760L, setOf(wed)),
                         SeedTask("দুপুরের ভাত", mealId, 760L, 790L, setOf(wed)),
-                        SeedTask("কোচিংয়ের জন্য রেডি হওয়া", personalCareId, 790L, 800L, setOf(wed)),
+                        SeedTask("কোচিংয়ের জন্য রেডি হওয়া", personalId, 790L, 800L, setOf(wed)),
                         SeedTask("কোচিং (যাওয়া-আসা সহ)", othersId, 800L, 945L, setOf(wed)),
                         SeedTask("মোবাইল ও বিশ্রাম", othersId, 945L, 990L, setOf(wed)),
-                        SeedTask("প্রার্থনা", prayerId, 990L, 1020L, setOf(wed)),
+                        SeedTask("প্রার্থনা", spiritualId, 990L, 1020L, setOf(wed)),
                         SeedTask("নাস্তা", mealId, 1020L, 1050L, setOf(wed)),
                         SeedTask("দোকানে গিয়ে বাজার করা", othersId, 1050L, 1120L, setOf(wed)),
                         SeedTask("Chemistry পড়া", studyId, 1120L, 1210L, setOf(wed)),
@@ -360,6 +364,8 @@ class DaynexaApplication : Application() {
                             recurringDays = task.days
                         ))
                     }
+
+                    database.settingDao().insert(com.niloy.data.local.entity.SettingEntity("routine_seeded_v3", "true"))
                 }
             } catch (e: Exception) {
                 // Ignore seed errors on launch
