@@ -26,7 +26,7 @@ class BackupServiceTest {
         val testTasks = listOf(Task(id = 1, name = "Morning Exercise", categoryId = 1))
         val data = BackupData(
             backupVersion = 5,
-            appVersion = "2.0.0",
+            appVersion = "3.0.0",
             categories = testCategories,
             tasks = testTasks
         )
@@ -34,13 +34,13 @@ class BackupServiceTest {
         val json = backupService.exportBackup(data)
         assertNotNull(json)
         assertTrue(json.contains("\"backupVersion\": 5"))
-        assertTrue(json.contains("\"appVersion\": \"2.0.0\""))
+        assertTrue(json.contains("\"appVersion\": \"3.0.0\""))
         assertTrue(json.contains("\"checksum\":"))
 
         val validation = backupService.validateBackup(json)
         assertTrue(validation is BackupValidationResult.ValidFull)
         val validResult = validation as BackupValidationResult.ValidFull
-        assertEquals("2.0.0", validResult.data.appVersion)
+        assertEquals("3.0.0", validResult.data.appVersion)
         assertEquals(1, validResult.preview.tasksCount)
         assertEquals(1, validResult.preview.categoriesCount)
     }
@@ -49,7 +49,7 @@ class BackupServiceTest {
     fun validateBackup_corruptedChecksum_returnsInvalidResult() {
         val data = BackupData(
             backupVersion = 5,
-            appVersion = "2.0.0",
+            appVersion = "3.0.0",
             categories = listOf(Category(id = 1, name = "Work", icon = "code", color = 0)),
             tasks = listOf(Task(id = 1, name = "Deep Work", categoryId = 1))
         )
@@ -77,7 +77,7 @@ class BackupServiceTest {
     fun validateBackup_focentraBundle_returnsValidFocentraResult() {
         val bundle = FocentraExportBundle(
             exportVersion = 1,
-            appVersion = "2.0.0",
+            appVersion = "3.0.0",
             sessions = listOf(
                 FocentraSessionBackup(
                     sessionId = "foc_101",

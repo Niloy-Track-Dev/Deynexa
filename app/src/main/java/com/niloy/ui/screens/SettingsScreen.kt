@@ -514,7 +514,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Build Better Days • v2.0.0",
+                        text = "Build Better Days • v3.0.0",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -626,7 +626,7 @@ fun SettingsScreen(
         val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         AlertDialog(
             onDismissRequest = { viewModel.dismissExportDialog() },
-            title = { Text("Full Backup Ready (v2.0.0)", fontWeight = FontWeight.Bold) },
+            title = { Text("Full Backup Ready (v3.0.0)", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
@@ -774,7 +774,7 @@ fun SettingsScreen(
                     OutlinedTextField(
                         value = jsonInputText,
                         onValueChange = { jsonInputText = it },
-                        placeholder = { Text("{\"backupVersion\":5,\"appVersion\":\"2.0.0\",...}") },
+                        placeholder = { Text("{\"backupVersion\":5,\"appVersion\":\"3.0.0\",...}") },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(180.dp),
