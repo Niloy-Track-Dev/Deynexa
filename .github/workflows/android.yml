@@ -92,8 +92,10 @@ jobs:
           KEY_ALIAS: ${{ env.KEY_ALIAS }}
         run: |
           if [ -n "$KEYSTORE_PATH" ]; then
-            ./gradlew :app:assembleRelease :app:assembleDebug --no-daemon --stacktrace || ./gradlew :app:assembleDebug --no-daemon --stacktrace
+            echo "Keystore found. Building Release APK..."
+            ./gradlew :app:assembleRelease --no-daemon --stacktrace
           else
+            echo "No Keystore found. Building Debug APK..."
             ./gradlew :app:assembleDebug --no-daemon --stacktrace
           fi
 
@@ -115,16 +117,19 @@ jobs:
       - name: Locate & Prepare Release Artifact
         id: prepare-apk
         run: |
-          APK_PATH=$(find app/build/outputs/apk -type f -name "*.apk" | head -n 1)
+          if [ -n "${{ env.KEYSTORE_PATH }}" ]; then
+            APK_PATH=$(find app/build/outputs/apk/release -type f -name "*.apk" | head -n 1)
+            BUILD_TYPE="release"
+          else
+            APK_PATH=$(find app/build/outputs/apk/debug -type f -name "*.apk" | head -n 1)
+            BUILD_TYPE="debug"
+          fi
+
           if [ -z "$APK_PATH" ] || [ ! -f "$APK_PATH" ]; then
             echo "::error::No APK found in build outputs"
             exit 1
           fi
-          if [[ "$APK_PATH" == *"release"* ]]; then
-            BUILD_TYPE="release"
-          else
-            BUILD_TYPE="debug"
-          fi
+          
           FINAL_NAME="Daynexa-v${{ env.APP_VERSION }}-${BUILD_TYPE}.apk"
           echo "Found APK at: $APK_PATH -> Copying to $FINAL_NAME"
           cp "$APK_PATH" "$FINAL_NAME"
