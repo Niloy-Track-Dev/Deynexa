@@ -49,7 +49,7 @@ data class FocentraSessionBackup(
 @JsonClass(generateAdapter = true)
 data class FocentraExportBundle(
     val exportVersion: Int = 1,
-    val appVersion: String = "3.0.0",
+    val appVersion: String = "4.0.0",
     val createdAt: Long = System.currentTimeMillis(),
     val source: String = "Focentra",
     val origin: String = "Focentra Integration API v1",
@@ -61,7 +61,7 @@ data class FocentraExportBundle(
 @JsonClass(generateAdapter = true)
 data class BackupData(
     val backupVersion: Int = 5,
-    val appVersion: String = "3.0.0",
+    val appVersion: String = "4.0.0",
     val createdAt: Long = System.currentTimeMillis(),
     val backupType: String = "FULL_BACKUP",
     val source: String = "Daynexa",
@@ -119,7 +119,7 @@ class BackupService {
     }
 
     fun computeBackupChecksum(data: BackupData): String {
-        val contentDigest = "${data.categories.size}-${data.tasks.size}-${data.occurrences.size}-${data.taskTemplates?.size ?: 0}-${data.goals?.size ?: 0}-${data.settings.size}-${data.createdAt}"
+        val contentDigest = "${data.categories.size}-${data.tasks.size}-${data.occurrences.size}-${data.taskTemplates?.size ?: 0}-${data.goals?.size ?: 0}-${data.appCategories?.size ?: 0}-${data.appClassifications?.size ?: 0}-${data.focentraSessions?.size ?: 0}-${data.settings.size}-${data.createdAt}"
         return calculateSha256(contentDigest)
     }
 
@@ -193,9 +193,9 @@ class BackupService {
             // Verify checksum if present
             if (!fullData.checksum.isNullOrBlank()) {
                 val expectedChecksum = computeBackupChecksum(fullData)
-                // Note: For legacy version 4 checksum format check fallback if needed
-                val legacyChecksum = calculateSha256("${fullData.categories.size}-${fullData.tasks.size}-${fullData.occurrences.size}-${fullData.createdAt}")
-                if (fullData.checksum != expectedChecksum && fullData.checksum != legacyChecksum) {
+                val legacyV5Checksum = calculateSha256("${fullData.categories.size}-${fullData.tasks.size}-${fullData.occurrences.size}-${fullData.taskTemplates?.size ?: 0}-${fullData.goals?.size ?: 0}-${fullData.settings.size}-${fullData.createdAt}")
+                val legacyV4Checksum = calculateSha256("${fullData.categories.size}-${fullData.tasks.size}-${fullData.occurrences.size}-${fullData.createdAt}")
+                if (fullData.checksum != expectedChecksum && fullData.checksum != legacyV5Checksum && fullData.checksum != legacyV4Checksum) {
                     return BackupValidationResult.Invalid("Backup integrity check failed: Checksum mismatch. The file may be corrupt or altered.")
                 }
             }

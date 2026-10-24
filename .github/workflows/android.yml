@@ -157,7 +157,7 @@ jobs:
             - **Data Completeness:** Complete backup of database, routine execution logs, settings preferences, diagnostic app classifications, and Focentra focus sessions.
             - **Integrity & Safety:** SHA-256 Checksum validation & schema verification to prevent file corruption.
             - **Flexible Import/Export:** Dual support for File System Picker (.daynexa / .json) AND Clipboard Copy/Paste with direct JSON Text input.
-            - **Major Upgrade:** Upgraded to Android app version **3.0.0** (version code **33**).
+            - **Major Upgrade:** Upgraded to Android app version **4.0.0** (version code **34**).
 
             #### Installation Instructions
             1. Download **`${{ steps.prepare-apk.outputs.apk_path }}`** below.

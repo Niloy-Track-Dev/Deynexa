@@ -61,7 +61,7 @@ class DataPortabilityManager(
 
         BackupData(
             backupVersion = 5,
-            appVersion = "3.0.0",
+            appVersion = "4.0.0",
             createdAt = System.currentTimeMillis(),
             backupType = "FULL_BACKUP",
             source = "Daynexa",
@@ -99,7 +99,7 @@ class DataPortabilityManager(
 
         FocentraExportBundle(
             exportVersion = 1,
-            appVersion = "3.0.0",
+            appVersion = "4.0.0",
             createdAt = System.currentTimeMillis(),
             source = "Focentra",
             origin = "Focentra Integration API v1",
