@@ -60,8 +60,8 @@ class DataPortabilityManager(
         }
 
         BackupData(
-            backupVersion = 4,
-            appVersion = "1.1.0",
+            backupVersion = 5,
+            appVersion = "2.0.0",
             createdAt = System.currentTimeMillis(),
             backupType = "FULL_BACKUP",
             source = "Daynexa",
@@ -99,7 +99,7 @@ class DataPortabilityManager(
 
         FocentraExportBundle(
             exportVersion = 1,
-            appVersion = "0.7.0",
+            appVersion = "2.0.0",
             createdAt = System.currentTimeMillis(),
             source = "Focentra",
             origin = "Focentra Integration API v1",
@@ -321,6 +321,8 @@ class DataPortabilityManager(
                         val existing = database.settingDao().getByKey(k)
                         if (existing == null) {
                             database.settingDao().insert(SettingEntity(k, v))
+                        } else {
+                            database.settingDao().update(SettingEntity(k, v))
                         }
                     }
                 }

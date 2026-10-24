@@ -52,7 +52,10 @@ fun SettingsScreen(
     var showConsentDialog by remember { mutableStateOf(false) }
     var showCustomReminderDialog by remember { mutableStateOf(false) }
     var showCsvImportDialog by remember { mutableStateOf(false) }
+    var showJsonImportChoiceDialog by remember { mutableStateOf(false) }
+    var showJsonImportTextDialog by remember { mutableStateOf(false) }
     var csvInputText by remember { mutableStateOf("") }
+    var jsonInputText by remember { mutableStateOf("") }
     var customMinutesInput by remember { mutableStateOf("${if (uiState.defaultReminderOffset !in listOf(0, 5, 10, 15, 30)) uiState.defaultReminderOffset else 20}") }
     var selectedImportMode by remember { mutableStateOf(ImportMode.MERGE) }
 
@@ -92,12 +95,6 @@ fun SettingsScreen(
         }
     }
 
-    LaunchedEffect(uiState.generatedExportJson) {
-        val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        if (uiState.generatedExportJson != null && uiState.exportDialogType == "FULL") {
-            createJsonBackupLauncher.launch("Daynexa_Backup_$dateStr.daynexa")
-        }
-    }
 
     // Toast feedback for import / export
     LaunchedEffect(uiState.importFeedbackMessage) {
@@ -385,9 +382,9 @@ fun SettingsScreen(
                     SettingsActionItem(
                         icon = Icons.Outlined.FileDownload,
                         title = "Import JSON Backup",
-                        subtitle = "Restore routines, logs and settings from .daynexa or .json backup file",
+                        subtitle = "Restore routines, logs and settings via file picker or clipboard JSON text",
                         onClick = {
-                            importBackupLauncher.launch(arrayOf("application/json", "*/*"))
+                            showJsonImportChoiceDialog = true
                         }
                     )
 
@@ -517,7 +514,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Build Better Days • v1.1.0",
+                        text = "Build Better Days • v2.0.0",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -617,6 +614,224 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showConsentDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Full Backup JSON Export Dialog (File & Clipboard Options)
+    if (uiState.generatedExportJson != null && uiState.exportDialogType == "FULL") {
+        val exportJsonText = uiState.generatedExportJson ?: ""
+        val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissExportDialog() },
+            title = { Text("Full Backup Ready (v2.0.0)", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Your complete app state backup has been generated. Choose to save as a file or copy JSON to clipboard:",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp)
+                    ) {
+                        Text(
+                            text = exportJsonText,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier
+                                .padding(10.dp)
+                                .verticalScroll(rememberScrollState())
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            val clip = ClipData.newPlainText("Daynexa Full Backup JSON", exportJsonText)
+                            clipboard.setPrimaryClip(clip)
+                            Toast.makeText(context, "Full Backup JSON copied to clipboard!", Toast.LENGTH_SHORT).show()
+                            viewModel.dismissExportDialog()
+                        },
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Outlined.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Copy JSON")
+                    }
+
+                    Button(
+                        onClick = {
+                            createJsonBackupLauncher.launch("Daynexa_Backup_$dateStr.daynexa")
+                        },
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Outlined.SaveAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Save File")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissExportDialog() }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+
+    // JSON Import Choice Dialog (File vs Text/Clipboard)
+    if (showJsonImportChoiceDialog) {
+        AlertDialog(
+            onDismissRequest = { showJsonImportChoiceDialog = false },
+            title = { Text("Import Backup Options", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Choose how you want to load your Daynexa backup file or data:",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                showJsonImportChoiceDialog = false
+                                importBackupLauncher.launch(arrayOf("application/json", "*/*"))
+                            }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(Icons.Outlined.FolderOpen, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Column {
+                                Text("Select Backup File (.daynexa / .json)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                Text("Browse device storage for a saved backup file.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                showJsonImportChoiceDialog = false
+                                jsonInputText = ""
+                                showJsonImportTextDialog = true
+                            }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(Icons.Outlined.ContentPaste, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Column {
+                                Text("Paste / Enter JSON Text", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                                Text("Paste raw backup JSON text directly from clipboard.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showJsonImportChoiceDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // JSON Import Text Dialog with Paste button
+    if (showJsonImportTextDialog) {
+        AlertDialog(
+            onDismissRequest = { showJsonImportTextDialog = false },
+            title = { Text("Paste Backup JSON Text", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Paste your backup JSON text below or use 'Paste from Clipboard':",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    OutlinedTextField(
+                        value = jsonInputText,
+                        onValueChange = { jsonInputText = it },
+                        placeholder = { Text("{\"backupVersion\":5,\"appVersion\":\"2.0.0\",...}") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                try {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val clipData = clipboard.primaryClip
+                                    if (clipData != null && clipData.itemCount > 0) {
+                                        val pastedText = clipData.getItemAt(0).text?.toString() ?: ""
+                                        if (pastedText.isNotBlank()) {
+                                            jsonInputText = pastedText
+                                            Toast.makeText(context, "Pasted JSON from clipboard!", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            Toast.makeText(context, "Clipboard is empty", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } else {
+                                        Toast.makeText(context, "Clipboard is empty", Toast.LENGTH_SHORT).show()
+                                    }
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Could not read clipboard", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Outlined.ContentPaste, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Paste")
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (jsonInputText.isNotBlank()) {
+                            viewModel.validateImportJson(jsonInputText)
+                            showJsonImportTextDialog = false
+                        } else {
+                            Toast.makeText(context, "Please paste valid JSON text", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    shape = RoundedCornerShape(10.dp),
+                    enabled = jsonInputText.isNotBlank()
+                ) {
+                    Text("Validate & Restore")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showJsonImportTextDialog = false }) {
                     Text("Cancel")
                 }
             }
