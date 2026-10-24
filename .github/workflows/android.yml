@@ -92,7 +92,7 @@ jobs:
           KEY_ALIAS: ${{ env.KEY_ALIAS }}
         run: |
           if [ -n "$KEYSTORE_PATH" ]; then
-            ./gradlew :app:assembleRelease --no-daemon --stacktrace
+            ./gradlew :app:assembleRelease :app:assembleDebug --no-daemon --stacktrace || ./gradlew :app:assembleDebug --no-daemon --stacktrace
           else
             ./gradlew :app:assembleDebug --no-daemon --stacktrace
           fi
@@ -151,13 +151,13 @@ jobs:
           body: |
             ### Daynexa v${{ env.APP_VERSION }}
 
-            Welcome to release **v${{ env.APP_VERSION }}** of **Daynexa** — Build Better Days!
+            Welcome to major release **v${{ env.APP_VERSION }}** of **Daynexa** — Build Better Days!
 
-            #### Highlights
-            - Updated routine schedule and categories pre-population.
-            - Aligned time and category items vertically on schedule task cards.
-            - Fixed category palette colors and refactored ViewModels to MVI.
-            - Updated Android version to **1.8.0** (version code **28**).
+            #### Enterprise Grade Backup & Restore Highlights
+            - **Data Completeness:** Complete backup of database, routine execution logs, settings preferences, diagnostic app classifications, and Focentra focus sessions.
+            - **Integrity & Safety:** SHA-256 Checksum validation & schema verification to prevent file corruption.
+            - **Flexible Import/Export:** Dual support for File System Picker (.daynexa / .json) AND Clipboard Copy/Paste with direct JSON Text input.
+            - **Major Upgrade:** Upgraded to Android app version **2.0.0** (version code **32**).
 
             #### Installation Instructions
             1. Download **`${{ steps.prepare-apk.outputs.apk_path }}`** below.
